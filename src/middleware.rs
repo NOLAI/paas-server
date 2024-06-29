@@ -1,4 +1,4 @@
-use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
+use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage, HttpResponse};
 use actix_web::dev::{forward_ready, Service, Transform};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::future::{ready, Ready};
@@ -76,11 +76,6 @@ where
                     Ok(res)
                 });
             }
-                let fut = self.service.call(req);
-                return Box::pin(async move {
-                    let res = fut.await?;
-                    Ok(res)
-                });
             }
         }
 
