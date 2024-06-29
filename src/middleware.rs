@@ -3,21 +3,28 @@ use actix_web::dev::{forward_ready, Service, Transform};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::future::{ready, Ready};
 use std::fs;
+use std::collections::HashMap;
 use std::sync::Arc;
+use serde::Deserialize;
+use std::fs;
+
+#[derive(Deserialize)]
+struct TokenConfig {
+    tokens: HashMap<String, String>,
+}
 
 pub struct AuthMiddleware {
-    token: Arc<String>,
-    token: Arc<String>,
+    tokens: Arc<HashMap<String, String>>,
 }
 
 impl AuthMiddleware {
     pub fn new(token_file: &str) -> Self {
-        let token = fs::read_to_string(token_file)
-            .expect("Failed to read token file")
-            .trim()
-            .to_string();
-        AuthMiddleware {
-            token: Arc::new(token),
+        let file_content = fs::read_to_string(token_file)
+            .expect("Failed to read token file");
+        let token_config: TokenConfig = serde_yaml::from_str(&file_content)
+            .expect("Failed to parse token file");
+        AuthMiddleware { 
+            tokens: Arc::new(token_config.tokens),
         }
     }
 }
@@ -37,7 +44,7 @@ where
     fn new_transform(&self, service: S) -> Self::Future {
         ok(AuthMiddlewareService {
             service,
-            token: Arc::clone(&self.token),
+            tokens: Arc::clone(&self.tokens),
         })
     }
 }
@@ -62,7 +69,13 @@ where
         let token = req.headers().get("Authorization").and_then(|header| header.to_str().ok());
 
         if let Some(token) = token {
-            if token == format!("Bearer {}", self.token) {
+            if let Some(user) = self.tokens.get(token.trim_start_matches("Bearer ")) {
+                let fut = self.service.call(req);
+                return Box::pin(async move {
+                    let res = fut.await?;
+                    Ok(res)
+                });
+            }
                 let fut = self.service.call(req);
                 return Box::pin(async move {
                     let res = fut.await?;
