@@ -11,6 +11,7 @@ use std::fs;
 #[derive(Deserialize)]
 struct TokenConfig {
     tokens: HashMap<String, String>,
+    tokens: Arc<HashMap<String, String>>,
 }
 
 pub struct AuthMiddleware {
@@ -76,6 +77,11 @@ where
                     Ok(res)
                 });
             }
+                let fut = self.service.call(req);
+                return Box::pin(async move {
+                    let res = fut.await?;
+                    Ok(res)
+                });
             }
         }
 
