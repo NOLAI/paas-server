@@ -52,6 +52,7 @@ where
 
 pub struct AuthMiddlewareService<S> {
     service: S,
+    tokens: Arc<HashMap<String, String>>,
 }
 
 impl<S, B> Service<ServiceRequest> for AuthMiddlewareService<S>
