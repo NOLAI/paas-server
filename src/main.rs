@@ -1,5 +1,6 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpResponse, HttpServer, Responder, middleware};
 use serde::{Deserialize, Serialize};
+mod middleware;
 
 #[derive(Serialize, Deserialize)]
 struct MyObj {
@@ -25,6 +26,7 @@ async fn create_item(item: web::Json<MyObj>) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
+            .wrap(middleware::AuthMiddleware)
             .route("/", web::get().to(index))
             .route("/item", web::get().to(get_item))
             .route("/item", web::post().to(create_item))
