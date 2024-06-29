@@ -4,6 +4,7 @@ use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::future::{ready, Ready};
 use std::fs;
 use std::collections::HashMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 use serde::Deserialize;
 use std::fs;
@@ -71,7 +72,7 @@ where
         let token = req.headers().get("Authorization").and_then(|header| header.to_str().ok());
 
         if let Some(token) = token {
-            if self.tokens.values().any(|&v| v == token.trim_start_matches("Bearer ")) {
+            if self.tokens.values().any(|v| v == token.trim_start_matches("Bearer ")) {
                 let fut = self.service.call(req);
                 return Box::pin(async move {
                     let res = fut.await?;
