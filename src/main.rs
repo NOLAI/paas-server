@@ -24,9 +24,11 @@ async fn create_item(item: web::Json<MyObj>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    let auth_middleware = middleware::AuthMiddleware::new("token.txt");
+
+    HttpServer::new(move || {
         App::new()
-            .wrap(middleware::AuthMiddleware)
+            .wrap(auth_middleware.clone())
             .route("/", web::get().to(index))
             .route("/item", web::get().to(get_item))
             .route("/item", web::post().to(create_item))
