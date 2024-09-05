@@ -1,0 +1,5 @@
+global_public_key: "mypublickey"
+global_secret_key: "mysecret"
+pseudonymization_secret: "mypseudonymizationsecret"
+rekeying_secret: "myrekeyingsecret"
+

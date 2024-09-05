@@ -1,0 +1,54 @@
+use actix_web::{HttpResponse, Responder, web};
+use libpep::elgamal::{ElGamal};
+use libpep::primitives::rsk_from_to;
+use libpep::utils::{make_decryption_factor, make_pseudonymisation_factor};
+use serde::{Deserialize, Serialize};
+
+
+#[derive(Serialize, Deserialize)]
+pub struct EncryptedPseudonym {
+    encrypted_pseudonym: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PseudonymizationRequest {
+    encrypted_pseudonym: String,
+    pseudonym_context_from: String,
+    pseudonym_context_to: String,
+    enc_context: String,
+    dec_context: String,
+}
+
+pub async fn index() -> impl Responder {
+    HttpResponse::Ok().body("Hello world!")
+}
+pub async fn random() -> impl Responder {
+    let random = libpep::arithmetic::GroupElement::random(&mut rand::thread_rng());
+    let enc = libpep::elgamal::encrypt(&random, &libpep::arithmetic::G, &mut rand::thread_rng());
+    HttpResponse::Ok().json(EncryptedPseudonym {
+        encrypted_pseudonym: enc.to_string(),
+    })
+}
+
+fn rsk(msg_in: ElGamal, pseudonym_context_from: String, pseudonym_context_to: String, enc_context: String, dec_context: String) -> ElGamal {
+    let v_from = make_pseudonymisation_factor("secret", &pseudonym_context_from);
+    let v_to = make_pseudonymisation_factor("secret", &pseudonym_context_to);
+    let k_from = make_decryption_factor("secret", &enc_context);
+    let k_to = make_decryption_factor("secret", &dec_context);
+
+    rsk_from_to(&msg_in, &v_from, &v_to, &k_from, &k_to)
+}
+pub async fn pseudonymize(item: web::Json<PseudonymizationRequest>) -> impl Responder {
+    let request = item.into_inner();
+    let msg_in = ElGamal::from_string(&request.encrypted_pseudonym);
+    if msg_in.is_none() {
+        return HttpResponse::BadRequest().body("Invalid input");
+    }
+    let msg_in = msg_in.unwrap();
+
+    let msg_out = rsk(msg_in, request.pseudonym_context_from, request.pseudonym_context_to, request.enc_context, request.dec_context);
+
+    HttpResponse::Ok().json(EncryptedPseudonym {
+        encrypted_pseudonym: msg_out.to_string(),
+    })
+}

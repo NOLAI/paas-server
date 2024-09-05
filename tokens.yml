@@ -1,3 +1,4 @@
 tokens:
-  mysecrettoken: "user1"
-  anothersecrettoken: "user2"
+  user1: "mysecrettoken"
+  user2: "anothersecrettoken"
+
