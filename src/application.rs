@@ -10,13 +10,13 @@ pub struct EncryptedPseudonym {
     encrypted_pseudonym: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PseudonymizationRequest {
     encrypted_pseudonym: String,
     pseudonym_context_from: String,
     pseudonym_context_to: String,
-    enc_context: String,
-    dec_context: String,
+    pub(crate) enc_context: String,
+    pub(crate) dec_context: String,
 }
 
 pub async fn index() -> impl Responder {
@@ -25,7 +25,7 @@ pub async fn index() -> impl Responder {
 pub async fn random() -> impl Responder {
     let random = libpep::arithmetic::GroupElement::random(&mut rand::thread_rng());
     let enc = libpep::elgamal::encrypt(&random, &libpep::arithmetic::G, &mut rand::thread_rng());
-    
+
     HttpResponse::Ok().json(EncryptedPseudonym {
         encrypted_pseudonym: enc.encode_to_base64(),
     })
@@ -40,6 +40,7 @@ fn rsk(msg_in: ElGamal, pseudonym_context_from: String, pseudonym_context_to: St
     rsk_from_to(&msg_in, &v_from, &v_to, &k_from, &k_to)
 }
 pub async fn pseudonymize(item: web::Json<PseudonymizationRequest>) -> impl Responder {
+    println!("{:?}", item); // <- print request body
     let request = item.into_inner();
     let msg_in = ElGamal::decode_from_base64(&request.encrypted_pseudonym);
     if msg_in.is_none() {

@@ -1,4 +1,4 @@
-use actix_web::{Error};
+use actix_web::{Error, HttpMessage};
 use actix_web::error::{ErrorUnauthorized};
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
@@ -15,6 +15,11 @@ struct TokenConfig {
 #[derive(Clone)]
 pub struct AuthMiddleware {
     tokens: Arc<HashMap<String, String>>,
+}
+
+#[derive(Clone)]
+pub struct AuthenticationInfo {
+    pub username: Arc<String>,
 }
 
 impl AuthMiddleware {
@@ -70,14 +75,32 @@ where
         let token = req.headers().get("Authorization").and_then(|header| header.to_str().ok());
 
         if let Some(token) = token {
-            if self.tokens.values().any(|v| v == token.trim_start_matches("Bearer ")) {
-                let fut = self.service.call(req);
-                return Box::pin(async move {
-                    let res = fut.await?;
-                    Ok(res)
-                });
+            for (user, user_token) in self.tokens.iter() {
+                if user_token == token.trim_start_matches("Bearer ") {
+                    let found_user = user.clone();
+                    println!("Found user: {}", found_user); // TODO: Should be logged or removed
+                    req.extensions_mut().insert::<AuthenticationInfo>({
+                        AuthenticationInfo {
+                            username: Arc::new(found_user),
+                        }});
+                    let fut = self.service.call(req);
+                    return Box::pin(async move {
+                        let res = fut.await?;
+                        Ok(res)
+                    });
+                };
             }
+            // if self.tokens.values().any(|v| v == token.trim_start_matches("Bearer ")) {
+            //
+            //     let fut = self.service.call(req);
+            //     return Box::pin(async move {
+            //         let res = fut.await?;
+            //         req.extensions_mut().insert("username", )
+            //         Ok(res)
+            //     });
+            // }
         }
+
         Box::pin(async move { Err(ErrorUnauthorized("Unauthorized")) })
     }
 }
