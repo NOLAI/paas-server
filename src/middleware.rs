@@ -90,15 +90,6 @@ where
                     });
                 };
             }
-            // if self.tokens.values().any(|v| v == token.trim_start_matches("Bearer ")) {
-            //
-            //     let fut = self.service.call(req);
-            //     return Box::pin(async move {
-            //         let res = fut.await?;
-            //         req.extensions_mut().insert("username", )
-            //         Ok(res)
-            //     });
-            // }
         }
 
         Box::pin(async move { Err(ErrorUnauthorized("Unauthorized")) })
