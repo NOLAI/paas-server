@@ -1,18 +1,15 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use actix_web::{web, Error, FromRequest, HttpMessage};
+use actix_web::{Error, FromRequest, HttpMessage};
 use actix_web::error::{ErrorForbidden, ErrorUnauthorized};
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::collections::HashMap;
+use std::convert::{ TryInto};
 use std::sync::Arc;
 use serde::Deserialize;
 use std::fs;
 use actix_web::body::MessageBody;
-use actix_web::web::{BytesMut, Json};
-use futures_util::{StreamExt, TryFutureExt};
-use crate::application::PseudonymizationRequest;
-use crate::middleware::AuthenticationInfo;
+use futures_util::{ TryFutureExt};
+use crate::auth_middleware::AuthenticationInfo;
 
 #[derive(Deserialize)]
 struct DomainConfig {
@@ -70,6 +67,13 @@ pub struct DomainMiddlewareService<S> {
     to: Arc<HashMap<String, Vec<String>>>,
 }
 
+#[derive(Clone, Debug)]
+pub struct DomainInfo {
+    pub from: Arc<Vec<String>>,
+    pub to: Arc<Vec<String>>,
+}
+
+
 impl<S, B> Service<ServiceRequest> for DomainMiddlewareService<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
@@ -83,72 +87,35 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let auth_info = req.extensions().get::<AuthenticationInfo>().cloned(); // Get user authentication info
+        // Clone the auth info, and arc references to 'from' and 'to' maps
+        let auth_info = req.extensions().get::<AuthenticationInfo>().cloned();
         let from_map = Arc::clone(&self.from);
         let to_map = Arc::clone(&self.to);
 
-
+        // Handle case with or without authentication info
         if let Some(auth_info) = auth_info {
-            let username = auth_info.username.as_str(); // Get the username from the auth info
-
+            let username = auth_info.username.as_str();
             let user_from_contexts = from_map.get(username);
             let user_to_contexts = to_map.get(username);
 
-            println!("Username: {}", username);
-            println!("User from contexts: {:?}", user_from_contexts);
-            println!("User to contexts: {:?}", user_to_contexts);
-            
-
-            // TODO: This is just a placeholder for now
-            // We should either extract the request data and check if the user has access to the contexts
-            // Or we should add the user's contexts to the request data and check if the user has access later on in the pipeline
-            // I don't like the second option since we want the middleware to be the judge and the application to be the executor
-            // So we should probably go with the first option but the types are all wrong and its a mess.
-            // https://imfeld.dev/writing/actix-web-middleware
-
+            if let (Some(from), Some(to)) = (user_from_contexts, user_to_contexts) {
+                req.extensions_mut().insert(DomainInfo {
+                    from: Arc::new(from.clone()),
+                    to: Arc::new(to.clone()),
+                });
                 let fut = self.service.call(req);
-                return Box::pin(async move {
+
+                Box::pin(async move {
+                    // Reconstruct the request
                     let res = fut.await?;
                     Ok(res)
-                });
-
-            // Box::pin(async move {
-            //     // let payload = req.take_payload();
-            //     // let mut request_body = BytesMut::new();
-            //     // while let Some(chunk) = req.take_payload().next().await {
-            //     //     request_body.extend_from_slice(&chunk?);
-            //     // }
-            //     // let request_data: PseudonymizationRequest = serde_json::from_slice(&request_body).unwrap();
-            //     //
-            //
-            //     // let (http_req, payload) = req.into_parts();
-            //     // Extract the request body (PseudonymizationRequest) from the request
-            //     // let request_data = match web::Json::<PseudonymizationRequest>::from_request(&http_req, payload).await {
-            //     //     Ok(req_data) => req_data.into_inner(), // Successfully parsed request
-            //     //     Err(_) => return Err(ErrorForbidden("Invalid request format")),
-            //     // };
-            //
-            //     // Retrieve the user's allowed 'from' and 'to' contexts from the maps
-            //     let user_from_contexts = from_map.get(username);
-            //     let user_to_contexts = to_map.get(username);
-            //
-            //     // Check if the user has access to the 'enc_context' and 'dec_context'
-            //     if let (Some(from), Some(to)) = (user_from_contexts, user_to_contexts) {
-            //         if from.contains(&request_data.enc_context) && to.contains(&request_data.dec_context) {
-            //             let fut = svc.call(req);
-            //
-            //             // If user has access, forward the request
-            //             let res = fut.await?;
-            //             return Ok(res);
-            //         }
-            //     }
-            //
-            //     // If access is denied, return forbidden
-            //     Err(ErrorForbidden("User does not have access to the requested contexts"))
-            // })
+                })
+            } else {
+                Box::pin(async move { Err(ErrorForbidden("User not found in domain allowlist")) })
+            }
+        } else {
+            // No authentication info provided
+            Box::pin(async move { Err(ErrorUnauthorized("No authentication info provided"))})
         }
-    else{
-        Box::pin(async move { Err(ErrorUnauthorized("No authentication info provided")) })
     }
-        }
 }

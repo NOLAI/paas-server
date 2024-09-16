@@ -1,9 +1,11 @@
-use actix_web::{HttpResponse, Responder, web};
+use actix_web::{HttpResponse, Responder, HttpRequest, HttpMessage};
+use actix_web::web::Bytes;
 use libpep::elgamal::{ElGamal};
 use libpep::primitives::rsk_from_to;
 use libpep::utils::{make_decryption_factor, make_pseudonymisation_factor};
 use serde::{Deserialize, Serialize};
-
+use crate::auth_middleware::AuthenticationInfo;
+use crate::domain_middleware::DomainInfo;
 
 #[derive(Serialize, Deserialize)]
 pub struct EncryptedPseudonym {
@@ -15,8 +17,8 @@ pub struct PseudonymizationRequest {
     encrypted_pseudonym: String,
     pseudonym_context_from: String,
     pseudonym_context_to: String,
-    pub(crate) enc_context: String,
-    pub(crate) dec_context: String,
+    enc_context: String,
+    dec_context: String,
 }
 
 pub async fn index() -> impl Responder {
@@ -39,9 +41,26 @@ fn rsk(msg_in: ElGamal, pseudonym_context_from: String, pseudonym_context_to: St
 
     rsk_from_to(&msg_in, &v_from, &v_to, &k_from, &k_to)
 }
-pub async fn pseudonymize(item: web::Json<PseudonymizationRequest>) -> impl Responder {
+// pub async fn pseudonymize(item: web::Json<PseudonymizationRequest>, auth: AuthenticationInfo, domain_info: DomainInfo) -> impl Responder {
+pub async fn pseudonymize(req: HttpRequest, body: Bytes) -> impl Responder {
+
+    // Access control alleen bij de prefix en niet postfix. Voor nu postfix loggen.
+    // dec_context moet gelijk zijn aan jou sessie. 
+        
+    let auth = req.extensions().get::<AuthenticationInfo>().unwrap().clone();
+    let domain_info = req.extensions().get::<DomainInfo>().unwrap().clone();
+    let item = serde_json::from_slice::<PseudonymizationRequest>(&body);
+    
     println!("{:?}", item); // <- print request body
-    let request = item.into_inner();
+    println!("{:?}", auth); // <- print authentication info
+    println!("{:?}", domain_info); // <- print domain info
+    
+    let request = item.unwrap();
+    
+    if !(domain_info.from.contains(&request.enc_context) && domain_info.to.contains(&request.dec_context)) {
+        return HttpResponse::Forbidden().body("Domain not allowed");
+    }
+    
     let msg_in = ElGamal::decode_from_base64(&request.encrypted_pseudonym);
     if msg_in.is_none() {
         return HttpResponse::BadRequest().body("Invalid input");
