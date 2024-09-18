@@ -1,11 +1,12 @@
 use actix_web::{HttpResponse, Responder, HttpRequest, HttpMessage};
-use actix_web::web::Bytes;
+use actix_web::web::{Bytes, Data};
 use libpep::elgamal::{ElGamal};
 use libpep::primitives::rsk_from_to;
 use libpep::utils::{make_decryption_factor, make_pseudonymisation_factor};
 use serde::{Deserialize, Serialize};
 use crate::auth_middleware::AuthenticationInfo;
 use crate::domain_middleware::DomainInfo;
+use crate::redis_connector::RedisConnector;
 
 #[derive(Serialize, Deserialize)]
 pub struct EncryptedPseudonym {
@@ -71,5 +72,21 @@ pub async fn pseudonymize(req: HttpRequest, body: Bytes) -> impl Responder {
 
     HttpResponse::Ok().json(EncryptedPseudonym {
         encrypted_pseudonym: msg_out.encode_to_base64(),
+    })
+}
+
+pub async fn rekey() -> impl Responder {
+    HttpResponse::Ok().body("Rekey")
+}
+
+pub async fn start_session(req: HttpRequest, data: Data<RedisConnector>) -> impl Responder {
+    let auth = req.extensions().get::<AuthenticationInfo>().unwrap().clone();
+    let mut redis_connector = data.get_ref().clone();
+    
+    let session_id = redis_connector.start_session(auth.username.to_string()).unwrap();
+    println!("Session ID: {}", session_id);
+    
+    HttpResponse::Ok().json({
+        session_id
     })
 }

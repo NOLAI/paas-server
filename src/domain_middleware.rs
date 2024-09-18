@@ -1,14 +1,11 @@
-use actix_web::{Error, FromRequest, HttpMessage};
+use actix_web::{Error, HttpMessage};
 use actix_web::error::{ErrorForbidden, ErrorUnauthorized};
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use std::collections::HashMap;
-use std::convert::{ TryInto};
 use std::sync::Arc;
 use serde::Deserialize;
 use std::fs;
-use actix_web::body::MessageBody;
-use futures_util::{ TryFutureExt};
 use crate::auth_middleware::AuthenticationInfo;
 
 #[derive(Deserialize)]

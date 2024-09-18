@@ -1,6 +1,7 @@
 mod auth_middleware;
 mod application;
 mod domain_middleware;
+mod redis_connector;
 
 use actix_web::{web, App, HttpServer};
 use actix_web::middleware::{Logger};
@@ -9,11 +10,15 @@ use env_logger::Env;
 use crate::application::*;
 use crate::auth_middleware::AuthMiddleware;
 use crate::domain_middleware::DomainMiddleware;
+use crate::redis_connector::RedisConnector;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    println!("Starting server at main");
     let auth_middleware = AuthMiddleware::new("resources/tokens.yml");
     let domain_middleware = DomainMiddleware::new("resources/allowlist.yml");
+    let redis_connector = RedisConnector::new().expect("Failed to connect to Redis");
+    println!("Server started");
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     HttpServer::new(move || {
@@ -22,13 +27,14 @@ async fn main() -> std::io::Result<()> {
             .wrap(auth_middleware.clone()) // Not needed for random
             .route("/", web::get().to(index))
             .route("/random", web::get().to(random))
+            .app_data(web::Data::new(redis_connector.clone()))
             .service(
                 web::scope("/pseudonymize")
                     .route("", web::post().to(pseudonymize)
                         .wrap(domain_middleware.clone())
                     ))
-        //    .route("/rekey", web::post().to(pseudonymize)) // TODO
-        // TODO: Start session en dan krijg je een session terug. Je kan meerdere sessies draaien, alleen na 24H worden ze verwijderd.
+            .route("/rekey", web::post().to(rekey)) // TODO
+            .route("/start_session", web::post().to(start_session))
     })
         .bind("0.0.0.0:8080")?
         .run()
