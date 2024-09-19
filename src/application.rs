@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder, HttpRequest, HttpMessage};
+use actix_web::{HttpResponse, Responder, HttpRequest, HttpMessage, web};
 use actix_web::web::{Bytes, Data};
 use libpep::elgamal::{ElGamal};
 use libpep::primitives::rsk_from_to;
@@ -20,6 +20,11 @@ pub struct PseudonymizationRequest {
     pseudonym_context_to: String,
     enc_context: String,
     dec_context: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EndSessionRequest {
+    session_id: String,
 }
 
 pub async fn index() -> impl Responder {
@@ -84,9 +89,23 @@ pub async fn start_session(req: HttpRequest, data: Data<RedisConnector>) -> impl
     let mut redis_connector = data.get_ref().clone();
     
     let session_id = redis_connector.start_session(auth.username.to_string()).unwrap();
-    println!("Session ID: {}", session_id);
     
     HttpResponse::Ok().json({
         session_id
     })
+}
+
+pub async fn end_session(item: web::Json<EndSessionRequest>, req: HttpRequest, data: Data<RedisConnector>) -> impl Responder {
+    let auth = req.extensions().get::<AuthenticationInfo>().unwrap().clone();
+    let session_id = item.session_id.clone();
+    let username_in_session = session_id.split('_').next().unwrap();
+    let mut redis_connector = data.get_ref().clone();
+    
+    if(auth.username.as_str() != username_in_session) {
+        return HttpResponse::Forbidden().body("Session not owned by user");
+    }
+    
+    redis_connector.end_session(auth.username.to_string(), session_id).unwrap();
+    
+    HttpResponse::Ok().json({})
 }

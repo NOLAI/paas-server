@@ -2,6 +2,8 @@ use std::{env};
 use redis::{Client, Commands};
 use redis::RedisError;
 use chrono::Utc;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 
 #[derive(Clone)]
 pub struct RedisConnector {
@@ -16,16 +18,23 @@ impl RedisConnector {
 
     pub fn start_session(&mut self, username: String) -> Result<String, RedisError> {
         // Generate a random string for the session ID
-        let session_postfix = Utc::now().format("%Y%m%d_%H").to_string();
+        let session_postfix: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(10) // Random string length
+            .map(char::from)
+            .collect();
+        
+        let session_time = Utc::now().format("%Y%m%d_%H").to_string();
+
         let session_id = format!("{}_{}", username, session_postfix);
         let key = format!("sessions:{}:{}", username, session_id);
 
         let mut connection = self.client.get_connection()?;
 
-        let _: () = connection.set(key.clone(), "").expect("Failed to set session data");
+        let _: () = connection.set(key.clone(), session_time).expect("Failed to set session data");
         // Set expiration for 24 hours
         let _: () = connection.expire(key.clone(), 86400).expect("Failed to set expiration");
-
+        
         Ok(session_id)
     }
     

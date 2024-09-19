@@ -14,7 +14,6 @@ services:
       - ./resources/tokens.yml:/resources/tokens.yml:ro
     environment:
       REDIS_URL: redis://redis:6379
-
   redis:
     image: redis:alpine
     ports:

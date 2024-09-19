@@ -18,7 +18,7 @@ async fn main() -> std::io::Result<()> {
     let auth_middleware = AuthMiddleware::new("resources/tokens.yml");
     let domain_middleware = DomainMiddleware::new("resources/allowlist.yml");
     let redis_connector = RedisConnector::new().expect("Failed to connect to Redis");
-    println!("Server started");
+    println!("Server started at main");
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     HttpServer::new(move || {
@@ -34,7 +34,8 @@ async fn main() -> std::io::Result<()> {
                         .wrap(domain_middleware.clone())
                     ))
             .route("/rekey", web::post().to(rekey)) // TODO
-            .route("/start_session", web::post().to(start_session))
+            .route("/start_session", web::get().to(start_session))
+            .route("/end_session", web::post().to(end_session))
     })
         .bind("0.0.0.0:8080")?
         .run()
