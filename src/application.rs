@@ -1,6 +1,10 @@
+use std::sync::Arc;
 use actix_web::{HttpResponse, Responder, HttpRequest, HttpMessage, web};
 use actix_web::web::{Bytes, Data};
+use libpep::arithmetic::ScalarTraits;
+use libpep::distributed::PEPSystem;
 use libpep::elgamal::{ElGamal};
+use libpep::high_level::EncryptionContext;
 use libpep::primitives::rsk_from_to;
 use libpep::utils::{make_decryption_factor, make_pseudonymisation_factor};
 use serde::{Deserialize, Serialize};
@@ -27,6 +31,12 @@ pub struct EndSessionRequest {
     session_id: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct StartSessionResponse {
+    session_id: String,
+    key_share: String,
+}
+
 pub async fn index() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
 }
@@ -47,8 +57,13 @@ fn rsk(msg_in: ElGamal, pseudonym_context_from: String, pseudonym_context_to: St
 
     rsk_from_to(&msg_in, &v_from, &v_to, &k_from, &k_to)
 }
-// pub async fn pseudonymize(item: web::Json<PseudonymizationRequest>, auth: AuthenticationInfo, domain_info: DomainInfo) -> impl Responder {
-pub async fn pseudonymize(req: HttpRequest, body: Bytes) -> impl Responder {
+
+
+fn has_access_to_context(from: Arc<Vec<String>>, to: Arc<Vec<String>>, enc_context: String, dec_context: String, user_sessions: Vec<String>) -> bool {
+    user_sessions.contains(&dec_context) && from.contains(&enc_context) && to.contains(&dec_context)
+}
+
+pub async fn pseudonymize(req: HttpRequest, body: Bytes,  redis: Data<RedisConnector>) -> impl Responder {
 
     // Access control alleen bij de prefix en niet postfix. Voor nu postfix loggen.
     // dec_context moet gelijk zijn aan jou sessie. 
@@ -62,8 +77,11 @@ pub async fn pseudonymize(req: HttpRequest, body: Bytes) -> impl Responder {
     println!("{:?}", domain_info); // <- print domain info
     
     let request = item.unwrap();
+
+    let mut redis_connector = redis.get_ref().clone();
+    let sessions = redis_connector.get_sessions_for_user(auth.username.to_string()).expect("Failed to get sessions");
     
-    if !(domain_info.from.contains(&request.enc_context) && domain_info.to.contains(&request.dec_context)) {
+    if !(has_access_to_context(domain_info.from, domain_info.to, request.enc_context.clone(), request.dec_context.clone(), sessions)) {
         return HttpResponse::Forbidden().body("Domain not allowed");
     }
     
@@ -84,14 +102,17 @@ pub async fn rekey() -> impl Responder {
     HttpResponse::Ok().body("Rekey")
 }
 
-pub async fn start_session(req: HttpRequest, data: Data<RedisConnector>) -> impl Responder {
+pub async fn start_session(req: HttpRequest, redis: Data<RedisConnector>, pep_system: Data<PEPSystem>) -> impl Responder {
     let auth = req.extensions().get::<AuthenticationInfo>().unwrap().clone();
-    let mut redis_connector = data.get_ref().clone();
+    let mut redis_connector = redis.get_ref().clone();
     
     let session_id = redis_connector.start_session(auth.username.to_string()).unwrap();
     
-    HttpResponse::Ok().json({
-        session_id
+    let key_share = pep_system.session_key_share(&EncryptionContext(session_id.clone())).encode_to_hex();
+    
+    HttpResponse::Ok().json(StartSessionResponse {
+        session_id,
+        key_share
     })
 }
 
@@ -101,7 +122,7 @@ pub async fn end_session(item: web::Json<EndSessionRequest>, req: HttpRequest, d
     let username_in_session = session_id.split('_').next().unwrap();
     let mut redis_connector = data.get_ref().clone();
     
-    if(auth.username.as_str() != username_in_session) {
+    if auth.username.as_str() != username_in_session {
         return HttpResponse::Forbidden().body("Session not owned by user");
     }
     

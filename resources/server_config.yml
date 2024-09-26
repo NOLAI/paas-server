@@ -1,5 +1,3 @@
-global_public_key: "mypublickey"
-global_secret_key: "mysecret"
 pseudonymization_secret: "mypseudonymizationsecret"
 rekeying_secret: "myrekeyingsecret"
-
+blinding_factor: '7ca60a3b3b7d941625fb84a00443b533c87306b8ffdcb7b3004f3f60d3f9bb06'

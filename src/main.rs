@@ -2,11 +2,11 @@ mod auth_middleware;
 mod application;
 mod domain_middleware;
 mod redis_connector;
+mod pep_system_connector;
 
 use actix_web::{web, App, HttpServer};
 use actix_web::middleware::{Logger};
 use env_logger::Env;
-
 use crate::application::*;
 use crate::auth_middleware::AuthMiddleware;
 use crate::domain_middleware::DomainMiddleware;
@@ -18,9 +18,11 @@ async fn main() -> std::io::Result<()> {
     let auth_middleware = AuthMiddleware::new("resources/tokens.yml");
     let domain_middleware = DomainMiddleware::new("resources/allowlist.yml");
     let redis_connector = RedisConnector::new().expect("Failed to connect to Redis");
-    println!("Server started at main");
+    let pep_system = pep_system_connector::create_pepsystem("resources/server_config.yml");
+
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
+    println!("Starting server");
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
@@ -28,6 +30,7 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(index))
             .route("/random", web::get().to(random))
             .app_data(web::Data::new(redis_connector.clone()))
+            .app_data(web::Data::new(pep_system.clone()))
             .service(
                 web::scope("/pseudonymize")
                     .route("", web::post().to(pseudonymize)
