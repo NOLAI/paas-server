@@ -82,7 +82,6 @@ where
                     req.extensions_mut().insert::<AuthenticationInfo>({
                         AuthenticationInfo {
                             username: Arc::new(found_user),
-                            // TODO: Sessie starten in Redis. username als key en sessie niet random.
                         }});
                     let fut = self.service.call(req);
                     return Box::pin(async move {

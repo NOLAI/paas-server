@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Arc;
 use actix_web::{HttpResponse, Responder, HttpRequest, HttpMessage, web};
 use actix_web::web::{Bytes, Data};
@@ -13,7 +14,7 @@ use crate::domain_middleware::DomainInfo;
 use crate::redis_connector::RedisConnector;
 
 #[derive(Serialize, Deserialize)]
-pub struct EncryptedPseudonym {
+pub struct EncryptedPseudonymResponse {
     encrypted_pseudonym: String,
 }
 
@@ -37,14 +38,25 @@ pub struct StartSessionResponse {
     key_share: String,
 }
 
-pub async fn index() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
+#[derive(Serialize, Deserialize)]
+pub struct StatusResponse {
+    system_id: String,
+    timestamp: String,
+}
+
+pub async fn status() -> impl Responder {
+    let system_id = env::var("HOSTNAME").unwrap();
+    
+    HttpResponse::Ok().json(StatusResponse{
+        system_id,
+        timestamp: chrono::offset::Local::now().to_string()
+         })
 }
 pub async fn random() -> impl Responder {
     let random = libpep::arithmetic::GroupElement::random(&mut rand::thread_rng());
     let enc = libpep::elgamal::encrypt(&random, &libpep::arithmetic::G, &mut rand::thread_rng());
 
-    HttpResponse::Ok().json(EncryptedPseudonym {
+    HttpResponse::Ok().json(EncryptedPseudonymResponse {
         encrypted_pseudonym: enc.encode_to_base64(),
     })
 }
@@ -71,11 +83,11 @@ pub async fn pseudonymize(req: HttpRequest, body: Bytes,  redis: Data<RedisConne
     let auth = req.extensions().get::<AuthenticationInfo>().unwrap().clone();
     let domain_info = req.extensions().get::<DomainInfo>().unwrap().clone();
     let item = serde_json::from_slice::<PseudonymizationRequest>(&body);
-    
-    println!("{:?}", item); // <- print request body
-    println!("{:?}", auth); // <- print authentication info
-    println!("{:?}", domain_info); // <- print domain info
-    
+    // 
+    // println!("{:?}", item); // <- print request body
+    // println!("{:?}", auth); // <- print authentication info
+    // println!("{:?}", domain_info); // <- print domain info
+    // 
     let request = item.unwrap();
 
     let mut redis_connector = redis.get_ref().clone();
@@ -93,7 +105,7 @@ pub async fn pseudonymize(req: HttpRequest, body: Bytes,  redis: Data<RedisConne
 
     let msg_out = rsk(msg_in, request.pseudonym_context_from, request.pseudonym_context_to, request.enc_context, request.dec_context);
 
-    HttpResponse::Ok().json(EncryptedPseudonym {
+    HttpResponse::Ok().json(EncryptedPseudonymResponse {
         encrypted_pseudonym: msg_out.encode_to_base64(),
     })
 }

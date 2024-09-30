@@ -4,6 +4,7 @@ mod domain_middleware;
 mod redis_connector;
 mod pep_system_connector;
 
+use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
 use actix_web::middleware::{Logger};
 use env_logger::Env;
@@ -25,20 +26,27 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server");
     HttpServer::new(move || {
         App::new()
+            .wrap(Cors::default()
+                .allowed_origin("*")
+                .allowed_methods(vec!["GET", "POST"])
+            )
             .wrap(Logger::default())
-            .wrap(auth_middleware.clone()) // Not needed for random
-            .route("/", web::get().to(index))
+            .route("/status", web::get().to(status))
             .route("/random", web::get().to(random))
-            .app_data(web::Data::new(redis_connector.clone()))
-            .app_data(web::Data::new(pep_system.clone()))
             .service(
-                web::scope("/pseudonymize")
-                    .route("", web::post().to(pseudonymize)
-                        .wrap(domain_middleware.clone())
-                    ))
-            .route("/rekey", web::post().to(rekey)) // TODO
-            .route("/start_session", web::get().to(start_session))
-            .route("/end_session", web::post().to(end_session))
+                web::scope("")
+                    .app_data(web::Data::new(redis_connector.clone()))
+                    .app_data(web::Data::new(pep_system.clone()))
+                    .wrap(auth_middleware.clone()) // Not needed for random
+                    .route("/rekey", web::post().to(rekey)) // TODO
+                    .route("/start_session", web::get().to(start_session))
+                    .route("/end_session", web::post().to(end_session))
+                    .service(
+                        web::scope("")
+                            .route("/pseudonymize", web::post().to(pseudonymize)
+                                .wrap(domain_middleware.clone())
+                            ))
+            )
     })
         .bind("0.0.0.0:8080")?
         .run()
