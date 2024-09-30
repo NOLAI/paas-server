@@ -15,7 +15,6 @@ use crate::redis_connector::RedisConnector;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("Starting server at main");
     let auth_middleware = AuthMiddleware::new("resources/tokens.yml");
     let domain_middleware = DomainMiddleware::new("resources/allowlist.yml");
     let redis_connector = RedisConnector::new().expect("Failed to connect to Redis");
@@ -27,7 +26,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::default()
-                .allowed_origin("*")
+                .send_wildcard()
+                .allow_any_origin()
                 .allowed_methods(vec!["GET", "POST"])
             )
             .wrap(Logger::default())
