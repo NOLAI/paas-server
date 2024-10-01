@@ -16,7 +16,6 @@ class transcryptor {
             return err;
         });
 
-        // TODO: Because of CORS we don't get here...
         if (!response.ok) {
             this.status = {
                 state: response.status === 404 ? 'offline' : 'error', last_checked: Date.now()
@@ -34,13 +33,12 @@ class transcryptor {
 
     async start_session(auth_token) {
         let response = await fetch(this.url + '/start_session', {
-            method: 'POST',
+            method: 'GET',
             mode: 'cors',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + auth_token
-            },
-            body: JSON.stringify({})
+            }
         }).catch(err => {
             this.status = {
                 state: 'error', last_checked: Date.now()
