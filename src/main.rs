@@ -25,10 +25,7 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server");
     HttpServer::new(move || {
         App::new()
-            .wrap(Cors::default()
-                .send_wildcard()
-                .allow_any_origin()
-                .allowed_methods(vec!["GET", "POST"])
+            .wrap(Cors::permissive()
             )
             .wrap(Logger::default())
             .route("/status", web::get().to(status))

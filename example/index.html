@@ -12,26 +12,30 @@
 <body>
 <div class="container">
     <h1 class="py-2"><code>PaaS</code> example</h1>
-    <div class="row justify-content-between">
-        <div class="col-7 card">
-            <div class="card-body">
-                <h3 class="card-title">Current transcriptors</h3>
-                <ul class="list-group" id="transcriptor_list">
-                </ul>
-            </div>
+    <form id="start_session">
+        <div class="input-group mb-3">
+            <span class="input-group-text" id="transcryptor_1_addon">Transcryptor 1</span>
+            <input type="text" class="form-control" placeholder="http://localhost:8080" value="http://localhost:8080" aria-label="Transcryptor 1" aria-describedby="transcryptor_1_addon" id="transcryptor_1">
         </div>
-        <div class="col-4 card">
-            <form id="transcriptor_form" class="card-body">
-                <h3 class="card-title">Add transcriptor</h3>
 
-                <div class="mb-3">
-                    <label for="transcriptor_url" class="form-label">Transcriptor url</label>
-                    <input type="url" class="form-control" id="transcriptor_url" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Submit</button>
-            </form>
+        <div class="input-group mb-3">
+            <span class="input-group-text" id="transcryptor_2_addon">Transcryptor 2</span>
+            <input type="text" class="form-control" placeholder="http://localhost:8081" value="http://localhost:8081" aria-label="Transcryptor 2" aria-describedby="transcryptor_2_addon" id="transcryptor_2">
         </div>
-    </div>
+
+        <div class="input-group mb-3">
+            <span class="input-group-text" id="transcryptor_3_addon">Transcryptor 3</span>
+            <input type="text" class="form-control" placeholder="http://localhost:8082" value="http://localhost:8082" aria-label="Transcryptor 3" aria-describedby="transcryptor_3_addon" id="transcryptor_3">
+        </div>
+
+        <div class="input-group mb-3">
+            <span class="input-group-text" id="auth_token_addon">Auth token</span>
+            <input type="text" class="form-control" placeholder="token" aria-label="Auth token" aria-describedby="auth_token_addon" id="auth_token">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Start session</button>
+    </form>
+
 </div>
 </body>
 </html>

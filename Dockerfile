@@ -1,23 +1,27 @@
-FROM rust:slim-buster AS build
+FROM rust:slim-buster AS chef
 LABEL authors=["Julian van der Horst"]
-
+RUN cargo install cargo-chef
 WORKDIR /pep_api_service
 
-# copy over your manifests
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./Cargo.toml ./Cargo.toml
 
-# Build and cache the dependencies
-RUN rm -rf src
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo fetch
-RUN cargo build --release
-RUN rm src/main.rs
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare  --recipe-path recipe.json
+
+
+
+FROM chef AS build
+COPY --from=planner /pep_api_service/recipe.json recipe.json
+## copy over your manifests
+#COPY ./Cargo.lock ./Cargo.lock
+#COPY ./Cargo.toml ./Cargo.toml
+RUN cargo chef cook --release --recipe-path recipe.json
 
 # copy your source tree
 COPY ./src src
 
 # build for release
+RUN cargo fetch
 RUN cargo build --release
 
 # our final base
