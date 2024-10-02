@@ -52,10 +52,23 @@ pub async fn status() -> impl Responder {
         timestamp: chrono::offset::Local::now().to_string()
          })
 }
+
+fn hex_to_blindingfactor(s: &str) -> libpep::distributed::BlindingFactor {
+    let scalar = libpep::arithmetic::ScalarNonZero::decode_from_hex(s).unwrap();
+    libpep::distributed::BlindingFactor(scalar)
+}
+
 pub async fn random() -> impl Responder {
     let random = libpep::arithmetic::GroupElement::random(&mut rand::thread_rng());
     let enc = libpep::elgamal::encrypt(&random, &libpep::arithmetic::G, &mut rand::thread_rng());
-
+    
+    // let blindingFactors = vec![hex_to_blindingfactor("7ca60a3b3b7d941625fb84a00443b533c87306b8ffdcb7b3004f3f60d3f9bb06"), hex_to_blindingfactor("aa133d0e28fb9c826d57f5feca2f0a9e812fed958622abfe259547481919e602"), hex_to_blindingfactor("1bfbcb209759d1ca52fed377daba9034b627f5a38d3c1f9b3dba114f1d656c03")];
+    // let (public, secret) = libpep::high_level::make_global_keys();
+    // let blinded_global = libpep::distributed::make_blinded_global_secret_key(&secret, &blindingFactors);
+    // 
+    // println!("blinded_global: {:?}", blinded_global.encode_to_hex());
+    // println!("public: {:?}", public);
+    
     HttpResponse::Ok().json(EncryptedPseudonymResponse {
         encrypted_pseudonym: enc.encode_to_base64(),
     })

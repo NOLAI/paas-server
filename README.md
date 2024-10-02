@@ -24,17 +24,13 @@ This is a basic REST API service implemented in Rust using the `actix-web` frame
     cargo run
     ```
 
+## Example
+
+```sh
+cd example & npm run example
+```
+
 ## Endpoints
-
-### GET /
-
-Returns a simple greeting message.
-
-- **URL:** `/`
-- **Method:** `GET`
-- **Auth required:** Yes
-- **Headers:**
-  - `Authorization: Bearer mysecrettoken`
 
 ### GET /item
 

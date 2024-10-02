@@ -1,3 +1,9 @@
+import * as libpep from "./libpep.js";
+import {BlindedGlobalSecretKey, PEPClient, ScalarNonZero, SessionKeyShare} from "./libpep.js";
+
+const BLINDING_SECRET = "22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007"
+let PEP_client = null;
+
 class transcryptor {
 
     constructor(url) {
@@ -46,13 +52,12 @@ class transcryptor {
             return err;
         });
 
-        if(response.ok){
+        if (response.ok) {
             return await response.json();
         }
     }
 }
 
-// transcryptor collection
 let transcryptors = []
 
 // Sync transcryptor status with the list
@@ -69,34 +74,57 @@ function update_transcryptor_list() {
     }
 }
 
-// Run after HTML is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    const transcryptor_form = document.getElementById('start_session');
+// Show that the call succeeded
+function update_session_form(success){
+    let result_wrapper = document.getElementById('start_session_result');
+    if (success) {
+        result_wrapper.innerHTML = "<span class='badge text-bg-success mb-3'>Success</span>"
+    }else{
+        result_wrapper.innerHTML = "<span class='badge text-danger mb-3'>Error</span>"
+    }
+}
 
+// Run after HTML is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    await libpep.default();
+    const BLINDING_SECRET_PEP = new BlindedGlobalSecretKey(ScalarNonZero.fromHex(BLINDING_SECRET));
+
+    const transcryptor_form = document.getElementById('start_session');
     transcryptor_form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        transcryptors = [];
-        const urls = [event.target.transcryptor_1.value, event.target.transcryptor_2.value, event.target.transcryptor_3.value];
-        console.log(urls);
-        for (const url of urls) {
-            if (url === '') continue;
-            const new_transcryptor = new transcryptor(url);
-            await new_transcryptor.check_status();
-            transcryptors.push(new_transcryptor);
+
+        try {
+            transcryptors = [];
+            const urls = [event.target.transcryptor_1.value, event.target.transcryptor_2.value, event.target.transcryptor_3.value];
+
+            // Construct transcryptor classes
+            for (const url of urls) {
+                if (url === '') continue;
+                const new_transcryptor = new transcryptor(url);
+                await new_transcryptor.check_status();
+                transcryptors.push(new_transcryptor);
+            }
+
+            // Update html
+            await update_transcryptor_list();
+
+            // Request sessions from transcryptors
+            const sessions = [];
+            for (let i = 0; i < transcryptors.length; i++) {
+                let transcryptor = transcryptors[i];
+                let auth_token = event.target.auth_token.value;
+                let session = await transcryptor.start_session(auth_token);
+                sessions.push(new SessionKeyShare(ScalarNonZero.fromHex(session.key_share)));
+            }
+
+
+            PEP_client = new PEPClient(BLINDING_SECRET_PEP, sessions);
+
+            update_session_form(true);
+        }catch (error) {
+            console.log(error);
+            update_session_form(false);
         }
-
-        await update_transcryptor_list();
-
-        const sessions = [];
-        for (let i = 0; i < transcryptors.length; i++) {
-            let transcryptor = transcryptors[i];
-            let auth_token = event.target.auth_token.value;
-            let session = await transcryptor.start_session(auth_token);
-            sessions.push(session);
-        }
-
-        console.log(sessions);
-
     });
 
     window.setInterval(update_transcryptor_list, 60000);
