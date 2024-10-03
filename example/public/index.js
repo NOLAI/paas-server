@@ -75,6 +75,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     let transcryptors = []
 
     async function transcryptor_form_function(event) {
+        const update_session_form = (success) => {
+            let result_wrapper = document.getElementById('start_session_result');
+            if (success) {
+                result_wrapper.innerHTML = "<span class='badge text-bg-success mb-3'>Success</span>"
+            } else {
+                result_wrapper.innerHTML = "<span class='badge text-danger mb-3'>Error</span>"
+            }
+        }
+
         try {
             transcryptors = [];
             const urls = [event.target.transcryptor_1.value, event.target.transcryptor_2.value, event.target.transcryptor_3.value];
@@ -111,8 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function encryption_form_function(event) {
         if (!PEP_client) {
-            // TODO: throw error
-            return;
+            return throw new Error("PEP client not found - Please start a session first");
         }
 
         let datapoint_plaintext = new DataPoint(GroupElement.fromHex(event.target.encrypt_plaintext.value));
@@ -122,8 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function decryption_form_function(event) {
         if (!PEP_client) {
-            // TODO: throw error
-            return;
+            return throw new Error("PEP client not found - Please start a session first");
         }
 
         let encrypted_datapoint = new EncryptedDataPoint(ElGamal.fromBase64(event.target.decrypt_ciphertext.value));
@@ -142,16 +149,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             transcryptor_input_row.innerHTML =
                 `Transcryptor ${i + 1} - <span class="${transcryptor.status.state === 'online' ? 'text-success' : 'text-danger'}">
              ${transcryptor.status.state} - Last checked on: ${(new Date(transcryptor.status.last_checked)).toLocaleTimeString()}</span>`;
-        }
-    }
-
-// Show that the call succeeded
-    function update_session_form(success) {
-        let result_wrapper = document.getElementById('start_session_result');
-        if (success) {
-            result_wrapper.innerHTML = "<span class='badge text-bg-success mb-3'>Success</span>"
-        } else {
-            result_wrapper.innerHTML = "<span class='badge text-danger mb-3'>Error</span>"
         }
     }
 
