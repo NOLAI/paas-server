@@ -38,6 +38,38 @@
         <button type="submit" class="btn btn-primary">Start session</button>
     </form>
 
+    <hr/>
+    <div class="row justify-content-between">
+        <div class="col-5">
+            <h2>Encrypt</h2>
+            <form id="encrypt">
+
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="encrypt_plaintext_addon">Plaintext (hex)</span>
+                    <textarea maxlength="64" class="form-control" aria-label="Plaintext" aria-describedby="encrypt_plaintext_addon"  id="encrypt_plaintext"></textarea>
+                </div>
+
+                <div class="mb-3 text-break" id="encryption_result"></div>
+
+                <button type="submit" class="btn btn-primary">Encrypt</button>
+                <button type="button" id="random_encryption" class="btn btn-info">Random</button>
+            </form>
+        </div>
+        <div class="col-5">
+            <h2>Decrypt</h2>
+            <form id="decrypt">
+
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="decrypt_ciphertext_addon">Ciphertext (base64)</span>
+                    <textarea class="form-control" aria-label="Ciphertext" aria-describedby="decrypt_ciphertext_addon" id="decrypt_ciphertext"></textarea>
+                </div>
+
+                <div class="mb-3 text-break" id="decryption_result"></div>
+
+                <button type="submit" class="btn btn-primary">Decrypt</button>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script src="public/libpep.js" type="module"></script>

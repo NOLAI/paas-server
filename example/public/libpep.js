@@ -22,7 +22,7 @@ function takeObject(idx) {
 
 const cachedTextDecoder = (typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true, fatal: true }) : { decode: () => { throw Error('TextDecoder not available') } } );
 
-if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); }
+if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); };
 
 let cachedUint8ArrayMemory0 = null;
 
@@ -300,30 +300,6 @@ function passArray8ToWasm0(arg, malloc) {
     return ptr;
 }
 /**
-* @param {GroupElement} msg
-* @param {GroupElement} public_key
-* @returns {ElGamal}
-*/
-export function encrypt(msg, public_key) {
-    _assertClass(msg, GroupElement);
-    _assertClass(public_key, GroupElement);
-    const ret = wasm.encrypt(msg.__wbg_ptr, public_key.__wbg_ptr);
-    return ElGamal.__wrap(ret);
-}
-
-/**
-* @param {ElGamal} s
-* @param {ScalarNonZero} secret_key
-* @returns {GroupElement}
-*/
-export function decrypt(s, secret_key) {
-    _assertClass(s, ElGamal);
-    _assertClass(secret_key, ScalarNonZero);
-    const ret = wasm.decrypt(s.__wbg_ptr, secret_key.__wbg_ptr);
-    return GroupElement.__wrap(ret);
-}
-
-/**
 * @param {ElGamal} v
 * @param {ScalarNonZero} r
 * @returns {ElGamal}
@@ -417,6 +393,30 @@ export function rskFromTo(v, s_from, s_to, k_from, k_to) {
     _assertClass(k_to, ScalarNonZero);
     const ret = wasm.rskFromTo(v.__wbg_ptr, s_from.__wbg_ptr, s_to.__wbg_ptr, k_from.__wbg_ptr, k_to.__wbg_ptr);
     return ElGamal.__wrap(ret);
+}
+
+/**
+* @param {GroupElement} msg
+* @param {GroupElement} public_key
+* @returns {ElGamal}
+*/
+export function encrypt(msg, public_key) {
+    _assertClass(msg, GroupElement);
+    _assertClass(public_key, GroupElement);
+    const ret = wasm.encrypt(msg.__wbg_ptr, public_key.__wbg_ptr);
+    return ElGamal.__wrap(ret);
+}
+
+/**
+* @param {ElGamal} s
+* @param {ScalarNonZero} secret_key
+* @returns {GroupElement}
+*/
+export function decrypt(s, secret_key) {
+    _assertClass(s, ElGamal);
+    _assertClass(secret_key, ScalarNonZero);
+    const ret = wasm.decrypt(s.__wbg_ptr, secret_key.__wbg_ptr);
+    return GroupElement.__wrap(ret);
 }
 
 function handleError(f, args) {
@@ -733,6 +733,17 @@ export class EncryptedDataPoint {
         _assertClass(arg0, ElGamal);
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_encrypteddatapoint_value(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @param {ElGamal} x
+    */
+    constructor(x) {
+        _assertClass(x, ElGamal);
+        var ptr0 = x.__destroy_into_raw();
+        const ret = wasm.encrypteddatapoint_new(ptr0);
+        this.__wbg_ptr = ret >>> 0;
+        EncryptedDataPointFinalization.register(this, this.__wbg_ptr, this);
+        return this;
     }
 }
 
