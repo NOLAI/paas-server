@@ -187,7 +187,6 @@ export function decryptData(data, sk) {
 }
 
 /**
-* Rerandomize the ciphertext of an encrypted pseudonym
 * @param {EncryptedPseudonym} encrypted
 * @returns {EncryptedPseudonym}
 */
@@ -198,7 +197,6 @@ export function rerandomizePseudonym(encrypted) {
 }
 
 /**
-* Rerandomize the ciphertext of an encrypted data point
 * @param {EncryptedDataPoint} encrypted
 * @returns {EncryptedDataPoint}
 */
@@ -211,49 +209,26 @@ export function rerandomizeData(encrypted) {
 /**
 * Pseudonymize an encrypted pseudonym, from one context to another context
 * @param {EncryptedPseudonym} p
-* @param {string} from_user
-* @param {string} to_user
-* @param {string} from_session
-* @param {string} to_session
-* @param {string} pseudonymization_secret
-* @param {string} encryption_secret
+* @param {PseudonymizationInfo} pseudo_info
 * @returns {EncryptedPseudonym}
 */
-export function pseudonymize(p, from_user, to_user, from_session, to_session, pseudonymization_secret, encryption_secret) {
+export function pseudonymize(p, pseudo_info) {
     _assertClass(p, EncryptedPseudonym);
-    const ptr0 = passStringToWasm0(from_user, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passStringToWasm0(to_user, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ptr2 = passStringToWasm0(from_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len2 = WASM_VECTOR_LEN;
-    const ptr3 = passStringToWasm0(to_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len3 = WASM_VECTOR_LEN;
-    const ptr4 = passStringToWasm0(pseudonymization_secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len4 = WASM_VECTOR_LEN;
-    const ptr5 = passStringToWasm0(encryption_secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len5 = WASM_VECTOR_LEN;
-    const ret = wasm.pseudonymize(p.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+    _assertClass(pseudo_info, PseudonymizationInfo);
+    const ret = wasm.pseudonymize(p.__wbg_ptr, pseudo_info.__wbg_ptr);
     return EncryptedPseudonym.__wrap(ret);
 }
 
 /**
 * Rekey an encrypted data point, encrypted with one session key, to be decrypted by another session key
 * @param {EncryptedDataPoint} p
-* @param {string} from_session
-* @param {string} to_session
-* @param {string} encryption_secret
+* @param {RekeyInfo} rekey_info
 * @returns {EncryptedDataPoint}
 */
-export function rekeyData(p, from_session, to_session, encryption_secret) {
+export function rekeyData(p, rekey_info) {
     _assertClass(p, EncryptedDataPoint);
-    const ptr0 = passStringToWasm0(from_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passStringToWasm0(to_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ptr2 = passStringToWasm0(encryption_secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len2 = WASM_VECTOR_LEN;
-    const ret = wasm.rekeyData(p.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2);
+    _assertClass(rekey_info, RekeyInfo);
+    const ret = wasm.rekeyData(p.__wbg_ptr, rekey_info.__wbg_ptr);
     return EncryptedDataPoint.__wrap(ret);
 }
 
@@ -300,6 +275,30 @@ function passArray8ToWasm0(arg, malloc) {
     return ptr;
 }
 /**
+* @param {GroupElement} msg
+* @param {GroupElement} public_key
+* @returns {ElGamal}
+*/
+export function encrypt(msg, public_key) {
+    _assertClass(msg, GroupElement);
+    _assertClass(public_key, GroupElement);
+    const ret = wasm.encrypt(msg.__wbg_ptr, public_key.__wbg_ptr);
+    return ElGamal.__wrap(ret);
+}
+
+/**
+* @param {ElGamal} s
+* @param {ScalarNonZero} secret_key
+* @returns {GroupElement}
+*/
+export function decrypt(s, secret_key) {
+    _assertClass(s, ElGamal);
+    _assertClass(secret_key, ScalarNonZero);
+    const ret = wasm.decrypt(s.__wbg_ptr, secret_key.__wbg_ptr);
+    return GroupElement.__wrap(ret);
+}
+
+/**
 * @param {ElGamal} v
 * @param {ScalarNonZero} r
 * @returns {ElGamal}
@@ -341,11 +340,11 @@ export function reshuffle(v, s) {
 * @param {ScalarNonZero} k_to
 * @returns {ElGamal}
 */
-export function rekeyFromTo(v, k_from, k_to) {
+export function rekey2(v, k_from, k_to) {
     _assertClass(v, ElGamal);
     _assertClass(k_from, ScalarNonZero);
     _assertClass(k_to, ScalarNonZero);
-    const ret = wasm.rekeyFromTo(v.__wbg_ptr, k_from.__wbg_ptr, k_to.__wbg_ptr);
+    const ret = wasm.rekey2(v.__wbg_ptr, k_from.__wbg_ptr, k_to.__wbg_ptr);
     return ElGamal.__wrap(ret);
 }
 
@@ -355,11 +354,11 @@ export function rekeyFromTo(v, k_from, k_to) {
 * @param {ScalarNonZero} n_to
 * @returns {ElGamal}
 */
-export function reshuffleFromTo(v, n_from, n_to) {
+export function reshuffle2(v, n_from, n_to) {
     _assertClass(v, ElGamal);
     _assertClass(n_from, ScalarNonZero);
     _assertClass(n_to, ScalarNonZero);
-    const ret = wasm.reshuffleFromTo(v.__wbg_ptr, n_from.__wbg_ptr, n_to.__wbg_ptr);
+    const ret = wasm.reshuffle2(v.__wbg_ptr, n_from.__wbg_ptr, n_to.__wbg_ptr);
     return ElGamal.__wrap(ret);
 }
 
@@ -385,38 +384,14 @@ export function rsk(v, s, k) {
 * @param {ScalarNonZero} k_to
 * @returns {ElGamal}
 */
-export function rskFromTo(v, s_from, s_to, k_from, k_to) {
+export function rsk2(v, s_from, s_to, k_from, k_to) {
     _assertClass(v, ElGamal);
     _assertClass(s_from, ScalarNonZero);
     _assertClass(s_to, ScalarNonZero);
     _assertClass(k_from, ScalarNonZero);
     _assertClass(k_to, ScalarNonZero);
-    const ret = wasm.rskFromTo(v.__wbg_ptr, s_from.__wbg_ptr, s_to.__wbg_ptr, k_from.__wbg_ptr, k_to.__wbg_ptr);
+    const ret = wasm.rsk2(v.__wbg_ptr, s_from.__wbg_ptr, s_to.__wbg_ptr, k_from.__wbg_ptr, k_to.__wbg_ptr);
     return ElGamal.__wrap(ret);
-}
-
-/**
-* @param {GroupElement} msg
-* @param {GroupElement} public_key
-* @returns {ElGamal}
-*/
-export function encrypt(msg, public_key) {
-    _assertClass(msg, GroupElement);
-    _assertClass(public_key, GroupElement);
-    const ret = wasm.encrypt(msg.__wbg_ptr, public_key.__wbg_ptr);
-    return ElGamal.__wrap(ret);
-}
-
-/**
-* @param {ElGamal} s
-* @param {ScalarNonZero} secret_key
-* @returns {GroupElement}
-*/
-export function decrypt(s, secret_key) {
-    _assertClass(s, ElGamal);
-    _assertClass(secret_key, ScalarNonZero);
-    const ret = wasm.decrypt(s.__wbg_ptr, secret_key.__wbg_ptr);
-    return GroupElement.__wrap(ret);
 }
 
 function handleError(f, args) {
@@ -467,17 +442,6 @@ export class BlindedGlobalSecretKey {
         _assertClass(arg0, ScalarNonZero);
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_blindedglobalsecretkey_0(this.__wbg_ptr, ptr0);
-    }
-    /**
-    * @param {ScalarNonZero} x
-    */
-    constructor(x) {
-        _assertClass(x, ScalarNonZero);
-        var ptr0 = x.__destroy_into_raw();
-        const ret = wasm.blindedglobalsecretkey_new(ptr0);
-        this.__wbg_ptr = ret >>> 0;
-        BlindedGlobalSecretKeyFinalization.register(this, this.__wbg_ptr, this);
-        return this;
     }
 }
 
@@ -535,7 +499,7 @@ export class BlindingFactor {
     constructor(x) {
         _assertClass(x, ScalarNonZero);
         var ptr0 = x.__destroy_into_raw();
-        const ret = wasm.blindedglobalsecretkey_new(ptr0);
+        const ret = wasm.blindingfactor_new(ptr0);
         this.__wbg_ptr = ret >>> 0;
         BlindingFactorFinalization.register(this, this.__wbg_ptr, this);
         return this;
@@ -607,6 +571,13 @@ export class DataPoint {
         this.__wbg_ptr = ret >>> 0;
         DataPointFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+    * @returns {DataPoint}
+    */
+    static random() {
+        const ret = wasm.datapoint_random();
+        return DataPoint.__wrap(ret);
     }
 }
 
@@ -787,6 +758,17 @@ export class EncryptedPseudonym {
         _assertClass(arg0, ElGamal);
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_encrypteddatapoint_value(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @param {ElGamal} x
+    */
+    constructor(x) {
+        _assertClass(x, ElGamal);
+        var ptr0 = x.__destroy_into_raw();
+        const ret = wasm.encrypteddatapoint_new(ptr0);
+        this.__wbg_ptr = ret >>> 0;
+        EncryptedPseudonymFinalization.register(this, this.__wbg_ptr, this);
+        return this;
     }
 }
 
@@ -1243,57 +1225,75 @@ export class PEPSystem {
         return SessionKeyShare.__wrap(ret);
     }
     /**
+    * @param {string} from_enc
+    * @param {string} to_enc
+    * @returns {RekeyInfo}
+    */
+    rekeyInfo(from_enc, to_enc) {
+        const ptr0 = passStringToWasm0(from_enc, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(to_enc, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.pepsystem_rekeyInfo(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        return RekeyInfo.__wrap(ret);
+    }
+    /**
+    * @param {string} from_pseudo
+    * @param {string} to_pseudo
+    * @param {string} from_enc
+    * @param {string} to_enc
+    * @returns {PseudonymizationInfo}
+    */
+    pseudonymizationInfo(from_pseudo, to_pseudo, from_enc, to_enc) {
+        const ptr0 = passStringToWasm0(from_pseudo, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(to_pseudo, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(from_enc, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(to_enc, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.pepsystem_pseudonymizationInfo(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        return PseudonymizationInfo.__wrap(ret);
+    }
+    /**
     * @param {EncryptedDataPoint} p
-    * @param {string} from_session
-    * @param {string} to_session
+    * @param {RekeyInfo} rekey_info
     * @returns {EncryptedDataPoint}
     */
-    rekey(p, from_session, to_session) {
+    rekey(p, rekey_info) {
         _assertClass(p, EncryptedDataPoint);
-        const ptr0 = passStringToWasm0(from_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(to_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.pepsystem_rekey(this.__wbg_ptr, p.__wbg_ptr, ptr0, len0, ptr1, len1);
+        _assertClass(rekey_info, RekeyInfo);
+        const ret = wasm.pepsystem_rekey(this.__wbg_ptr, p.__wbg_ptr, rekey_info.__wbg_ptr);
         return EncryptedDataPoint.__wrap(ret);
     }
     /**
     * @param {EncryptedPseudonym} p
-    * @param {string} from_context
-    * @param {string} to_context
-    * @param {string} from_session
-    * @param {string} to_session
+    * @param {PseudonymizationInfo} pseudonymization_info
     * @returns {EncryptedPseudonym}
     */
-    pseudonymize(p, from_context, to_context, from_session, to_session) {
+    pseudonymize(p, pseudonymization_info) {
         _assertClass(p, EncryptedPseudonym);
-        const ptr0 = passStringToWasm0(from_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(to_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(from_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(to_session, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.pepsystem_pseudonymize(this.__wbg_ptr, p.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        _assertClass(pseudonymization_info, PseudonymizationInfo);
+        const ret = wasm.pepsystem_pseudonymize(this.__wbg_ptr, p.__wbg_ptr, pseudonymization_info.__wbg_ptr);
         return EncryptedPseudonym.__wrap(ret);
     }
     /**
     * @param {EncryptedPseudonym} encrypted
     * @returns {EncryptedPseudonym}
     */
-    rerandomizePseudonym(encrypted) {
+    rerandomizeEncryptedPseudonym(encrypted) {
         _assertClass(encrypted, EncryptedPseudonym);
-        const ret = wasm.pepsystem_rerandomizeData(this.__wbg_ptr, encrypted.__wbg_ptr);
+        const ret = wasm.pepsystem_rerandomizeEncryptedDataPoint(this.__wbg_ptr, encrypted.__wbg_ptr);
         return EncryptedPseudonym.__wrap(ret);
     }
     /**
     * @param {EncryptedDataPoint} encrypted
     * @returns {EncryptedDataPoint}
     */
-    rerandomizeData(encrypted) {
+    rerandomizeEncryptedDataPoint(encrypted) {
         _assertClass(encrypted, EncryptedDataPoint);
-        const ret = wasm.pepsystem_rerandomizeData(this.__wbg_ptr, encrypted.__wbg_ptr);
+        const ret = wasm.pepsystem_rerandomizeEncryptedDataPoint(this.__wbg_ptr, encrypted.__wbg_ptr);
         return EncryptedDataPoint.__wrap(ret);
     }
 }
@@ -1354,8 +1354,469 @@ export class Pseudonym {
     * @returns {Pseudonym}
     */
     static random() {
-        const ret = wasm.pseudonym_random();
+        const ret = wasm.datapoint_random();
         return Pseudonym.__wrap(ret);
+    }
+}
+
+const PseudonymizationInfoFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_pseudonymizationinfo_free(ptr >>> 0, 1));
+/**
+*/
+export class PseudonymizationInfo {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(PseudonymizationInfo.prototype);
+        obj.__wbg_ptr = ptr;
+        PseudonymizationInfoFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        PseudonymizationInfoFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_pseudonymizationinfo_free(ptr, 0);
+    }
+    /**
+    * @returns {RSK2Factors}
+    */
+    get 0() {
+        const ret = wasm.__wbg_get_pseudonymizationinfo_0(this.__wbg_ptr);
+        return RSK2Factors.__wrap(ret);
+    }
+    /**
+    * @param {RSK2Factors} arg0
+    */
+    set 0(arg0) {
+        _assertClass(arg0, RSK2Factors);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_pseudonymizationinfo_0(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @param {string} from_pseudo_context
+    * @param {string} to_pseudo_context
+    * @param {string} from_enc_context
+    * @param {string} to_enc_context
+    * @param {string} pseudonymization_secret
+    * @param {string} encryption_secret
+    */
+    constructor(from_pseudo_context, to_pseudo_context, from_enc_context, to_enc_context, pseudonymization_secret, encryption_secret) {
+        const ptr0 = passStringToWasm0(from_pseudo_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(to_pseudo_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(from_enc_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(to_enc_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passStringToWasm0(pseudonymization_secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ptr5 = passStringToWasm0(encryption_secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ret = wasm.pseudonymizationinfo_new(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+        this.__wbg_ptr = ret >>> 0;
+        PseudonymizationInfoFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+    * @returns {PseudonymizationInfo}
+    */
+    rev() {
+        const ret = wasm.pseudonymizationinfo_rev(this.__wbg_ptr);
+        return PseudonymizationInfo.__wrap(ret);
+    }
+}
+
+const RSK2FactorsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_rsk2factors_free(ptr >>> 0, 1));
+/**
+*/
+export class RSK2Factors {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(RSK2Factors.prototype);
+        obj.__wbg_ptr = ptr;
+        RSK2FactorsFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RSK2FactorsFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_rsk2factors_free(ptr, 0);
+    }
+    /**
+    * @returns {Reshuffle2Factors}
+    */
+    get s() {
+        const ret = wasm.__wbg_get_rekeyinfo_0(this.__wbg_ptr);
+        return Reshuffle2Factors.__wrap(ret);
+    }
+    /**
+    * @param {Reshuffle2Factors} arg0
+    */
+    set s(arg0) {
+        _assertClass(arg0, Reshuffle2Factors);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_rekeyinfo_0(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @returns {Rekey2Factors}
+    */
+    get k() {
+        const ret = wasm.__wbg_get_rsk2factors_k(this.__wbg_ptr);
+        return Rekey2Factors.__wrap(ret);
+    }
+    /**
+    * @param {Rekey2Factors} arg0
+    */
+    set k(arg0) {
+        _assertClass(arg0, Rekey2Factors);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_rsk2factors_k(this.__wbg_ptr, ptr0);
+    }
+}
+
+const Rekey2FactorsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_rekey2factors_free(ptr >>> 0, 1));
+/**
+*/
+export class Rekey2Factors {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(Rekey2Factors.prototype);
+        obj.__wbg_ptr = ptr;
+        Rekey2FactorsFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        Rekey2FactorsFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_rekey2factors_free(ptr, 0);
+    }
+    /**
+    * @returns {RekeyFactor}
+    */
+    get from() {
+        const ret = wasm.__wbg_get_rekey2factors_from(this.__wbg_ptr);
+        return RekeyFactor.__wrap(ret);
+    }
+    /**
+    * @param {RekeyFactor} arg0
+    */
+    set from(arg0) {
+        _assertClass(arg0, RekeyFactor);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_rekey2factors_from(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @returns {RekeyFactor}
+    */
+    get to() {
+        const ret = wasm.__wbg_get_rekey2factors_to(this.__wbg_ptr);
+        return RekeyFactor.__wrap(ret);
+    }
+    /**
+    * @param {RekeyFactor} arg0
+    */
+    set to(arg0) {
+        _assertClass(arg0, RekeyFactor);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_rekey2factors_to(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @returns {Rekey2Factors}
+    */
+    rev() {
+        const ret = wasm.rekey2factors_rev(this.__wbg_ptr);
+        return Rekey2Factors.__wrap(ret);
+    }
+}
+
+const RekeyFactorFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_rekeyfactor_free(ptr >>> 0, 1));
+/**
+*/
+export class RekeyFactor {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(RekeyFactor.prototype);
+        obj.__wbg_ptr = ptr;
+        RekeyFactorFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RekeyFactorFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_rekeyfactor_free(ptr, 0);
+    }
+    /**
+    * @returns {ScalarNonZero}
+    */
+    get 0() {
+        const ret = wasm.__wbg_get_globalsecretkey_0(this.__wbg_ptr);
+        return ScalarNonZero.__wrap(ret);
+    }
+    /**
+    * @param {ScalarNonZero} arg0
+    */
+    set 0(arg0) {
+        _assertClass(arg0, ScalarNonZero);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_globalsecretkey_0(this.__wbg_ptr, ptr0);
+    }
+}
+
+const RekeyInfoFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_rekeyinfo_free(ptr >>> 0, 1));
+/**
+*/
+export class RekeyInfo {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(RekeyInfo.prototype);
+        obj.__wbg_ptr = ptr;
+        RekeyInfoFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RekeyInfoFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_rekeyinfo_free(ptr, 0);
+    }
+    /**
+    * @returns {Rekey2Factors}
+    */
+    get 0() {
+        const ret = wasm.__wbg_get_rekeyinfo_0(this.__wbg_ptr);
+        return Rekey2Factors.__wrap(ret);
+    }
+    /**
+    * @param {Rekey2Factors} arg0
+    */
+    set 0(arg0) {
+        _assertClass(arg0, Rekey2Factors);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_rekeyinfo_0(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @param {string} from_enc_context
+    * @param {string} to_enc_context
+    * @param {string} encryption_secret
+    */
+    constructor(from_enc_context, to_enc_context, encryption_secret) {
+        const ptr0 = passStringToWasm0(from_enc_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(to_enc_context, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(encryption_secret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.rekeyinfo_new(ptr0, len0, ptr1, len1, ptr2, len2);
+        this.__wbg_ptr = ret >>> 0;
+        RekeyInfoFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+    * @returns {RekeyInfo}
+    */
+    rev() {
+        const ret = wasm.rekey2factors_rev(this.__wbg_ptr);
+        return RekeyInfo.__wrap(ret);
+    }
+    /**
+    * @param {PseudonymizationInfo} x
+    * @returns {RekeyInfo}
+    */
+    static fromPseudoInfo(x) {
+        _assertClass(x, PseudonymizationInfo);
+        const ret = wasm.rekeyinfo_fromPseudoInfo(x.__wbg_ptr);
+        return RekeyInfo.__wrap(ret);
+    }
+}
+
+const RerandomizeFactorFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_rerandomizefactor_free(ptr >>> 0, 1));
+/**
+*/
+export class RerandomizeFactor {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RerandomizeFactorFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_rerandomizefactor_free(ptr, 0);
+    }
+    /**
+    * @returns {ScalarNonZero}
+    */
+    get 0() {
+        const ret = wasm.__wbg_get_globalsecretkey_0(this.__wbg_ptr);
+        return ScalarNonZero.__wrap(ret);
+    }
+    /**
+    * @param {ScalarNonZero} arg0
+    */
+    set 0(arg0) {
+        _assertClass(arg0, ScalarNonZero);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_globalsecretkey_0(this.__wbg_ptr, ptr0);
+    }
+}
+
+const Reshuffle2FactorsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_reshuffle2factors_free(ptr >>> 0, 1));
+/**
+*/
+export class Reshuffle2Factors {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(Reshuffle2Factors.prototype);
+        obj.__wbg_ptr = ptr;
+        Reshuffle2FactorsFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        Reshuffle2FactorsFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_reshuffle2factors_free(ptr, 0);
+    }
+    /**
+    * @returns {ReshuffleFactor}
+    */
+    get from() {
+        const ret = wasm.__wbg_get_rekey2factors_from(this.__wbg_ptr);
+        return ReshuffleFactor.__wrap(ret);
+    }
+    /**
+    * @param {ReshuffleFactor} arg0
+    */
+    set from(arg0) {
+        _assertClass(arg0, ReshuffleFactor);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_rekey2factors_from(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @returns {ReshuffleFactor}
+    */
+    get to() {
+        const ret = wasm.__wbg_get_rekey2factors_to(this.__wbg_ptr);
+        return ReshuffleFactor.__wrap(ret);
+    }
+    /**
+    * @param {ReshuffleFactor} arg0
+    */
+    set to(arg0) {
+        _assertClass(arg0, ReshuffleFactor);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_rekey2factors_to(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @returns {Reshuffle2Factors}
+    */
+    rev() {
+        const ret = wasm.rekey2factors_rev(this.__wbg_ptr);
+        return Reshuffle2Factors.__wrap(ret);
+    }
+}
+
+const ReshuffleFactorFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_reshufflefactor_free(ptr >>> 0, 1));
+/**
+*/
+export class ReshuffleFactor {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(ReshuffleFactor.prototype);
+        obj.__wbg_ptr = ptr;
+        ReshuffleFactorFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ReshuffleFactorFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_reshufflefactor_free(ptr, 0);
+    }
+    /**
+    * @returns {ScalarNonZero}
+    */
+    get 0() {
+        const ret = wasm.__wbg_get_globalsecretkey_0(this.__wbg_ptr);
+        return ScalarNonZero.__wrap(ret);
+    }
+    /**
+    * @param {ScalarNonZero} arg0
+    */
+    set 0(arg0) {
+        _assertClass(arg0, ScalarNonZero);
+        var ptr0 = arg0.__destroy_into_raw();
+        wasm.__wbg_set_globalsecretkey_0(this.__wbg_ptr, ptr0);
     }
 }
 
@@ -1725,17 +2186,6 @@ export class SessionKeyShare {
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_blindedglobalsecretkey_0(this.__wbg_ptr, ptr0);
     }
-    /**
-    * @param {ScalarNonZero} x
-    */
-    constructor(x) {
-        _assertClass(x, ScalarNonZero);
-        var ptr0 = x.__destroy_into_raw();
-        const ret = wasm.blindedglobalsecretkey_new(ptr0);
-        this.__wbg_ptr = ret >>> 0;
-        SessionKeyShareFinalization.register(this, this.__wbg_ptr, this);
-        return this;
-    }
 }
 
 const SessionPublicKeyFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -1861,12 +2311,12 @@ function __wbg_get_imports() {
     imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
         takeObject(arg0);
     };
-    imports.wbg.__wbg_sessionkeyshare_unwrap = function(arg0) {
-        const ret = SessionKeyShare.__unwrap(takeObject(arg0));
-        return ret;
-    };
     imports.wbg.__wbg_blindingfactor_unwrap = function(arg0) {
         const ret = BlindingFactor.__unwrap(takeObject(arg0));
+        return ret;
+    };
+    imports.wbg.__wbg_sessionkeyshare_unwrap = function(arg0) {
+        const ret = SessionKeyShare.__unwrap(takeObject(arg0));
         return ret;
     };
     imports.wbg.__wbg_crypto_1d1f22824a6a080c = function(arg0) {
