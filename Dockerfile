@@ -18,7 +18,7 @@ COPY --from=planner /pep_api_service/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # copy your source tree
-COPY ./src src
+COPY . .
 
 # build for release
 RUN cargo fetch
