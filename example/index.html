@@ -70,6 +70,60 @@
             </form>
         </div>
     </div>
+
+    <hr/>
+    <div class="">
+        <h2>Pseudonymize</h2>
+        <form id="transcryptor_order">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="pseudonymize_input_addon">Ciphertext (base64)</span>
+                <textarea class="form-control" aria-label="Pseudonymize" aria-describedby="pseudonymize_input_addon" id="pseudonymize_input"></textarea>
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="pseudonymize_context_from_addon">Context from</span>
+                <select class="form-select" id="pseudonymize_context_from">
+                    <option value="0">Domain 1</option>
+                    <option value="1">Domain 2</option>
+                    <option value="2">Domain 3</option>
+                </select>
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="pseudonymize_context_to_addon">Context to</span>
+                <select class="form-select" id="pseudonymize_context_to">
+                    <option value="0">Domain 1</option>
+                    <option value="1">Domain 2</option>
+                    <option value="2">Domain 3</option>
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <select class="form-select" id="transcryptor_order_1">
+                        <option value="0">Transcryptor 1</option>
+                        <option value="1">Transcryptor 2</option>
+                        <option value="2">Transcryptor 3</option>
+                    </select>
+                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_1_result"></div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="transcryptor_order_2">
+                        <option value="0">Transcryptor 1</option>
+                        <option value="1" selected>Transcryptor 2</option>
+                        <option value="2">Transcryptor 3</option>
+                    </select>
+                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_2_result"></div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="transcryptor_order_3">
+                        <option value="0">Transcryptor 1</option>
+                        <option value="1">Transcryptor 2</option>
+                        <option value="2" selected>Transcryptor 3</option>
+                    </select>
+                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_3_result"></div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Pseudonymize</button>
+        </form>
+    </div>
 </div>
 
 <script src="public/libpep.js" type="module"></script>

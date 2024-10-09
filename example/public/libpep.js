@@ -914,6 +914,17 @@ export class GlobalSecretKey {
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_globalsecretkey_0(this.__wbg_ptr, ptr0);
     }
+    /**
+    * @param {ScalarNonZero} x
+    */
+    constructor(x) {
+        _assertClass(x, ScalarNonZero);
+        var ptr0 = x.__destroy_into_raw();
+        const ret = wasm.globalsecretkey_new(ptr0);
+        this.__wbg_ptr = ret >>> 0;
+        GlobalSecretKeyFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
 }
 
 const GroupElementFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -2185,6 +2196,17 @@ export class SessionKeyShare {
         _assertClass(arg0, ScalarNonZero);
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_blindedglobalsecretkey_0(this.__wbg_ptr, ptr0);
+    }
+    /**
+    * @param {ScalarNonZero} x
+    */
+    constructor(x) {
+        _assertClass(x, ScalarNonZero);
+        var ptr0 = x.__destroy_into_raw();
+        const ret = wasm.blindingfactor_new(ptr0);
+        this.__wbg_ptr = ret >>> 0;
+        SessionKeyShareFinalization.register(this, this.__wbg_ptr, this);
+        return this;
     }
 }
 
