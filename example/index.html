@@ -3,126 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <title>PaaS multi server example</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link href="public/index.css" />
-<!--    <meta http-equiv="refresh" content="1">-->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="public/index.css"/>
+    <!--    <meta http-equiv="refresh" content="1">-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"></script>
 
 </head>
 <body>
 <div class="container">
-    <h1 class="py-2"><code>PaaS</code> example</h1>
-    <form id="start_session">
-        <div class="input-group mb-3">
-            <span class="input-group-text" id="transcryptor_1_addon">Transcryptor 1</span>
-            <input type="text" class="form-control" placeholder="http://localhost:8080" value="http://localhost:8080" aria-label="Transcryptor 1" aria-describedby="transcryptor_1_addon" id="transcryptor_1">
-        </div>
-
-        <div class="input-group mb-3">
-            <span class="input-group-text" id="transcryptor_2_addon">Transcryptor 2</span>
-            <input type="text" class="form-control" placeholder="http://localhost:8081" value="http://localhost:8081" aria-label="Transcryptor 2" aria-describedby="transcryptor_2_addon" id="transcryptor_2">
-        </div>
-
-        <div class="input-group mb-3">
-            <span class="input-group-text" id="transcryptor_3_addon">Transcryptor 3</span>
-            <input type="text" class="form-control" placeholder="http://localhost:8082" value="http://localhost:8082" aria-label="Transcryptor 3" aria-describedby="transcryptor_3_addon" id="transcryptor_3">
-        </div>
-
-        <div class="input-group mb-3">
-            <span class="input-group-text" id="auth_token_addon">Auth token</span>
-            <input type="text" class="form-control" placeholder="token" aria-label="Auth token" aria-describedby="auth_token_addon" id="auth_token">
-        </div>
-
-        <div id="start_session_result"></div>
-
-        <button type="submit" class="btn btn-primary">Start session</button>
-    </form>
-
-    <hr/>
-    <div class="row justify-content-between">
-        <div class="col-5">
-            <h2>Encrypt</h2>
-            <form id="encrypt">
+    <h1 class="py-2 text-center"><code>PaaS</code> example</h1>
+    <div class="card ">
+        <div class="card-body">
+            <h2 class="card-title">Sender</h2>
+            <form id="sender_start_session">
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="sender_transcryptor_1_addon">Transcryptor 1</span>
+                    <input type="text" class="form-control" placeholder="http://localhost:8080"
+                           value="http://localhost:8080" aria-label="Transcryptor 1"
+                           aria-describedby="sender_transcryptor_1_addon" id="sender_transcryptor_1">
+                </div>
+                <div id="sender_transcryptor_1_session_result" class="mb-3"></div>
 
                 <div class="input-group mb-3">
-                    <span class="input-group-text" id="encrypt_plaintext_addon">Plaintext (hex)</span>
-                    <textarea maxlength="64" class="form-control" aria-label="Plaintext" aria-describedby="encrypt_plaintext_addon"  id="encrypt_plaintext"></textarea>
+                    <span class="input-group-text" id="sender_transcryptor_2_addon">Transcryptor 2</span>
+                    <input type="text" class="form-control" placeholder="http://localhost:8081"
+                           value="http://localhost:8081" aria-label="Transcryptor 2"
+                           aria-describedby="sender_transcryptor_2_addon" id="sender_transcryptor_2">
                 </div>
-
-                <div class="mb-3 text-break" id="encryption_result"></div>
-
-                <button type="submit" class="btn btn-primary">Encrypt</button>
-                <button type="button" id="random_encryption" class="btn btn-warning">Random</button>
-            </form>
-        </div>
-        <div class="col-5">
-            <h2>Decrypt</h2>
-            <form id="decrypt">
+                <div id="sender_transcryptor_2_session_result" class="mb-3"></div>
 
                 <div class="input-group mb-3">
-                    <span class="input-group-text" id="decrypt_ciphertext_addon">Ciphertext (base64)</span>
-                    <textarea class="form-control" aria-label="Ciphertext" aria-describedby="decrypt_ciphertext_addon" id="decrypt_ciphertext"></textarea>
+                    <span class="input-group-text" id="sender_transcryptor_3_addon">Transcryptor 3</span>
+                    <input type="text" class="form-control" placeholder="http://localhost:8082"
+                           value="http://localhost:8082" aria-label="Transcryptor 3"
+                           aria-describedby="sender_transcryptor_3_addon" id="sender_transcryptor_3">
+                </div>
+                <div id="sender_transcryptor_3_session_result" class="mb-3"></div>
+
+
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="sender_auth_token_addon">Auth token</span>
+                    <input type="text" class="form-control" placeholder="token" aria-label="Auth token"
+                           aria-describedby="sender_auth_token_addon" id="sender_auth_token">
                 </div>
 
-                <div class="mb-3 text-break" id="decryption_result"></div>
+                <div id="sender_start_session_result" class="mb-3"></div>
 
-                <button type="submit" class="btn btn-primary">Decrypt</button>
+                <button type="submit" class="btn btn-primary">Start session</button>
             </form>
+
+            <hr/>
+            <div class="row justify-content-between">
+                <div class="col-5">
+                    <h2>Encrypt</h2>
+                    <form id="encrypt">
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="encrypt_pseudonym_addon">Pseudonym (hex)</span>
+                            <textarea maxlength="64" class="form-control" aria-label="Pseudonym"
+                                      aria-describedby="encrypt_pseudonym_addon" id="encrypt_pseudonym"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Encrypt</button>
+                        <button type="button" id="random_encryption" class="btn btn-warning">Random</button>
+                    </form>
+                </div>
+                <div class="col-5">
+                    <div class="mb-3 text-break" id="encryption_result"></div>
+                </div>
+            </div>
         </div>
     </div>
-
     <hr/>
-    <div class="mb-3">
-        <h2>Pseudonymize</h2>
-        <form id="transcryptor_order">
-            <div class="input-group mb-3">
-                <span class="input-group-text" id="pseudonymize_input_addon">Ciphertext (base64)</span>
-                <textarea class="form-control" aria-label="Pseudonymize" aria-describedby="pseudonymize_input_addon" id="pseudonymize_input"></textarea>
-            </div>
-            <div class="input-group mb-3">
-                <span class="input-group-text" id="pseudonymize_context_from_addon">Context from</span>
-                <select class="form-select" id="pseudonymize_context_from">
-                    <option value="0">Domain 1</option>
-                    <option value="1">Domain 2</option>
-                    <option value="2">Domain 3</option>
-                </select>
-            </div>
-            <div class="input-group mb-3">
-                <span class="input-group-text" id="pseudonymize_context_to_addon">Context to</span>
-                <select class="form-select" id="pseudonymize_context_to">
-                    <option value="0">Domain 1</option>
-                    <option value="1">Domain 2</option>
-                    <option value="2">Domain 3</option>
-                </select>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <select class="form-select" id="transcryptor_order_1">
-                        <option value="0">Transcryptor 1</option>
-                        <option value="1">Transcryptor 2</option>
-                        <option value="2">Transcryptor 3</option>
-                    </select>
-                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_1_result"></div>
+    <div class="card ">
+        <div class="card-body">
+            <h2 class="card-title">Receiver</h2>
+            <form id="receiver_start_session" class="mb-3">
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="receiver_transcryptor_1_addon">Transcryptor 1</span>
+                    <input type="text" class="form-control" placeholder="http://localhost:8080"
+                           value="http://localhost:8080"
+                           aria-label="Transcryptor 1" aria-describedby="receiver_transcryptor_1_addon"
+                           id="receiver_transcryptor_1">
                 </div>
-                <div class="col-md-4">
-                    <select class="form-select" id="transcryptor_order_2">
-                        <option value="0">Transcryptor 1</option>
-                        <option value="1" selected>Transcryptor 2</option>
-                        <option value="2">Transcryptor 3</option>
-                    </select>
-                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_2_result"></div>
+
+                <div id="receiver_transcryptor_1_session_result" class="mb-3"></div>
+
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="receiver_transcryptor_2_addon">Transcryptor 2</span>
+                    <input type="text" class="form-control" placeholder="http://localhost:8081"
+                           value="http://localhost:8081"
+                           aria-label="Transcryptor 2" aria-describedby="receiver_transcryptor_2_addon"
+                           id="receiver_transcryptor_2">
                 </div>
-                <div class="col-md-4">
-                    <select class="form-select" id="transcryptor_order_3">
-                        <option value="0">Transcryptor 1</option>
-                        <option value="1">Transcryptor 2</option>
-                        <option value="2" selected>Transcryptor 3</option>
-                    </select>
-                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_3_result"></div>
+
+                <div id="receiver_transcryptor_2_session_result" class="mb-3"></div>
+
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="receiver_transcryptor_3_addon">Transcryptor 3</span>
+                    <input type="text" class="form-control" placeholder="http://localhost:8082"
+                           value="http://localhost:8082"
+                           aria-label="Transcryptor 3" aria-describedby="receiver_transcryptor_3_addon"
+                           id="receiver_transcryptor_3">
+                </div>
+
+                <div id="receiver_transcryptor_3_session_result" class="mb-3"></div>
+
+                <div class="input-group mb-3">
+                    <span class="input-group-text" id="receiver_auth_token_addon">Auth token</span>
+                    <input type="text" class="form-control" placeholder="token" aria-label="Auth token"
+                           aria-describedby="receiver_auth_token_addon" id="receiver_auth_token">
+                </div>
+
+                <div id="receiver_start_session_result" class="mb-3"></div>
+
+                <button type="submit" class="btn btn-primary">Start session</button>
+            </form>
+
+            <div class="mb-3">
+                <h2>Pseudonymize</h2>
+                <form id="pseudonymize">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text" id="pseudonymize_input_addon">Ciphertext (base64)</span>
+                        <textarea class="form-control" aria-label="Pseudonymize"
+                                  aria-describedby="pseudonymize_input_addon"
+                                  id="pseudonymize_input"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_order_1_addon">First transcryptor</span>
+                                <select class="form-select" aria-label="First transcryptor" aria-describedby="pseudonymize_transcryptor_order_1_addon" id="pseudonymize_transcryptor_order_1">
+                                    <option value="0">Transcryptor 1</option>
+                                    <option value="1">Transcryptor 2</option>
+                                    <option value="2">Transcryptor 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_1_context_from_addon">Context from</span>
+                                <select class="form-select" aria-label="Context-from" aria-describedby="pseudonymize_transcryptor_1_context_from_addon" id="pseudonymize_transcryptor_1_context_from">
+                                    <option value="domain1">Domain 1</option>
+                                    <option value="domain2">Domain 2</option>
+                                    <option value="domain3">Domain 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_1_context_to_addon">Context to</span>
+                                <select class="form-select" aria-label="Context-to" aria-describedby="pseudonymize_transcryptor_1_context_to_addon" id="pseudonymize_transcryptor_1_context_to">
+                                    <option value="domain1">Domain 1</option>
+                                    <option value="domain2">Domain 2</option>
+                                    <option value="domain3">Domain 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_1_encryption_addon">Encrypt from</span>
+                                <select class="form-select" id="pseudonymize_transcryptor_1_encryption">
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_1_decryption_addon">Decrypt to</span>
+                                <select class="form-select" id="pseudonymize_transcryptor_1_decryption">
+                                </select>
+                            </div>
+                            <div class="mb-3 text-break" id="pseudonymize_transcryptor_1_result"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_order_2_addon">Second transcryptor</span>
+                                <select class="form-select" aria-label="Second transcryptor" aria-describedby="pseudonymize_transcryptor_order_2_addon"  id="pseudonymize_transcryptor_order_2">
+                                    <option value="0">Transcryptor 1</option>
+                                    <option value="1" selected>Transcryptor 2</option>
+                                    <option value="2">Transcryptor 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_2_context_from_addon">Context from</span>
+                                <select class="form-select" aria-label="Context from" aria-describedby="pseudonymize_transcryptor_2_context_from_addon" id="pseudonymize_transcryptor_2_context_from">
+                                    <option value="domain1">Domain 1</option>
+                                    <option value="domain2">Domain 2</option>
+                                    <option value="domain3">Domain 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_2_context_to_addon">Context to</span>
+                                <select class="form-select" aria-label="Context-to" aria-describedby="pseudonymize_transcryptor_2_context_to_addon" id="pseudonymize_transcryptor_2_context_to">
+                                    <option value="domain1">Domain 1</option>
+                                    <option value="domain2">Domain 2</option>
+                                    <option value="domain3">Domain 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_2_encryption_addon">Encrypt from</span>
+                                <select class="form-select" id="pseudonymize_transcryptor_2_encryption">
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_2_decryption_addon">Decrypt to</span>
+                                <select class="form-select" id="pseudonymize_transcryptor_2_decryption">
+                                </select>
+                            </div>
+                            <div class="mb-3 text-break" id="pseudonymize_transcryptor_2_result"></div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_order_3_addon">Third transcryptor</span>
+                                <select class="form-select" aria-label="Third transcryptor" aria-describedby="pseudonymize_transcryptor_order_3_addon"  id="pseudonymize_transcryptor_order_3">
+                                    <option value="0">Transcryptor 1</option>
+                                    <option value="1">Transcryptor 2</option>
+                                    <option value="2" selected>Transcryptor 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_3_context_from_addon">Context from</span>
+                                <select class="form-select" aria-label="Context-from" aria-describedby="pseudonymize_transcryptor_3_context_from_addon" id="pseudonymize_transcryptor_3_context_from">
+                                    <option value="domain1">Domain 1</option>
+                                    <option value="domain2">Domain 2</option>
+                                    <option value="domain3">Domain 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_3_context_to_addon">Context to</span>
+                                <select class="form-select" aria-label="Context-to" aria-describedby="pseudonymize_transcryptor_3_context_to_addon" id="pseudonymize_transcryptor_3_context_to">
+                                    <option value="domain1">Domain 1</option>
+                                    <option value="domain2">Domain 2</option>
+                                    <option value="domain3">Domain 3</option>
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_3_encryption_addon">Encrypt from</span>
+                                <select class="form-select" id="pseudonymize_transcryptor_3_encryption">
+                                </select>
+                            </div>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text" id="pseudonymize_transcryptor_3_decryption_addon">Decrypt to</span>
+                                <select class="form-select" id="pseudonymize_transcryptor_3_decryption">
+                                </select>
+                            </div>
+                            <div class="mb-3 text-break" id="pseudonymize_transcryptor_3_result"></div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Pseudonymize</button>
+                </form>
+            </div>
+
+            <div>
+                <div class="col-5">
+                    <h2>Decrypt</h2>
+                    <form id="decrypt">
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="decrypt_ciphertext_addon">Ciphertext (base64)</span>
+                            <textarea class="form-control" aria-label="Ciphertext"
+                                      aria-describedby="decrypt_ciphertext_addon"
+                                      id="decrypt_ciphertext"></textarea>
+                        </div>
+
+                        <div class="mb-3 text-break" id="decryption_result"></div>
+
+                        <button type="submit" class="btn btn-primary">Decrypt</button>
+                    </form>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">Pseudonymize</button>
-        </form>
+        </div>
     </div>
 </div>
 

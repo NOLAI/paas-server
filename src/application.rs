@@ -76,11 +76,11 @@ pub async fn random() -> impl Responder {
 }
 
 
-fn has_access_to_context(from: Arc<Vec<String>>, to: Arc<Vec<String>>, enc_context: EncryptionContext, dec_context: EncryptionContext, user_sessions: Vec<String>) -> bool {
+fn has_access_to_context(from: Arc<Vec<String>>, to: Arc<Vec<String>>, pseudonym_context_from: PseudonymizationContext,
+                         pseudonym_context_to: PseudonymizationContext , dec_context: EncryptionContext, user_sessions: Vec<String>) -> bool {
     // Access control alleen bij de prefix en niet postfix. Voor nu postfix loggen.
-    // dec_context moet gelijk zijn aan jou sessie. 
-
-    user_sessions.contains(&dec_context) && from.contains(&enc_context) && to.contains(&dec_context)
+    // dec_context moet gelijk zijn aan jou sessie.
+    user_sessions.contains(&dec_context) && from.contains(&pseudonym_context_from) && to.contains(&pseudonym_context_to)
 }
 
 pub async fn pseudonymize(req: HttpRequest, body: Bytes,  redis: Data<RedisConnector>,  pep_system: Data<PEPSystem>) -> impl Responder {
@@ -94,7 +94,7 @@ pub async fn pseudonymize(req: HttpRequest, body: Bytes,  redis: Data<RedisConne
     let mut redis_connector = redis.get_ref().clone();
     let sessions = redis_connector.get_sessions_for_user(auth.username.to_string()).expect("Failed to get sessions");
     
-    if !(has_access_to_context(domain_info.from, domain_info.to, request.enc_context.clone(), request.dec_context.clone(), sessions)) {
+    if !(has_access_to_context(domain_info.from, domain_info.to, request.pseudonym_context_from.clone(), request.pseudonym_context_to.clone(), request.dec_context.clone(), sessions)) {
         return HttpResponse::Forbidden().body("Domain not allowed");
     }
     

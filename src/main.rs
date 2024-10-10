@@ -25,8 +25,7 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server");
     HttpServer::new(move || {
         App::new()
-            .wrap(Cors::permissive()
-            )
+            .wrap(Cors::permissive())
             .wrap(Logger::default())
             .route("/status", web::get().to(status))
             .route("/random", web::get().to(random))
