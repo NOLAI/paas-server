@@ -1,4 +1,5 @@
 import {
+    BlindedGlobalSecretKey,
     BlindingFactor, DataPoint, ElGamal, EncryptedDataPoint,
     GlobalSecretKey, GroupElement,
     makeBlindedGlobalSecretKey,
@@ -12,19 +13,11 @@ import * as libpep from "./libpep.js";
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await libpep.default();
-    }catch (e) {
+    } catch (e) {
         console.error("Error in libpep", e);
     }
-    // TODO: should this be requested from the transcryptors?
-    const BLINDING_SECRET = new GlobalSecretKey(ScalarNonZero.fromHex("22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007"));
-    const BLINDING_VALUES = [
-        new BlindingFactor(ScalarNonZero.fromHex("7ca60a3b3b7d941625fb84a00443b533c87306b8ffdcb7b3004f3f60d3f9bb06")),
-        new BlindingFactor(ScalarNonZero.fromHex("aa133d0e28fb9c826d57f5feca2f0a9e812fed958622abfe259547481919e602")),
-        new BlindingFactor(ScalarNonZero.fromHex("1bfbcb209759d1ca52fed377daba9034b627f5a38d3c1f9b3dba114f1d656c03"))
-    ];
 
-    const BLINDING_SECRET_PEP = makeBlindedGlobalSecretKey(BLINDING_SECRET, BLINDING_VALUES);
-    console.log(BLINDING_SECRET_PEP);
+    const BLINDING_SECRET_PEP = new BlindedGlobalSecretKey(ScalarNonZero.fromHex("22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007"));
 
     let PEP_client = null;
 
@@ -62,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         async start_session() {
             let response = await fetch(this.url + '/start_session', {
-                method: 'GET',
+                method: 'POST',
                 mode: 'cors',
                 headers: {
                     'Content-Type': 'application/json',
@@ -104,6 +97,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return await response.json();
             }
 
+        }
+
+        async get_sessions(username = null) {
+            let response = await fetch(`${this.url}/get_sessions${username ? "/" + username : ""}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + this.auth_token
+                },
+            }).catch(err => {
+                this.status = {
+                    state: 'error', last_checked: Date.now()
+                }
+                return err;
+            });
+
+            if (response.ok) {
+                return await response.json();
+            }
         }
     }
 

@@ -443,6 +443,17 @@ export class BlindedGlobalSecretKey {
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_blindedglobalsecretkey_0(this.__wbg_ptr, ptr0);
     }
+    /**
+    * @param {ScalarNonZero} x
+    */
+    constructor(x) {
+        _assertClass(x, ScalarNonZero);
+        var ptr0 = x.__destroy_into_raw();
+        const ret = wasm.blindedglobalsecretkey_new(ptr0);
+        this.__wbg_ptr = ret >>> 0;
+        BlindedGlobalSecretKeyFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
 }
 
 const BlindingFactorFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -499,7 +510,7 @@ export class BlindingFactor {
     constructor(x) {
         _assertClass(x, ScalarNonZero);
         var ptr0 = x.__destroy_into_raw();
-        const ret = wasm.blindingfactor_new(ptr0);
+        const ret = wasm.blindedglobalsecretkey_new(ptr0);
         this.__wbg_ptr = ret >>> 0;
         BlindingFactorFinalization.register(this, this.__wbg_ptr, this);
         return this;
@@ -913,17 +924,6 @@ export class GlobalSecretKey {
         _assertClass(arg0, ScalarNonZero);
         var ptr0 = arg0.__destroy_into_raw();
         wasm.__wbg_set_globalsecretkey_0(this.__wbg_ptr, ptr0);
-    }
-    /**
-    * @param {ScalarNonZero} x
-    */
-    constructor(x) {
-        _assertClass(x, ScalarNonZero);
-        var ptr0 = x.__destroy_into_raw();
-        const ret = wasm.globalsecretkey_new(ptr0);
-        this.__wbg_ptr = ret >>> 0;
-        GlobalSecretKeyFinalization.register(this, this.__wbg_ptr, this);
-        return this;
     }
 }
 
@@ -2203,7 +2203,7 @@ export class SessionKeyShare {
     constructor(x) {
         _assertClass(x, ScalarNonZero);
         var ptr0 = x.__destroy_into_raw();
-        const ret = wasm.blindingfactor_new(ptr0);
+        const ret = wasm.blindedglobalsecretkey_new(ptr0);
         this.__wbg_ptr = ret >>> 0;
         SessionKeyShareFinalization.register(this, this.__wbg_ptr, this);
         return this;

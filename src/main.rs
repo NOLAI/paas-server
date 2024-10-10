@@ -36,8 +36,10 @@ async fn main() -> std::io::Result<()> {
                     .app_data(web::Data::new(pep_system.clone()))
                     .wrap(auth_middleware.clone()) // Not needed for random
                     .route("/rekey", web::post().to(rekey)) // TODO
-                    .route("/start_session", web::get().to(start_session))
+                    .route("/start_session", web::post().to(start_session))
                     .route("/end_session", web::post().to(end_session))
+                    .route("/get_sessions", web::get().to(get_all_sessions))
+                    .route("/get_sessions/{username}", web::get().to(get_sessions))
                     .service(
                         web::scope("")
                             .route("/pseudonymize", web::post().to(pseudonymize)

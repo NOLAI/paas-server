@@ -30,6 +30,11 @@ pub struct EndSessionRequest {
     session_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetSessionsRequest {
+    username: Option<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct StartSessionResponse {
     session_id: String,
@@ -40,6 +45,11 @@ pub struct StartSessionResponse {
 pub struct StatusResponse {
     system_id: String,
     timestamp: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetSessionResponse { 
+    sessions: Vec<String>,
 }
 
 pub async fn status() -> impl Responder {
@@ -134,4 +144,18 @@ pub async fn end_session(item: web::Json<EndSessionRequest>, req: HttpRequest, d
     redis_connector.end_session(auth.username.to_string(), session_id).unwrap();
     
     HttpResponse::Ok().json({})
+}
+
+pub async fn get_sessions(path: web::Path<GetSessionsRequest>, data: Data<RedisConnector>) -> impl Responder {
+    let mut redis_connector = data.get_ref().clone();
+    
+    let sessions = redis_connector.get_sessions_for_user(path.username.clone().unwrap()).unwrap();
+    HttpResponse::Ok().json(GetSessionResponse { sessions })
+}
+
+pub async fn get_all_sessions(data: Data<RedisConnector>) -> impl Responder {
+    let mut redis_connector = data.get_ref().clone();
+
+    let sessions = redis_connector.get_all_sessions().unwrap();
+    HttpResponse::Ok().json(GetSessionResponse { sessions })
 }

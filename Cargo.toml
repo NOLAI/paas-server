@@ -8,7 +8,7 @@ actix-web = "4.0"
 actix-cors = "0.7.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_yml = "0.0.10"
+serde_yml = "0.0.12"
 futures-util = "0.3.30"
 env_logger = "0.11.3"
 libpep = { git = "https://github.com/JobDoesburg/libpep.git", branch = "dev_paas" }
