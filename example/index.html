@@ -12,7 +12,7 @@
     <form id="config">
         <div class="input-group mb-3">
             <span class="input-group-text" id="blinded_global_secret_key_addon">Blinded global secret key</span>
-            <input type="text" class="form-control font-monospace" aria-label="blinded_global_secret_key_addon" aria-describedby="blinded_global_secret_key_addon" name="blinded_global_secret_key" value="22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007" disabled>
+            <input type="text" class="form-control font-monospace" aria-label="blinded_global_secret_key_addon" aria-describedby="blinded_global_secret_key_addon" name="blinded_global_secret_key" id="blinded_global_secret_key" value="22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007" disabled>
         </div>
 
         <div class="row mb-3">
@@ -82,11 +82,14 @@
         <button type="submit" class="btn btn-primary">Start session (sender)</button>
         <button type="submit" class="btn btn-primary">Start session (receiver)</button>
     </form>
-
     <hr/>
     <div class="row justify-content-between">
         <h2>Sender (encryption)</h2>
         <div class="row">
+            <div class="input-group mb-4">
+                <span class="input-group-text" id="sender_session_key_label">Session key</span>
+                <input type="text" class="form-control font-monospace" aria-label="sender_session_key_label" aria-describedby="sender_session_key_label" name="sender_session_key" id="sender_session_key" disabled>
+            </div>
             <div class="col-md-6">
                 <form id="encrypt_pseudonym">
                     <div class="input-group mb-1">
@@ -174,31 +177,34 @@
     <div>
         <h2>Receiver (decryption)</h2>
         <div class="row">
+            <div class="input-group mb-4">
+                <span class="input-group-text" id="receiver_session_key_label">Session key</span>
+                <input type="text" class="form-control font-monospace" aria-label="receiver_session_key_label" aria-describedby="receiver_session_key_label" name="receiver_session_key" id="receiver_session_key" disabled>
+            </div>
+
             <div class="col-md-6">
                 <form id="decrypt_pseudonym">
                     <div class="input-group mb-3">
                         <label class="input-group-text" id="sender_pseudonym_encrypted_label" for="sender_encrypted_pseudonym">Encrypted (base64)</label>
                         <textarea class="form-control font-monospace" id="sender_encrypted_pseudonym" rows="3"></textarea>
                     </div>
+                    <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
                     <div class="input-group mb-1">
-                        <label class="input-group-text" id="sender_pseudonym_plaintext_label" for="sender_pseudonym_plaintext">Pseudonym (hex)</label>
-                        <input type="text" class="form-control font-monospace" maxlength="64" id="sender_pseudonym_plaintext">
-                        <button class="btn btn-outline-secondary" type="button" id="sender_random_pseudonym">Random</button>
-                        <button type="submit" class="btn btn-primary" id="sender_pseudonym_encrypt">Encrypt</button>
+                        <label class="input-group-text" id="sender_pseudonym_plaintext_label" for="receiver_pseudonym_plaintext">Pseudonym (hex)</label>
+                        <input type="text" class="form-control font-monospace" maxlength="64" id="receiver_pseudonym_plaintext">
                     </div>
                 </form>
             </div>
             <div class="col-md-6">
                 <form id="decrypt_datapoint">
                     <div class="input-group mb-3">
-                        <label class="input-group-text" id="sender_datapoint_encrypted_label" for="sender_encrypted_datapoint">Encrypted (base64)</label>
-                        <textarea class="form-control font-monospace" id="sender_encrypted_datapoint" rows="3"></textarea>
+                        <label class="input-group-text" id="sender_datapoint_encrypted_label" for="receiver_encrypted_datapoint">Encrypted (base64)</label>
+                        <textarea class="form-control font-monospace" id="receiver_encrypted_datapoint" rows="3"></textarea>
                     </div>
+                    <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
                     <div class="input-group mb-1">
-                        <label class="input-group-text" id="sender_datapoint_plaintext_label" for="sender_datapoint_plaintext">Datapoint (hex)</label>
-                        <input type="text" class="form-control font-monospace" maxlength="64" id="sender_datapoint_plaintext">
-                        <button class="btn btn-outline-secondary" type="button" id="sender_random_datapoint">Random</button>
-                        <button type="submit" class="btn btn-primary" id="sender_datapoint_encrypt">Encrypt</button>
+                        <label class="input-group-text" id="sender_datapoint_plaintext_label" for="receiver_datapoint_plaintext">Datapoint (hex)</label>
+                        <input type="text" class="form-control font-monospace" maxlength="64" id="receiver_datapoint_plaintext">
                     </div>
                 </form>
             </div>
