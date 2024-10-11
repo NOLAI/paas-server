@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  actix-server:
+    build:
+      context: .
+      dockerfile: ../../../Dockerfile
+    ports:
+      - "8081:8080"
+    depends_on:
+      - redis
+    volumes:
+      - ../../resources/allowlist.yml:/resources/allowlist.yml:ro
+      - ./resources/server_config.yml:/resources/server_config.yml:ro
+      - ./resources/tokens.yml:/resources/tokens.yml:ro
+    healthcheck:
+      test: curl --fail http://0.0.0.0:8080/status || exit 1
+      interval: 40s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+    environment:
+      REDIS_URL: redis://redis:6379
+  redis:
+    image: redis:alpine
+    ports:
+      - "6381:6379"

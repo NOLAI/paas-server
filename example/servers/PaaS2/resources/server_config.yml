@@ -1,0 +1,3 @@
+pseudonymization_secret: "mypseudonymizationsecret_2"
+rekeying_secret: "myrekeyingsecret_2"
+blinding_factor: 'aa133d0e28fb9c826d57f5feca2f0a9e812fed958622abfe259547481919e602'
