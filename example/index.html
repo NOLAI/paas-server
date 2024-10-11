@@ -11,8 +11,8 @@
     <h1 class="py-2"><code>PaaS</code> (Pseudonymization as a Service) example</h1>
     <form id="config">
         <div class="input-group mb-3">
-            <span class="input-group-text" id="blinded_global_secret_key_addon">Blinded global secret key</span>
-            <input type="text" class="form-control font-monospace" aria-label="blinded_global_secret_key_addon" aria-describedby="blinded_global_secret_key_addon" name="blinded_global_secret_key" id="blinded_global_secret_key" value="22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007" disabled>
+            <label class="input-group-text" for="blinded_global_secret_key">Blinded global secret key</label>
+            <input type="text" class="form-control font-monospace" id="blinded_global_secret_key" value="22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007" disabled>
         </div>
 
         <div class="row mb-3">
@@ -21,16 +21,8 @@
                     <div class="card-body">
                         <h5 class="card-title">Transcryptor 1</h5>
                         <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_1_addon">URL</span>
-                            <input type="text" class="form-control font-monospace" disabled value="http://localhost:8080" aria-label="Transcryptor 1" aria-describedby="transcryptor_1_addon" id="transcryptor_1">
-                        </div>
-                        <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_1_sender_token_addon">Sender token</span>
-                            <input type="text" class="form-control font-monospace" disabled value="mysecretkey1" aria-label="Transcryptor 1 sender token" aria-describedby="transcryptor_1_sender_token_addon" id="transcryptor_1_sender_token">
-                        </div>
-                        <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_1_receiver_token_addon">Receiver token</span>
-                            <input type="text" class="form-control font-monospace" disabled value="anothersecretkey1" aria-label="Transcryptor 1 receiver token" aria-describedby="transcryptor_1_receiver_token_addon" id="transcryptor_1_receiver_token">
+                            <label class="input-group-text" for="transcryptor_1_url">URL</label>
+                            <input type="text" class="form-control font-monospace" disabled value="http://localhost:8080" id="transcryptor_1_url">
                         </div>
                         <textarea class="form-control font-monospace" placeholder="Status..." aria-label="Status" id="transcryptor_1_status" rows="3" disabled></textarea>
                     </div>
@@ -41,16 +33,8 @@
                     <div class="card-body">
                         <h5 class="card-title">Transcryptor 2</h5>
                         <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_2_addon">URL</span>
-                            <input type="text" class="form-control font-monospace" disabled value="http://localhost:8081" aria-label="Transcryptor 2" aria-describedby="transcryptor_2_addon" id="transcryptor_2">
-                        </div>
-                        <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_2_sender_token_addon">Sender token</span>
-                            <input type="text" class="form-control font-monospace" disabled value="mysecretkey2" aria-label="Transcryptor 2 sender token" aria-describedby="transcryptor_2_sender_token_addon" id="transcryptor_2_sender_token">
-                        </div>
-                        <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_2_receiver_token_addon">Receiver token</span>
-                            <input type="text" class="form-control font-monospace" disabled value="anothersecretkey2" aria-label="Transcryptor 2 receiver token" aria-describedby="transcryptor_2_receiver_token_addon" id="transcryptor_2_receiver_token">
+                            <label class="input-group-text" for="transcryptor_2_url">URL</label>
+                            <input type="text" class="form-control font-monospace" disabled value="http://localhost:8081" id="transcryptor_2_url">
                         </div>
                         <textarea class="form-control font-monospace" placeholder="Status..." aria-label="Status" id="transcryptor_2_status" rows="3" disabled></textarea>
                     </div>
@@ -61,16 +45,8 @@
                     <div class="card-body">
                         <h5 class="card-title">Transcryptor 3</h5>
                         <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_3_addon">URL</span>
-                            <input type="text" class="form-control font-monospace" disabled value="http://localhost:8082" aria-label="Transcryptor 3" aria-describedby="transcryptor_3_addon" id="transcryptor_3">
-                        </div>
-                        <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_3_sender_token_addon">Sender token</span>
-                            <input type="text" class="form-control font-monospace" disabled value="mysecretkey3" aria-label="Transcryptor 3 sender token" aria-describedby="transcryptor_3_sender_token_addon" id="transcryptor_3_sender_token">
-                        </div>
-                        <div class="input-group mb-1">
-                            <span class="input-group-text" id="transcryptor_3_receiver_token_addon">Receiver token</span>
-                            <input type="text" class="form-control font-monospace" disabled value="anothersecretkey3" aria-label="Transcryptor 3 receiver token" aria-describedby="transcryptor_3_receiver_token_addon" id="transcryptor_3_receiver_token">
+                            <label class="input-group-text" for="transcryptor_3_url">URL</label>
+                            <input type="text" class="form-control font-monospace" disabled value="http://localhost:8082" id="transcryptor_3_url">
                         </div>
                         <textarea class="form-control font-monospace" placeholder="Status..." aria-label="Status" id="transcryptor_3_status" rows="3" disabled></textarea>
                     </div>
@@ -78,18 +54,67 @@
             </div>
         </div>
     </form>
-    <form id="start_session">
-        <button type="submit" class="btn btn-primary">Start session (sender)</button>
-        <button type="submit" class="btn btn-primary">Start session (receiver)</button>
-    </form>
     <hr/>
-    <div class="row justify-content-between">
+    <div class="mb-3">
         <h2>Sender (encryption)</h2>
-        <div class="row">
-            <div class="input-group mb-4">
-                <span class="input-group-text" id="sender_session_key_label">Session key</span>
-                <input type="text" class="form-control font-monospace" aria-label="sender_session_key_label" aria-describedby="sender_session_key_label" name="sender_session_key" id="sender_session_key" disabled>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <form id="sender_start_session_1">
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_1_sender_token">Token 1</label>
+                        <input type="text" class="form-control font-monospace" disabled value="mysecretkey1" id="transcryptor_1_sender_token">
+                        <button type="submit" class="btn btn-primary">Start session</button>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_1_sender_session_id">Session ID 1</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_1_sender_session_id">
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_1_sender_sks">SKS 1</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_1_sender_sks">
+                    </div>
+                </form>
             </div>
+            <div class="col-md-4">
+                <form id="sender_start_session_2">
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_2_sender_token">Token 2</label>
+                        <input type="text" class="form-control font-monospace" disabled value="mysecretkey2" id="transcryptor_2_sender_token">
+                        <button type="submit" class="btn btn-primary">Start session</button>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_2_sender_session_id">Session ID 2</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_2_sender_session_id">
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_2_sender_sks">SKS 2</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_2_sender_sks">
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <form id="sender_start_session_3">
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_3_sender_token">Token 3</label>
+                        <input type="text" class="form-control font-monospace" disabled value="mysecretkey3" id="transcryptor_3_sender_token">
+                        <button type="submit" class="btn btn-primary">Start session</button>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_3_sender_session_id">Session ID 3</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_3_sender_session_id">
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_3_sender_sks">SKS 3</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_3_sender_sks">
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="input-group mb-4">
+            <label class="input-group-text" for="sender_session_key">Session key</label>
+            <input type="text" class="form-control font-monospace" id="sender_session_key" disabled>
+        </div>
+        <div class="row">
             <div class="col-md-6">
                 <form id="encrypt_pseudonym">
                     <div class="input-group mb-1">
@@ -123,72 +148,228 @@
     <hr/>
     <div class="mb-3">
         <h2>Transcryption</h2>
-        <form id="transcryptor_order">
-            <div class="input-group mb-3">
-                <span class="input-group-text" id="pseudonymize_input_addon">Ciphertext (base64)</span>
-                <textarea class="form-control" aria-label="Pseudonymize" aria-describedby="pseudonymize_input_addon" id="pseudonymize_input"></textarea>
-            </div>
-            <div class="input-group mb-3">
-                <span class="input-group-text" id="pseudonymize_context_from_addon">Context from</span>
-                <select class="form-select" id="pseudonymize_context_from">
-                    <option value="0">Domain 1</option>
-                    <option value="1">Domain 2</option>
-                    <option value="2">Domain 3</option>
-                </select>
-            </div>
-            <div class="input-group mb-3">
-                <span class="input-group-text" id="pseudonymize_context_to_addon">Context to</span>
-                <select class="form-select" id="pseudonymize_context_to">
-                    <option value="0">Domain 1</option>
-                    <option value="1">Domain 2</option>
-                    <option value="2">Domain 3</option>
-                </select>
-            </div>
+        <form id="transcryptor">
             <div class="row">
                 <div class="col-md-4">
-                    <select class="form-select" id="transcryptor_order_1">
-                        <option value="0">Transcryptor 1</option>
-                        <option value="1">Transcryptor 2</option>
-                        <option value="2">Transcryptor 3</option>
-                    </select>
-                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_1_result"></div>
+                    <div class="input-group mb-3">
+                        <select class="form-select" id="transcryptor_1">
+                            <option value="0">Transcryptor 1</option>
+                            <option value="1" selected>Transcryptor 2</option>
+                            <option value="2">Transcryptor 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="context_from_1">Context from</label>
+                        <select class="form-select" id="context_from_1">
+                            <option value="0">Domain 1</option>
+                            <option value="1">Domain 2</option>
+                            <option value="2">Domain 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="context_to_1">Context to</label>
+                        <select class="form-select" id="context_to_1">
+                            <option value="0">Domain 1</option>
+                            <option value="1">Domain 2</option>
+                            <option value="2">Domain 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="session_from_1">Session from</label>
+                        <select class="form-select" id="session_from_1">
+                            <option value="0">Session 1</option>
+                            <option value="1">Session 2</option>
+                            <option value="2">Session 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="session_to_1">Session to</label>
+                        <select class="form-select" id="session_to_1">
+                            <option value="0">Session 1</option>
+                            <option value="1">Session 2</option>
+                            <option value="2">Session 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_1_input">In</label>
+                        <textarea class="form-control font-monospace" id="transcryptor_1_input" rows="3"></textarea>
+                    </div>
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="transcryptor_1_output">Out</label>
+                        <textarea class="form-control font-monospace" id="transcryptor_1_output" rows="3" disabled></textarea>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <select class="form-select" id="transcryptor_order_2">
-                        <option value="0">Transcryptor 1</option>
-                        <option value="1" selected>Transcryptor 2</option>
-                        <option value="2">Transcryptor 3</option>
-                    </select>
-                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_2_result"></div>
+                    <div class="input-group mb-3">
+                        <select class="form-select" id="transcryptor_2">
+                            <option value="0">Transcryptor 1</option>
+                            <option value="1">Transcryptor 2</option>
+                            <option value="2" selected>Transcryptor 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="context_from_2">Context from</label>
+                        <select class="form-select" id="context_from_2">
+                            <option value="0">Domain 1</option>
+                            <option value="1">Domain 2</option>
+                            <option value="2">Domain 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="context_to_2">Context to</label>
+                        <select class="form-select" id="context_to_2">
+                            <option value="0">Domain 1</option>
+                            <option value="1">Domain 2</option>
+                            <option value="2">Domain 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="session_from_2">Session from</label>
+                        <select class="form-select" id="session_from_2">
+                            <option value="0">Session 1</option>
+                            <option value="1">Session 2</option>
+                            <option value="2">Session 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="session_to_2">Session to</label>
+                        <select class="form-select" id="session_to_2">
+                            <option value="0">Session 1</option>
+                            <option value="1">Session 2</option>
+                            <option value="2">Session 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_2_input">In</label>
+                        <textarea class="form-control font-monospace" id="transcryptor_2_input" rows="3"></textarea>
+                    </div>
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="transcryptor_2_output">Out</label>
+                        <textarea class="form-control font-monospace" id="transcryptor_2_output" rows="3" disabled></textarea>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <select class="form-select" id="transcryptor_order_3">
-                        <option value="0">Transcryptor 1</option>
-                        <option value="1">Transcryptor 2</option>
-                        <option value="2" selected>Transcryptor 3</option>
-                    </select>
-                    <div class="mb-3 text-break" id="pseudonymize_transcryptor_3_result"></div>
+                    <div class="input-group mb-3">
+                        <select class="form-select" id="transcryptor_3">
+                            <option value="0" selected>Transcryptor 1</option>
+                            <option value="1">Transcryptor 2</option>
+                            <option value="2">Transcryptor 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="context_from_3">Context from</label>
+                        <select class="form-select" id="context_from_3">
+                            <option value="0">Domain 1</option>
+                            <option value="1">Domain 2</option>
+                            <option value="2">Domain 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="context_to_3">Context to</label>
+                        <select class="form-select" id="context_to_3">
+                            <option value="0">Domain 1</option>
+                            <option value="1">Domain 2</option>
+                            <option value="2">Domain 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="session_from_3">Session from</label>
+                        <select class="form-select" id="session_from_3">
+                            <option value="0">Session 1</option>
+                            <option value="1">Session 2</option>
+                            <option value="2">Session 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="session_to_3">Session to</label>
+                        <select class="form-select" id="session_to_3">
+                            <option value="0">Session 1</option>
+                            <option value="1">Session 2</option>
+                            <option value="2">Session 3</option>
+                        </select>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_3_input">In</label>
+                        <textarea class="form-control font-monospace" id="transcryptor_3_input" rows="3"></textarea>
+                    </div>
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="transcryptor_3_output">Out</label>
+                        <textarea class="form-control font-monospace" id="transcryptor_3_output" rows="3" disabled></textarea>
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">Pseudonymize</button>
+            <button type="submit" class="btn btn-primary" name="pseudonymize">Pseudonymize</button>
+            <button type="submit" class="btn btn-primary" name="rekey">Rekey</button>
         </form>
     </div>
     <hr>
-    <div>
+    <div class="mb-5">
         <h2>Receiver (decryption)</h2>
-        <div class="row">
-            <div class="input-group mb-4">
-                <span class="input-group-text" id="receiver_session_key_label">Session key</span>
-                <input type="text" class="form-control font-monospace" aria-label="receiver_session_key_label" aria-describedby="receiver_session_key_label" name="receiver_session_key" id="receiver_session_key" disabled>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <form id="receiver_start_session_1">
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_1_receiver_token">Token 1</label>
+                        <input type="text" class="form-control font-monospace" disabled value="anothersecretkey1" id="transcryptor_1_receiver_token">
+                        <button type="submit" class="btn btn-primary">Start session</button>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_1_receiver_session_id">Session ID 1</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_1_receiver_session_id">
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_1_receiver_sks">SKS 1</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_1_receiver_sks">
+                    </div>
+                </form>
             </div>
-
+            <div class="col-md-4">
+                <form id="receiver_start_session_2">
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_2_receiver_token">Token 2</label>
+                        <input type="text" class="form-control font-monospace" disabled value="anothersecretkey2" id="transcryptor_2_receiver_token">
+                        <button type="submit" class="btn btn-primary">Start session</button>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_2_receiver_session_id">Session ID 2</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_2_receiver_session_id">
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_2_receiver_sks">SKS 2</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_2_receiver_sks">
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <form id="receiver_start_session_3">
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_3_receiver_token">Token 3</label>
+                        <input type="text" class="form-control font-monospace" disabled value="anothersecretkey3" id="transcryptor_3_receiver_token">
+                        <button type="submit" class="btn btn-primary">Start session</button>
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_3_receiver_session_id">Session ID 3</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_3_receiver_session_id">
+                    </div>
+                    <div class="input-group mb-1">
+                        <label class="input-group-text" for="transcryptor_3_receiver_sks">SKS 3</label>
+                        <input type="text" class="form-control font-monospace" disabled id="transcryptor_3_receiver_sks">
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="input-group mb-4">
+            <label class="input-group-text" for="receiver_session_key">Session key</label>
+            <input type="text" class="form-control font-monospace" id="receiver_session_key" disabled>
+        </div>
+        <div class="row">
             <div class="col-md-6">
                 <form id="decrypt_pseudonym">
                     <div class="input-group mb-3">
                         <label class="input-group-text" id="sender_pseudonym_encrypted_label" for="sender_encrypted_pseudonym">Encrypted (base64)</label>
                         <textarea class="form-control font-monospace" id="sender_encrypted_pseudonym" rows="3"></textarea>
+                        <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
                     </div>
-                    <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
                     <div class="input-group mb-1">
                         <label class="input-group-text" id="sender_pseudonym_plaintext_label" for="receiver_pseudonym_plaintext">Pseudonym (hex)</label>
                         <input type="text" class="form-control font-monospace" maxlength="64" id="receiver_pseudonym_plaintext">
@@ -200,8 +381,8 @@
                     <div class="input-group mb-3">
                         <label class="input-group-text" id="sender_datapoint_encrypted_label" for="receiver_encrypted_datapoint">Encrypted (base64)</label>
                         <textarea class="form-control font-monospace" id="receiver_encrypted_datapoint" rows="3"></textarea>
+                        <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
                     </div>
-                    <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
                     <div class="input-group mb-1">
                         <label class="input-group-text" id="sender_datapoint_plaintext_label" for="receiver_datapoint_plaintext">Datapoint (hex)</label>
                         <input type="text" class="form-control font-monospace" maxlength="64" id="receiver_datapoint_plaintext">
