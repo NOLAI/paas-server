@@ -118,28 +118,28 @@
             <div class="col-md-6">
                 <form id="encrypt_pseudonym">
                     <div class="input-group mb-1">
-                        <label class="input-group-text" id="pseudonym_plaintext_label" for="pseudonym_plaintext">Pseudonym (hex)</label>
-                        <input type="text" class="form-control font-monospace" maxlength="64" id="pseudonym_plaintext">
-                        <button class="btn btn-outline-secondary" type="button" id="random_pseudonym">Random</button>
+                        <label class="input-group-text" id="pseudonym_plaintext_label" for="sender_pseudonym">Pseudonym (hex)</label>
+                        <input type="text" class="form-control font-monospace" maxlength="64" minlength="64" id="sender_pseudonym">
+                        <button class="btn btn-outline-secondary" type="button" id="sender_random_pseudonym">Random</button>
                         <button type="submit" class="btn btn-primary">Encrypt</button>
                     </div>
                     <div class="input-group mb-3">
-                        <label class="input-group-text" id="pseudonym_encrypted_label" for="encrypted_pseudonym">Encrypted (base64)</label>
-                        <textarea class="form-control font-monospace" id="encrypted_pseudonym" rows="3"></textarea>
+                        <label class="input-group-text" id="pseudonym_encrypted_label" for="sender_encrypted_pseudonym">Encrypted (base64)</label>
+                        <textarea class="form-control font-monospace" id="sender_encrypted_pseudonym" rows="3"></textarea>
                     </div>
                 </form>
             </div>
             <div class="col-md-6">
                 <form id="encrypt_datapoint">
                     <div class="input-group mb-1">
-                        <label class="input-group-text" id="datapoint_plaintext_label" for="datapoint_plaintext">Datapoint (hex)</label>
-                        <input type="text" class="form-control font-monospace" maxlength="64" id="datapoint_plaintext">
-                        <button class="btn btn-outline-secondary" type="button" id="random_datapoint">Random</button>
+                        <label class="input-group-text" id="datapoint_plaintext_label" for="sender_datapoint">Datapoint (hex)</label>
+                        <input type="text" class="form-control font-monospace" maxlength="64" minlength="64" id="sender_datapoint">
+                        <button class="btn btn-outline-secondary" type="button" id="sender_random_datapoint">Random</button>
                         <button type="submit" class="btn btn-primary">Encrypt</button>
                     </div>
                     <div class="input-group mb-3">
-                        <label class="input-group-text" id="datapoint_encrypted_label" for="encrypted_datapoint">Encrypted (base64)</label>
-                        <textarea class="form-control font-monospace" id="encrypted_datapoint" rows="3"></textarea>
+                        <label class="input-group-text" id="datapoint_encrypted_label" for="sender_encrypted_datapoint">Encrypted (base64)</label>
+                        <textarea class="form-control font-monospace" id="sender_encrypted_datapoint" rows="3"></textarea>
                     </div>
                 </form>
             </div>
@@ -366,13 +366,13 @@
             <div class="col-md-6">
                 <form id="decrypt_pseudonym">
                     <div class="input-group mb-3">
-                        <label class="input-group-text" id="sender_pseudonym_encrypted_label" for="sender_encrypted_pseudonym">Encrypted (base64)</label>
-                        <textarea class="form-control font-monospace" id="sender_encrypted_pseudonym" rows="3"></textarea>
+                        <label class="input-group-text" id="sender_pseudonym_encrypted_label" for="receiver_encrypted_pseudonym">Encrypted (base64)</label>
+                        <textarea class="form-control font-monospace" id="receiver_encrypted_pseudonym" rows="3"></textarea>
                         <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" id="sender_pseudonym_plaintext_label" for="receiver_pseudonym_plaintext">Pseudonym (hex)</label>
-                        <input type="text" class="form-control font-monospace" maxlength="64" id="receiver_pseudonym_plaintext">
+                        <input type="text" class="form-control font-monospace" maxlength="64" minlength="64" id="receiver_pseudonym_plaintext">
                     </div>
                 </form>
             </div>
@@ -385,7 +385,7 @@
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" id="sender_datapoint_plaintext_label" for="receiver_datapoint_plaintext">Datapoint (hex)</label>
-                        <input type="text" class="form-control font-monospace" maxlength="64" id="receiver_datapoint_plaintext">
+                        <input type="text" class="form-control font-monospace" maxlength="64" minlength="64" id="receiver_datapoint_plaintext">
                     </div>
                 </form>
             </div>
