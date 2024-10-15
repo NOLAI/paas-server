@@ -1,4 +1,5 @@
 version: '3.8'
+name: PaaS-demo
 services:
   transcryptor1:
     build: ..
