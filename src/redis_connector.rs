@@ -54,8 +54,7 @@ impl RedisConnector {
         let mut connection = self.client.get_connection()?;
 
         let key = format!("sessions:{}:*", username);
-        let keys: Vec<String> = connection.keys(key).expect("Failed to get keys");
-        let sessions: Vec<String> = keys
+        let sessions: Vec<String> = connection.keys(key).expect("Failed to get keys")
             .iter()
             .map(|key| key.split(":").collect::<Vec<&str>>()[2].to_string())
             .collect();
@@ -65,8 +64,7 @@ impl RedisConnector {
     pub fn get_all_sessions(&mut self) -> Result<Vec<String>, RedisError> {
         let mut connection = self.client.get_connection()?;
 
-        let keys: Vec<String> = connection.keys("sessions:*:*").expect("Failed to get keys");
-        let sessions: Vec<String> = keys
+        let sessions: Vec<String> = connection.keys("sessions:*:*").expect("Failed to get keys")
             .iter()
             .map(|key| key.split(":").collect::<Vec<&str>>()[2].to_string())
             .collect();

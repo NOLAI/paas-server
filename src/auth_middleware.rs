@@ -1,12 +1,11 @@
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::{Error, HttpMessage, HttpResponse};
+use actix_web::{Error, HttpMessage};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::Arc;
 use actix_web::error::ErrorUnauthorized;
-use actix_web::http::StatusCode;
 
 #[derive(Deserialize)]
 struct TokenConfig {

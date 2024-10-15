@@ -11,7 +11,7 @@ struct PEPSystemConfig {
     blinding_factor: String,
 }
 
-pub fn create_pepsystem(resource_file: &str) -> PEPSystem {
+pub fn create_pep_crypto_system(resource_file: &str) -> PEPSystem {
     // Create PEP system
     let file_content = fs::read_to_string(resource_file).expect("Failed to read config file");
     let pep_system_config: PEPSystemConfig =
