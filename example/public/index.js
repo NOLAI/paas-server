@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.status = {
                 state: 'unknown', last_checked: Date.now()
             };
+            this.session_id = null;
         }
 
         async check_status() {
@@ -69,7 +70,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (response.ok) {
-                return await response.json();
+                let data = await response.json();
+                this.session_id = data.session_id;
+                return data;
             }
         }
 
@@ -137,6 +140,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("transcryptor_1_sender_sks").value = response.key_share;
         document.getElementById("transcryptor_1_sender_session_id").value = response.session_id;
         updateSenderSessionKey();
+        invalidateSender();
+        await updateTranscryptorSessions();
     });
     document.getElementById("sender_start_session_2").addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -144,7 +149,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("transcryptor_2_sender_sks").value = response.key_share;
         document.getElementById("transcryptor_2_sender_session_id").value = response.session_id;
         updateSenderSessionKey();
-
+        invalidateSender();
+        await updateTranscryptorSessions();
     });
     document.getElementById("sender_start_session_3").addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -152,6 +158,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("transcryptor_3_sender_sks").value = response.key_share;
         document.getElementById("transcryptor_3_sender_session_id").value = response.session_id;
         updateSenderSessionKey();
+        invalidateSender();
+        await updateTranscryptorSessions();
     });
 
     function updateSenderSessionKey() {
@@ -162,10 +170,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_2_sender_sks").value)));
             sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_3_sender_sks").value)));
         } catch(err) {
+            document.getElementById("sender_pseudonym_encrypt_button").disabled = true;
+            document.getElementById("sender_datapoint_encrypt_button").disabled = true;
             return
         }
 
         PEPSenderClient = new PEPClient(BLINDING_SECRET_PEP, sks);
+        document.getElementById("sender_pseudonym_encrypt_button").disabled = false;
+        document.getElementById("sender_datapoint_encrypt_button").disabled = false;
         document.getElementById("sender_session_key").value = "Established";
     }
 
@@ -175,6 +187,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("transcryptor_1_receiver_sks").value = response.key_share;
         document.getElementById("transcryptor_1_receiver_session_id").value = response.session_id;
         updateReceiverSessionKey();
+        invalidateReceiver1();
+        await updateTranscryptorSessions();
     });
     document.getElementById("receiver_start_session_2").addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -182,7 +196,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("transcryptor_2_receiver_sks").value = response.key_share;
         document.getElementById("transcryptor_2_receiver_session_id").value = response.session_id;
         updateReceiverSessionKey();
-
+        invalidateReceiver2();
+        await updateTranscryptorSessions();
     });
     document.getElementById("receiver_start_session_3").addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -190,7 +205,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("transcryptor_3_receiver_sks").value = response.key_share;
         document.getElementById("transcryptor_3_receiver_session_id").value = response.session_id;
         updateReceiverSessionKey();
+        invalidateReceiver3();
+        await updateTranscryptorSessions();
     });
+
 
     function updateReceiverSessionKey() {
         let sks = [];
@@ -199,10 +217,115 @@ document.addEventListener('DOMContentLoaded', async () => {
             sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_2_receiver_sks").value)));
             sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_3_receiver_sks").value)));
         } catch(err) {
+            document.getElementById("receiver_pseudonym_decrypt_button").disabled = true;
+            document.getElementById("receiver_datapoint_decrypt_button").disabled = true;
             return
         }
         PEPReceiverClient = new PEPClient(BLINDING_SECRET_PEP, sks);
+        document.getElementById("receiver_pseudonym_decrypt_button").disabled = false;
+        document.getElementById("receiver_datapoint_decrypt_button").disabled = false;
         document.getElementById("receiver_session_key").value = "Established";
+    }
+
+    function add_sessions_to_select(sessions, select_element, selected_session = null) {
+        select_element.innerHTML = "";
+
+        let empty = document.createElement("option");
+        empty.value = "0";
+        empty.text = "Select...";
+        empty.selected = true;
+        empty.disabled = true;
+        select_element.add(empty);
+
+        for (let session of sessions) {
+            let option = document.createElement("option");
+            option.value = session;
+            option.text = session;
+            if (selected_session && selected_session === session) {
+                empty.selected = false;
+                option.selected = true;
+            }
+            select_element.add(option);
+        }
+    }
+
+    function getFirstSenderTranscryptor() {
+        if (document.getElementById("transcryptor_1").value === "0") {
+            return sender_transcryptor_1;
+        } else if (document.getElementById("transcryptor_1").value === "1") {
+            return sender_transcryptor_2;
+        } else if (document.getElementById("transcryptor_1").value === "2") {
+            return sender_transcryptor_3;
+        }
+    }
+
+    function getSecondSenderTranscryptor() {
+        if (document.getElementById("transcryptor_2").value === "0") {
+            return sender_transcryptor_1;
+        } else if (document.getElementById("transcryptor_2").value === "1") {
+            return sender_transcryptor_2;
+        } else if (document.getElementById("transcryptor_2").value === "2") {
+            return sender_transcryptor_3;
+        }
+    }
+
+    function getThirdSenderTranscryptor() {
+        if (document.getElementById("transcryptor_3").value === "0") {
+            return sender_transcryptor_1;
+        } else if (document.getElementById("transcryptor_3").value === "1") {
+            return sender_transcryptor_2;
+        } else if (document.getElementById("transcryptor_3").value === "2") {
+            return sender_transcryptor_3;
+        }
+    }
+
+    function getFirstReceiverTranscryptor() {
+        if (document.getElementById("transcryptor_1").value === "0") {
+            return receiver_transcryptor_1;
+        } else if (document.getElementById("transcryptor_1").value === "1") {
+            return receiver_transcryptor_2;
+        } else if (document.getElementById("transcryptor_1").value === "2") {
+            return receiver_transcryptor_3;
+        }
+    }
+
+    function getSecondReceiverTranscryptor() {
+        if (document.getElementById("transcryptor_2").value === "0") {
+            return receiver_transcryptor_1;
+        } else if (document.getElementById("transcryptor_2").value === "1") {
+            return receiver_transcryptor_2;
+        } else if (document.getElementById("transcryptor_2").value === "2") {
+            return receiver_transcryptor_3;
+        }
+    }
+
+    function getThirdReceiverTranscryptor() {
+        if (document.getElementById("transcryptor_3").value === "0") {
+            return receiver_transcryptor_1;
+        } else if (document.getElementById("transcryptor_3").value === "1") {
+            return receiver_transcryptor_2;
+        } else if (document.getElementById("transcryptor_3").value === "2") {
+            return receiver_transcryptor_3;
+        }
+    }
+
+    async function updateTranscryptorSessions() {
+        let firstTranscryptorSessions = await getFirstReceiverTranscryptor().get_sessions();
+        add_sessions_to_select(firstTranscryptorSessions["sessions"],document.getElementById("session_from_1"), getFirstSenderTranscryptor().session_id)
+        add_sessions_to_select(firstTranscryptorSessions["sessions"],document.getElementById("session_to_1"), getFirstReceiverTranscryptor().session_id)
+
+        let secondTranscryptorSessions = await getSecondReceiverTranscryptor().get_sessions();
+        add_sessions_to_select(secondTranscryptorSessions["sessions"],document.getElementById("session_from_2"), getSecondSenderTranscryptor().session_id)
+        add_sessions_to_select(secondTranscryptorSessions["sessions"],document.getElementById("session_to_2"), getSecondReceiverTranscryptor().session_id)
+
+
+        let thirdTranscryptorSessions = await getThirdReceiverTranscryptor().get_sessions();
+        add_sessions_to_select(thirdTranscryptorSessions["sessions"],document.getElementById("session_from_3"), getThirdSenderTranscryptor().session_id)
+        add_sessions_to_select(thirdTranscryptorSessions["sessions"],document.getElementById("session_to_3"), getThirdReceiverTranscryptor().session_id)
+
+        let enabled = document.getElementById("session_from_1").value !== "0" && document.getElementById("session_from_2").value !== "0" && document.getElementById("session_from_3").value !== "0" && document.getElementById("session_to_1").value !== "0" && document.getElementById("session_to_2").value !== "0" && document.getElementById("session_to_3") !== "0";
+        document.getElementById("pseudonymize_button").disabled = !enabled;
+        document.getElementById("rekey_button").disabled = !enabled;
     }
 
     document.getElementById("encrypt_pseudonym").addEventListener('submit', async (event) => {
@@ -213,6 +336,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let pseudonym = new Pseudonym(GroupElement.fromHex(document.getElementById("sender_pseudonym").value));
         let encrypted_pseudonym = PEPSenderClient.encryptPseudonym(pseudonym);
         document.getElementById("sender_encrypted_pseudonym").value = encrypted_pseudonym.value.toBase64();
+        document.getElementById("transcryptor_1_input").value = encrypted_pseudonym.value.toBase64();
+        invalidateTranscryption1();
     });
     document.getElementById("encrypt_datapoint").addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -222,6 +347,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let datapoint = new DataPoint(GroupElement.fromHex(document.getElementById("sender_datapoint").value));
         let encrypted_datapoint = PEPSenderClient.encryptData(datapoint);
         document.getElementById("sender_encrypted_datapoint").value = encrypted_datapoint.value.toBase64();
+        document.getElementById("transcryptor_1_input").value = encrypted_datapoint.value.toBase64();
+        invalidateTranscryption1();
     });
 
     document.getElementById("sender_random_pseudonym").onclick = (_) => {
@@ -233,39 +360,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("sender_datapoint").value = random_group_element.toHex();
     }
 
-
-
     document.getElementById("transcryptor").addEventListener('submit', async (event) => {
         event.preventDefault();
-        document.getElementById("transcryptor_1_input").value = document.getElementById("sender_encrypted_pseudonym").value;
 
         let input1 = document.getElementById("transcryptor_1_input").value;
-
         let in1 = new EncryptedPseudonym(ElGamal.fromBase64(input1));
-        let out1 = await sender_transcryptor_1.pseudonymize(in1, document.getElementById("context_from_1").value, document.getElementById("context_to_1").value, document.getElementById("session_from_1").value, document.getElementById("session_to_1").value);
-        document.getElementById("transcryptor_output_1").value = out1;
+        let out1 = await getFirstReceiverTranscryptor().pseudonymize(in1.value.toBase64(), document.getElementById("context_from_1").value, document.getElementById("context_to_1").value, document.getElementById("session_from_1").value, document.getElementById("session_to_1").value);
+        document.getElementById("transcryptor_1_output").value = out1["encrypted_pseudonym"];
+        document.getElementById("transcryptor_2_input").value = out1["encrypted_pseudonym"];
 
-        let in2 = new EncryptedPseudonym(ElGamal.fromBase64(out1));
-        let out2 = await sender_transcryptor_2.pseudonymize(in2, document.getElementById("context_from_2").value, document.getElementById("context_to_2").value, document.getElementById("session_from_2").value, document.getElementById("session_to_2").value);
-        document.getElementById("transcryptor_output_3").value = out2;
+        let in2 = new EncryptedPseudonym(ElGamal.fromBase64(out1["encrypted_pseudonym"]));
+        let out2 = await getSecondReceiverTranscryptor().pseudonymize(in2.value.toBase64(), document.getElementById("context_from_2").value, document.getElementById("context_to_2").value, document.getElementById("session_from_2").value, document.getElementById("session_to_2").value);
+        document.getElementById("transcryptor_2_output").value = out2["encrypted_pseudonym"];
+        document.getElementById("transcryptor_3_input").value = out2["encrypted_pseudonym"];
 
-        let in3 = new EncryptedPseudonym(ElGamal.fromBase64(out2));
-        let out3 = await sender_transcryptor_2.pseudonymize(in3, document.getElementById("context_from_3").value, document.getElementById("context_to_3").value, document.getElementById("session_from_3").value, document.getElementById("session_to_3").value);
-        document.getElementById("transcryptor_output_3").value = out3;
-
-        document.getElementById("receiver_encrypted_pseudonym").value = out3;
+        let in3 = new EncryptedPseudonym(ElGamal.fromBase64(out2["encrypted_pseudonym"]));
+        let out3 = await getThirdReceiverTranscryptor().pseudonymize(in3.value.toBase64(), document.getElementById("context_from_3").value, document.getElementById("context_to_3").value, document.getElementById("session_from_3").value, document.getElementById("session_to_3").value);
+        document.getElementById("transcryptor_3_output").value = out3["encrypted_pseudonym"];
+        document.getElementById("receiver_encrypted_pseudonym").value = out3["encrypted_pseudonym"];
     });
-
-
 
     document.getElementById("decrypt_pseudonym").addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!PEPReceiverClient) {
             return new Error("PEP client not found - Please start a session first");
         }
-        let encrypted_pseudonym = new EncryptedDataPoint(GroupElement.fromBase64(document.getElementById("encrypted_pseudonym").value));
+        let encrypted_pseudonym = new EncryptedPseudonym(ElGamal.fromBase64(document.getElementById("receiver_encrypted_pseudonym").value));
         let pseudonym = PEPReceiverClient.decryptPseudonym(encrypted_pseudonym);
-        document.getElementById("decrypted_pseudonym").value = pseudonym.value.toHex();
+        document.getElementById("receiver_pseudonym_plaintext").value = pseudonym.value.toHex();
     });
 
     document.getElementById("decrypt_datapoint").addEventListener('submit', async (event) => {
@@ -273,10 +395,117 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!PEPReceiverClient) {
             return new Error("PEP client not found - Please start a session first");
         }
-        let encrypted_datapoint = new EncryptedDataPoint(GroupElement.fromBase64(document.getElementById("encrypted_datapoint").value));
+        let encrypted_datapoint = new EncryptedDataPoint(ElGamal.fromBase64(document.getElementById("receiver_encrypted_datapoint").value));
         let datapoint = PEPReceiverClient.decryptData(encrypted_datapoint);
-        document.getElementById("decrypted_datapoint").value = datapoint.value.toHex();
+        document.getElementById("receiver_datapoint_plaintext").value = datapoint.value.toHex();
     });
+
+
+
+    function invalidateTranscryption3() {
+        document.getElementById("transcryptor_3_output").value = "";
+        document.getElementById("receiver_encrypted_pseudonym").value = "";
+        document.getElementById("receiver_encrypted_datapoint").value = "";
+    }
+    function invalidateTranscryption2() {
+        document.getElementById("transcryptor_2_output").value = "";
+        document.getElementById("transcryptor_3_input").value = "";
+        invalidateTranscryption3()
+    }
+    function invalidateTranscryption1() {
+        document.getElementById("transcryptor_1_output").value = "";
+        document.getElementById("transcryptor_2_input").value = "";
+        invalidateTranscryption2()
+    }
+
+    function invalidateSender() {
+        document.getElementById("sender_encrypted_pseudonym").value = "";
+        document.getElementById("sender_encrypted_datapoint").value = "";
+        document.getElementById("transcryptor_1_input").value = "";
+        invalidateTranscryption1();
+        invalidateReceiver();
+    }
+    function invalidateReceiver() {
+        invalidateTranscryption1();
+    }
+
+
+    function invalidateReceiver1() {
+        if (getFirstReceiverTranscryptor() === receiver_transcryptor_1) {
+            invalidateTranscryption1();
+        } else if (getSecondReceiverTranscryptor() === receiver_transcryptor_1) {
+            invalidateTranscryption2()
+        } else if (getThirdReceiverTranscryptor() === receiver_transcryptor_1) {
+            invalidateTranscryption3();
+        }
+    }
+    function invalidateReceiver2() {
+        if (getFirstReceiverTranscryptor() === receiver_transcryptor_2) {
+            invalidateTranscryption1();
+        } else if (getSecondReceiverTranscryptor() === receiver_transcryptor_2) {
+            invalidateTranscryption2()
+        } else if (getThirdReceiverTranscryptor() === receiver_transcryptor_2) {
+            invalidateTranscryption3();
+        }
+    }
+
+    function invalidateReceiver3() {
+        if (getFirstReceiverTranscryptor() === receiver_transcryptor_3) {
+            invalidateTranscryption1();
+        } else if (getSecondReceiverTranscryptor() === receiver_transcryptor_3) {
+            invalidateTranscryption2()
+        } else if (getThirdReceiverTranscryptor() === receiver_transcryptor_3) {
+            invalidateTranscryption3();
+        }
+    }
+
+
+
+    document.getElementById("context_from_1").addEventListener("change", async (event) => {
+        invalidateTranscryption1();
+    })
+    document.getElementById("context_from_2").addEventListener("change", async (event) => {
+        invalidateTranscryption2();
+    })
+    document.getElementById("context_from_3").addEventListener("change", async (event) => {
+        invalidateTranscryption3();
+    })
+    document.getElementById("context_to_1").addEventListener("change", async (event) => {
+        invalidateTranscryption1();
+    })
+    document.getElementById("context_to_2").addEventListener("change", async (event) => {
+        invalidateTranscryption2();
+    })
+    document.getElementById("context_to_3").addEventListener("change", async (event) => {
+        invalidateTranscryption3();
+    })
+    document.getElementById("session_from_1").addEventListener("change", async (event) => {
+        invalidateTranscryption1();
+    })
+    document.getElementById("session_from_2").addEventListener("change", async (event) => {
+        invalidateTranscryption2();
+    })
+    document.getElementById("session_from_3").addEventListener("change", async (event) => {
+        invalidateTranscryption3();
+    })
+    document.getElementById("session_to_1").addEventListener("change", async (event) => {
+        invalidateTranscryption1();
+    })
+    document.getElementById("session_to_2").addEventListener("change", async (event) => {
+        invalidateTranscryption2();
+    })
+    document.getElementById("session_to_3").addEventListener("change", async (event) => {
+        invalidateTranscryption3();
+    })
+    document.getElementById("transcryptor_1").addEventListener("change", async (event) => {
+        invalidateTranscryption1();
+    })
+    document.getElementById("transcryptor_2").addEventListener("change", async (event) => {
+        invalidateTranscryption2();
+    })
+    document.getElementById("transcryptor_3").addEventListener("change", async (event) => {
+        invalidateTranscryption3();
+    })
 
     function updateTranscryptorStatus() {
         sender_transcryptor_1.check_status();
@@ -287,5 +516,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById("transcryptor_2_status").value = sender_transcryptor_2.status.state + " @ " + (new Date(sender_transcryptor_2.status.last_checked)).toLocaleTimeString();
         document.getElementById("transcryptor_3_status").value = sender_transcryptor_3.status.state + " @ " + (new Date(sender_transcryptor_3.status.last_checked)).toLocaleTimeString();
     }
+
     window.setInterval(updateTranscryptorStatus, 20000);
 });

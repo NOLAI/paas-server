@@ -133,7 +133,7 @@
                         <label class="input-group-text" id="pseudonym_plaintext_label" for="sender_pseudonym">Pseudonym (hex)</label>
                         <input type="text" class="form-control font-monospace" maxlength="64" minlength="64" id="sender_pseudonym">
                         <button class="btn btn-outline-secondary" type="button" id="sender_random_pseudonym">Random</button>
-                        <button type="submit" class="btn btn-primary">Encrypt</button>
+                        <button type="submit" class="btn btn-primary" id="sender_pseudonym_encrypt_button" disabled>Encrypt</button>
                     </div>
                     <div class="input-group mb-3">
                         <label class="input-group-text" id="pseudonym_encrypted_label" for="sender_encrypted_pseudonym">Encrypted (base64)</label>
@@ -147,7 +147,7 @@
                         <label class="input-group-text" id="datapoint_plaintext_label" for="sender_datapoint">Datapoint (hex)</label>
                         <input type="text" class="form-control font-monospace" maxlength="64" minlength="64" id="sender_datapoint">
                         <button class="btn btn-outline-secondary" type="button" id="sender_random_datapoint">Random</button>
-                        <button type="submit" class="btn btn-primary">Encrypt</button>
+                        <button type="submit" class="btn btn-primary" id="sender_datapoint_encrypt_button" disabled>Encrypt</button>
                     </div>
                     <div class="input-group mb-3">
                         <label class="input-group-text" id="datapoint_encrypted_label" for="sender_encrypted_datapoint">Encrypted (base64)</label>
@@ -159,7 +159,7 @@
     </div>
     <hr/>
     <div class="mb-3">
-        <h2>Transcryption</h2>
+        <h2>Transcryption (on behalf of receiver)</h2>
         <form id="transcryptor">
             <div class="row">
                 <div class="col-md-4">
@@ -173,33 +173,27 @@
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="context_from_1">Context from</label>
                         <select class="form-select" id="context_from_1">
-                            <option value="0">Domain 1</option>
-                            <option value="1">Domain 2</option>
-                            <option value="2">Domain 3</option>
+                            <option value="domain1" selected>Domain 1</option>
+                            <option value="domain2">Domain 2</option>
+                            <option value="domain3">Domain 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="context_to_1">Context to</label>
                         <select class="form-select" id="context_to_1">
-                            <option value="0">Domain 1</option>
-                            <option value="1">Domain 2</option>
-                            <option value="2">Domain 3</option>
+                            <option value="domain1">Domain 1</option>
+                            <option value="domain2" selected>Domain 2</option>
+                            <option value="domain3">Domain 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="session_from_1">Session from</label>
                         <select class="form-select" id="session_from_1">
-                            <option value="0">Session 1</option>
-                            <option value="1">Session 2</option>
-                            <option value="2">Session 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-3">
                         <label class="input-group-text" for="session_to_1">Session to</label>
                         <select class="form-select" id="session_to_1">
-                            <option value="0">Session 1</option>
-                            <option value="1">Session 2</option>
-                            <option value="2">Session 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
@@ -222,33 +216,27 @@
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="context_from_2">Context from</label>
                         <select class="form-select" id="context_from_2">
-                            <option value="0">Domain 1</option>
-                            <option value="1">Domain 2</option>
-                            <option value="2">Domain 3</option>
+                            <option value="domain1" selected>Domain 1</option>
+                            <option value="domain2">Domain 2</option>
+                            <option value="domain3">Domain 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="context_to_2">Context to</label>
                         <select class="form-select" id="context_to_2">
-                            <option value="0">Domain 1</option>
-                            <option value="1">Domain 2</option>
-                            <option value="2">Domain 3</option>
+                            <option value="domain1">Domain 1</option>
+                            <option value="domain2" selected>Domain 2</option>
+                            <option value="domain3">Domain 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="session_from_2">Session from</label>
                         <select class="form-select" id="session_from_2">
-                            <option value="0">Session 1</option>
-                            <option value="1">Session 2</option>
-                            <option value="2">Session 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-3">
                         <label class="input-group-text" for="session_to_2">Session to</label>
                         <select class="form-select" id="session_to_2">
-                            <option value="0">Session 1</option>
-                            <option value="1">Session 2</option>
-                            <option value="2">Session 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
@@ -271,33 +259,27 @@
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="context_from_3">Context from</label>
                         <select class="form-select" id="context_from_3">
-                            <option value="0">Domain 1</option>
-                            <option value="1">Domain 2</option>
-                            <option value="2">Domain 3</option>
+                            <option value="domain1" selected>Domain 1</option>
+                            <option value="domain2">Domain 2</option>
+                            <option value="domain3">Domain 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="context_to_3">Context to</label>
                         <select class="form-select" id="context_to_3">
-                            <option value="0">Domain 1</option>
-                            <option value="1">Domain 2</option>
-                            <option value="2">Domain 3</option>
+                            <option value="domain1">Domain 1</option>
+                            <option value="domain2" selected>Domain 2</option>
+                            <option value="domain3">Domain 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="session_from_3">Session from</label>
                         <select class="form-select" id="session_from_3">
-                            <option value="0">Session 1</option>
-                            <option value="1">Session 2</option>
-                            <option value="2">Session 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-3">
                         <label class="input-group-text" for="session_to_3">Session to</label>
                         <select class="form-select" id="session_to_3">
-                            <option value="0">Session 1</option>
-                            <option value="1">Session 2</option>
-                            <option value="2">Session 3</option>
                         </select>
                     </div>
                     <div class="input-group mb-1">
@@ -310,8 +292,8 @@
                     </div>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary" name="pseudonymize">Pseudonymize</button>
-            <button type="submit" class="btn btn-primary" name="rekey">Rekey</button>
+            <button type="submit" class="btn btn-primary" name="pseudonymize" id="pseudonymize_button" disabled>Pseudonymize</button>
+            <button type="submit" class="btn btn-primary" name="rekey" id="rekey_button" disabled>Rekey</button>
         </form>
     </div>
     <hr>
@@ -380,7 +362,7 @@
                     <div class="input-group mb-3">
                         <label class="input-group-text" id="sender_pseudonym_encrypted_label" for="receiver_encrypted_pseudonym">Encrypted (base64)</label>
                         <textarea class="form-control font-monospace" id="receiver_encrypted_pseudonym" rows="3"></textarea>
-                        <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
+                        <button type="submit" class="btn btn-primary mb-3" id="receiver_pseudonym_decrypt_button" disabled>Decrypt</button>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" id="sender_pseudonym_plaintext_label" for="receiver_pseudonym_plaintext">Pseudonym (hex)</label>
@@ -393,7 +375,7 @@
                     <div class="input-group mb-3">
                         <label class="input-group-text" id="sender_datapoint_encrypted_label" for="receiver_encrypted_datapoint">Encrypted (base64)</label>
                         <textarea class="form-control font-monospace" id="receiver_encrypted_datapoint" rows="3"></textarea>
-                        <button type="submit" class="btn btn-primary mb-3">Decrypt</button>
+                        <button type="submit" class="btn btn-primary mb-3" id="receiver_datapoint_decrypt_button" disabled>Decrypt</button>
                     </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" id="sender_datapoint_plaintext_label" for="receiver_datapoint_plaintext">Datapoint (hex)</label>
