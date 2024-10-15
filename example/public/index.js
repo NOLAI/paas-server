@@ -311,17 +311,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function updateTranscryptorSessions() {
         let firstTranscryptorSessions = await getFirstReceiverTranscryptor().get_sessions();
-        add_sessions_to_select(firstTranscryptorSessions["sessions"],document.getElementById("session_from_1"), getFirstSenderTranscryptor().session_id)
-        add_sessions_to_select(firstTranscryptorSessions["sessions"],document.getElementById("session_to_1"), getFirstReceiverTranscryptor().session_id)
+        add_sessions_to_select(firstTranscryptorSessions["sessions"].sort(),document.getElementById("session_from_1"), getFirstSenderTranscryptor().session_id)
+        add_sessions_to_select(firstTranscryptorSessions["sessions"].sort(),document.getElementById("session_to_1"), getFirstReceiverTranscryptor().session_id)
 
         let secondTranscryptorSessions = await getSecondReceiverTranscryptor().get_sessions();
-        add_sessions_to_select(secondTranscryptorSessions["sessions"],document.getElementById("session_from_2"), getSecondSenderTranscryptor().session_id)
-        add_sessions_to_select(secondTranscryptorSessions["sessions"],document.getElementById("session_to_2"), getSecondReceiverTranscryptor().session_id)
+        add_sessions_to_select(secondTranscryptorSessions["sessions"].sort(),document.getElementById("session_from_2"), getSecondSenderTranscryptor().session_id)
+        add_sessions_to_select(secondTranscryptorSessions["sessions"].sort(),document.getElementById("session_to_2"), getSecondReceiverTranscryptor().session_id)
 
 
         let thirdTranscryptorSessions = await getThirdReceiverTranscryptor().get_sessions();
-        add_sessions_to_select(thirdTranscryptorSessions["sessions"],document.getElementById("session_from_3"), getThirdSenderTranscryptor().session_id)
-        add_sessions_to_select(thirdTranscryptorSessions["sessions"],document.getElementById("session_to_3"), getThirdReceiverTranscryptor().session_id)
+        add_sessions_to_select(thirdTranscryptorSessions["sessions"].sort(),document.getElementById("session_from_3"), getThirdSenderTranscryptor().session_id)
+        add_sessions_to_select(thirdTranscryptorSessions["sessions"].sort(),document.getElementById("session_to_3"), getThirdReceiverTranscryptor().session_id)
 
         let enabled = document.getElementById("session_from_1").value !== "0" && document.getElementById("session_from_2").value !== "0" && document.getElementById("session_from_3").value !== "0" && document.getElementById("session_to_1").value !== "0" && document.getElementById("session_to_2").value !== "0" && document.getElementById("session_to_3") !== "0";
         document.getElementById("pseudonymize_button").disabled = !enabled;
@@ -499,12 +499,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     })
     document.getElementById("transcryptor_1").addEventListener("change", async (event) => {
         invalidateTranscryption1();
+        await updateTranscryptorSessions();
     })
     document.getElementById("transcryptor_2").addEventListener("change", async (event) => {
         invalidateTranscryption2();
+        await updateTranscryptorSessions();
     })
     document.getElementById("transcryptor_3").addEventListener("change", async (event) => {
         invalidateTranscryption3();
+        await updateTranscryptorSessions();
     })
 
     function updateTranscryptorStatus() {
