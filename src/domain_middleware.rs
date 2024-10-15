@@ -1,12 +1,12 @@
-use actix_web::{Error, HttpMessage};
-use actix_web::error::{ErrorForbidden, ErrorUnauthorized};
-use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use futures_util::future::{ok, LocalBoxFuture, Ready};
-use std::collections::HashMap;
-use std::sync::Arc;
-use serde::Deserialize;
-use std::fs;
 use crate::auth_middleware::AuthenticationInfo;
+use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
+use actix_web::error::{ErrorForbidden, ErrorUnauthorized};
+use actix_web::{Error, HttpMessage};
+use futures_util::future::{ok, LocalBoxFuture, Ready};
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::fs;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 struct DomainConfig {
@@ -22,19 +22,16 @@ pub struct DomainMiddleware {
 
 impl DomainMiddleware {
     pub fn new(domain_file: &str) -> Self {
-        let file_content = fs::read_to_string(domain_file)
-            .expect("Failed to read domain file");
+        let file_content = fs::read_to_string(domain_file).expect("Failed to read domain file");
 
-        let token_config: DomainConfig = serde_yml::from_str(&file_content)
-            .expect("Failed to parse token file");
+        let token_config: DomainConfig =
+            serde_yml::from_str(&file_content).expect("Failed to parse token file");
 
         DomainMiddleware {
             from: Arc::new(token_config.from),
             to: Arc::new(token_config.to),
         }
     }
-
-
 }
 
 impl<S, B> Transform<S, ServiceRequest> for DomainMiddleware
@@ -69,7 +66,6 @@ pub struct DomainInfo {
     pub from: Arc<Vec<String>>,
     pub to: Arc<Vec<String>>,
 }
-
 
 impl<S, B> Service<ServiceRequest> for DomainMiddlewareService<S>
 where
@@ -112,7 +108,7 @@ where
             }
         } else {
             // No authentication info provided
-            Box::pin(async move { Err(ErrorUnauthorized("No authentication info provided"))})
+            Box::pin(async move { Err(ErrorUnauthorized("No authentication info provided")) })
         }
     }
 }

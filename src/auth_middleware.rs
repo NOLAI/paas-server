@@ -1,11 +1,12 @@
-use actix_web::{Error, HttpMessage};
-use actix_web::error::{ErrorUnauthorized};
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
+use actix_web::{Error, HttpMessage, HttpResponse};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
-use std::collections::HashMap;
-use std::sync::Arc;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs;
+use std::sync::Arc;
+use actix_web::error::ErrorUnauthorized;
+use actix_web::http::StatusCode;
 
 #[derive(Deserialize)]
 struct TokenConfig {
@@ -24,11 +25,10 @@ pub struct AuthenticationInfo {
 
 impl AuthMiddleware {
     pub fn new(token_file: &str) -> Self {
-        let file_content = fs::read_to_string(token_file)
-            .expect("Failed to read token file");
-        let token_config: TokenConfig = serde_yml::from_str(&file_content)
-            .expect("Failed to parse token file");
-        AuthMiddleware { 
+        let file_content = fs::read_to_string(token_file).expect("Failed to read token file");
+        let token_config: TokenConfig =
+            serde_yml::from_str(&file_content).expect("Failed to parse token file");
+        AuthMiddleware {
             tokens: Arc::new(token_config.tokens),
         }
     }
@@ -72,7 +72,10 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let token = req.headers().get("Authorization").and_then(|header| header.to_str().ok());
+        let token = req
+            .headers()
+            .get("Authorization")
+            .and_then(|header| header.to_str().ok());
 
         if let Some(token) = token {
             for (user, user_token) in self.tokens.iter() {
@@ -92,6 +95,6 @@ where
             }
         }
 
-        Box::pin(async move { Err(ErrorUnauthorized("Unauthorized")) })
+        Box::pin(async move { Err(ErrorUnauthorized("Unauthorized")) }) // TODO check actix-extras#260 to give correct CORS headers on error
     }
 }
