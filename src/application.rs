@@ -12,7 +12,7 @@ use std::env;
 use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
-pub struct EncryptedPseudonymResponse {
+pub struct PseudonymizationResponse {
     encrypted_pseudonym: String,
 }
 
@@ -25,14 +25,19 @@ pub struct PseudonymizationRequest {
     dec_context: EncryptionContext,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EndSessionRequest {
-    session_id: String,
+#[derive(Serialize, Deserialize)]
+pub struct StatusResponse {
+    system_id: String,
+    timestamp: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetSessionsRequest {
     username: Option<String>,
+}
+#[derive(Serialize, Deserialize)]
+pub struct GetSessionResponse {
+    sessions: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -41,15 +46,9 @@ pub struct StartSessionResponse {
     key_share: SessionKeyShare,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct StatusResponse {
-    system_id: String,
-    timestamp: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetSessionResponse {
-    sessions: Vec<String>,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EndSessionRequest {
+    session_id: String,
 }
 
 pub async fn status() -> impl Responder {
@@ -122,7 +121,7 @@ pub async fn pseudonymize(
         ),
     );
 
-    HttpResponse::Ok().json(EncryptedPseudonymResponse {
+    HttpResponse::Ok().json(PseudonymizationResponse {
         encrypted_pseudonym: msg_out.encode_to_base64(),
     })
 }
