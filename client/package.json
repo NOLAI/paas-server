@@ -1,18 +1,19 @@
 {
-  "name": "crypto-client",
+  "name": "PaaSClient",
   "version": "1.0.0",
-  "description": "A client library for interacting with the crypto library",
+  "description": "A client library for interacting with PaaS",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "test": "jest"
+    "build": "tsc"
   },
-  "author": "Your Name",
-  "license": "MIT",
+  "author": "Julian van der Horst",
+  "license": "Apache-2.0",
   "devDependencies": {
     "typescript": "^5.0.0",
-    "jest": "^29.0.0",
-    "@types/jest": "^29.0.0"
+    "prettier": "^3.4.1"
+  },
+  "dependencies": {
   }
 }
