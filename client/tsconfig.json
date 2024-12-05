@@ -2,9 +2,10 @@
   "compilerOptions": {
     "target": "es2015",
     "lib": ["ES2015", "DOM"],
-    "moduleResolution": "nodenext",
-    "module": "nodenext",
-    "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+  },
+    "include": ["src/**/*.ts"],
 }

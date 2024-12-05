@@ -9,7 +9,12 @@ import {
   Pseudonym,
   ScalarNonZero,
 } from "@nolai/libpep-wasm";
-import { StartSessionResponse } from "./types.ts";
+
+import type { StartSessionResponse } from "./types";
+// export interface StartSessionResponse {
+//   session_id: string;
+//   key_share: SessionKeyShare;
+// }
 
 export class PEPTranscryptor {
   private url: string;
@@ -152,17 +157,17 @@ export interface PseudonymServiceConfig {
 
 export class PseudonymService {
   private config: PseudonymServiceConfig;
-  private context_to: string;
+  private context: string;
   private global: boolean;
   private pepClient: PEPClient | null = null;
 
   public constructor(
     config: PseudonymServiceConfig,
-    pseudonym_context_to: string,
+    pseudonym_context: string,
     global = false,
   ) {
     this.config = config;
-    this.context_to = pseudonym_context_to;
+    this.context = pseudonym_context;
     this.global = global;
   }
 
@@ -215,7 +220,7 @@ export class PseudonymService {
       temp_response = await transcryptor.pseudonymize(
         temp_response, //encrypted_pseudonym
         pseudonym_context_from, //pseudonym_context_from
-        this.context_to, //pseudonym_context_to
+        this.context, //pseudonym_context_to
         encryption_context_from, //enc_context
         transcryptor.get_session_id(), //dec_context
       );
@@ -266,10 +271,10 @@ export class PseudonymService {
     return this.pepClient.decryptData(encryptedData);
   }
 
-  public async rerandomizePseudonym(encryptedPseudonym: EncryptedPseudonym) {
-    if (!this.pepClient) {
-      await this.createPEPClient();
-    }
-    // TODO: Add to pepClient volgens mij
-  }
+  // public async rerandomizePseudonym(encryptedPseudonym: EncryptedPseudonym) {
+  //   if (!this.pepClient) {
+  //     await this.createPEPClient();
+  //   }
+  //   // TODO: Add to pepClient volgens mij
+  // }
 }
