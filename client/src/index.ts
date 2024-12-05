@@ -8,35 +8,32 @@ import {
   PEPClient,
   Pseudonym,
   ScalarNonZero,
+  SessionKeyShare,
 } from "@nolai/libpep-wasm";
 
 import type { StartSessionResponse } from "./types";
-// export interface StartSessionResponse {
-//   session_id: string;
-//   key_share: SessionKeyShare;
-// }
 
 export class PEPTranscryptor {
   private url: string;
-  private auth_token: string;
-  private status: { state: string; last_checked: number };
-  private session_id: string | null;
+  private authToken: string;
+  private status: { state: string; lastChecked: number };
+  private sessionId: string | null;
 
-  public constructor(url: string, auth_token: string) {
+  public constructor(url: string, authToken: string) {
     this.url = url;
-    this.auth_token = auth_token;
+    this.authToken = authToken;
     this.status = {
       state: "unknown",
-      last_checked: Date.now(),
+      lastChecked: Date.now(),
     };
-    this.session_id = null;
+    this.sessionId = null;
   }
 
-  public async check_status() {
+  public async checkStatus() {
     const response = await fetch(this.url + "/status").catch((err) => {
       this.status = {
         state: "error",
-        last_checked: Date.now(),
+        lastChecked: Date.now(),
       };
       return err;
     });
@@ -44,76 +41,86 @@ export class PEPTranscryptor {
     if (!response.ok) {
       this.status = {
         state: response.status === 404 ? "offline" : "error",
-        last_checked: Date.now(),
+        lastChecked: Date.now(),
       };
     } else {
       this.status = {
         state: "online",
-        last_checked: Date.now(),
+        lastChecked: Date.now(),
       };
     }
   }
 
-  public async start_session() {
+  public async startSession() {
     const response = await fetch(this.url + "/start_session", {
       method: "POST",
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + this.auth_token,
+        Authorization: "Bearer " + this.authToken,
       },
     }).catch((err) => {
       this.status = {
         state: "error",
-        last_checked: Date.now(),
+        lastChecked: Date.now(),
       };
       return err;
     });
 
     if (response.ok) {
       const data: StartSessionResponse = await response.json();
-      this.session_id = data.session_id;
-      return data;
+      this.sessionId = data.session_id;
+
+      return {
+        sessionId: data.session_id,
+        keyShare: SessionKeyShare.fromHex(data.key_share),
+      };
     } else {
-      throw new Error(`Failed to start session with ${this.get_url()}`);
+      throw new Error(`Failed to start session with ${this.getUrl()}`);
     }
   }
 
   public async pseudonymize(
-    encrypted_pseudonym: EncryptedPseudonym,
-    pseudonym_context_from: string,
-    pseudonym_context_to: string,
-    enc_context: string,
-    dec_context: string,
+    encryptedPseudonym: EncryptedPseudonym,
+    pseudonymContextFrom: string,
+    pseudonymContextTo: string,
+    encContext: string,
+    decContext: string,
   ): Promise<EncryptedPseudonym> {
     const response = await fetch(this.url + "/pseudonymize", {
       method: "POST",
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + this.auth_token,
+        Authorization: "Bearer " + this.authToken,
       },
       body: JSON.stringify({
-        encrypted_pseudonym,
-        pseudonym_context_from,
-        pseudonym_context_to,
-        enc_context,
-        dec_context,
+        // eslint-disable-next-line camelcase
+        encrypted_pseudonym: encryptedPseudonym.toBase64(),
+        // eslint-disable-next-line camelcase
+        pseudonym_context_from: pseudonymContextFrom,
+        // eslint-disable-next-line camelcase
+        pseudonym_context_to: pseudonymContextTo,
+        // eslint-disable-next-line camelcase
+        enc_context: encContext,
+        // eslint-disable-next-line camelcase
+        dec_context: decContext,
       }),
     }).catch((err) => {
       this.status = {
         state: "error",
-        last_checked: Date.now(),
+        lastChecked: Date.now(),
       };
       return err;
     });
 
     if (response.ok) {
-      return await response.json();
+      const data = await response.json();
+      return EncryptedPseudonym.fromBase64(data.encrypted_pseudonym);
     }
   }
 
-  public async get_sessions(username = null) {
+  public async getSessions(username = null) {
     const response = await fetch(
       `${this.url}/get_sessions${username ? "/" + username : ""}`,
       {
@@ -121,13 +128,13 @@ export class PEPTranscryptor {
         mode: "cors",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + this.auth_token,
+          Authorization: "Bearer " + this.authToken,
         },
       },
     ).catch((err) => {
       this.status = {
         state: "error",
-        last_checked: Date.now(),
+        lastChecked: Date.now(),
       };
       return err;
     });
@@ -137,21 +144,22 @@ export class PEPTranscryptor {
     }
   }
 
-  public get_status() {
+  public getStatus() {
     return this.status;
   }
 
-  public get_session_id() {
-    return this.session_id;
+  public getSessionId() {
+    return this.sessionId;
   }
 
-  public get_url() {
+  public getUrl() {
     return this.url;
   }
 }
 
 export interface PseudonymServiceConfig {
-  blinded_global_private_key: string;
+  blindedGlobalPrivateKey: string;
+  globalPublicKey: string;
   transcryptors: PEPTranscryptor[];
 }
 
@@ -163,15 +171,15 @@ export class PseudonymService {
 
   public constructor(
     config: PseudonymServiceConfig,
-    pseudonym_context: string,
+    pseudonymContext: string,
     global = false,
   ) {
     this.config = config;
-    this.context = pseudonym_context;
+    this.context = pseudonymContext;
     this.global = global;
   }
 
-  private get_transcryptor_order(order: "random" | "default" | number[]) {
+  private getTranscryptorOrder(order: "random" | "default" | number[]) {
     if (order === "default") {
       order = [...Array(this.config.transcryptors.length).keys()];
     } else if (order === "random" || !order) {
@@ -183,62 +191,67 @@ export class PseudonymService {
   }
 
   public async createPEPClient() {
-    const sks = await Promise.all(
-      this.config.transcryptors.map(
-        async (instance) => (await instance.start_session()).key_share,
-      ),
-    );
-
-    this.pepClient = new PEPClient(
-      new BlindedGlobalSecretKey(
-        ScalarNonZero.fromHex(this.config.blinded_global_private_key),
-      ),
-      sks,
-    );
+    if (this.global) {
+      throw new Error("Global pseudonymization not supported yet");
+      // this.pepClient = new OfflinePEPClient(
+    } else {
+      const sks = await Promise.all(
+        this.config.transcryptors.map(
+          async (instance) => (await instance.startSession()).keyShare,
+        ),
+      );
+      this.pepClient = new PEPClient(
+        new BlindedGlobalSecretKey(
+          ScalarNonZero.fromHex(this.config.blindedGlobalPrivateKey),
+        ),
+        sks,
+      );
+    }
   }
 
   public async pseudonymize(
-    encrypted_pseudonym: string,
-    pseudonym_context_from: string,
-    encryption_context_from: string,
-    order?: "random" | "default" | number[], //TODO: I don't think default is the right word here
+    encryptedPseudonym: string,
+    pseudonymContextTo: string,
+    encryptionContextFrom: string[], // TODO: Order should be the same as the transcryptors
+    order?: "random" | number[], //TODO: I don't think default is the right word here
   ) {
+    if (this.global) {
+      throw new Error("Pseudonymization with global not supported yet");
+    }
+
     // TODO: maybe check if pseudonym is base64 encoded
-    const pseudonym = new EncryptedPseudonym(
-      ElGamal.fromBase64(encrypted_pseudonym),
-    );
+    let pseudonym = EncryptedPseudonym.fromBase64(encryptedPseudonym);
 
     if (!this.pepClient) {
       await this.createPEPClient();
     }
 
-    order = this.get_transcryptor_order(order);
+    order = this.getTranscryptorOrder(order);
 
-    let temp_response = pseudonym;
     for (const i of order) {
       const transcryptor = this.config.transcryptors[i];
-      temp_response = await transcryptor.pseudonymize(
-        temp_response, //encrypted_pseudonym
-        pseudonym_context_from, //pseudonym_context_from
-        this.context, //pseudonym_context_to
-        encryption_context_from, //enc_context
-        transcryptor.get_session_id(), //dec_context
+      pseudonym = await transcryptor.pseudonymize(
+        pseudonym, //encrypted_pseudonym
+        this.context, //pseudonym_context_from
+        pseudonymContextTo, //pseudonym_context_to
+        encryptionContextFrom[i], //enc_context
+        transcryptor.getSessionId(), //dec_context
       );
     }
 
-    return temp_response;
+    return pseudonym;
   }
 
-  public async pseudonymize_batch() {} // TODO: Job vragen
+  public async pseudonymizeBatch() {} // TODO: Job vragen
 
   public async encryptPseudonym(pseudonym: string) {
-    const pseudonym_wasm = Pseudonym.fromHex(pseudonym);
+    const pseudonymWASM = Pseudonym.fromHex(pseudonym);
 
     if (!this.pepClient) {
       await this.createPEPClient();
     }
 
-    return this.pepClient.encryptPseudonym(pseudonym_wasm);
+    return this.pepClient.encryptPseudonym(pseudonymWASM);
   }
 
   public async encryptData(data: string) {
@@ -270,11 +283,4 @@ export class PseudonymService {
 
     return this.pepClient.decryptData(encryptedData);
   }
-
-  // public async rerandomizePseudonym(encryptedPseudonym: EncryptedPseudonym) {
-  //   if (!this.pepClient) {
-  //     await this.createPEPClient();
-  //   }
-  //   // TODO: Add to pepClient volgens mij
-  // }
 }
