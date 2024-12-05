@@ -333,10 +333,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!PEPSenderClient) {
             return new Error("PEP client not found - Please start a session first");
         }
-        let pseudonym = new Pseudonym(GroupElement.fromHex(document.getElementById("sender_pseudonym").value));
+        let pseudonym = Pseudonym.fromHex(document.getElementById("sender_pseudonym").value);
         let encrypted_pseudonym = PEPSenderClient.encryptPseudonym(pseudonym);
-        document.getElementById("sender_encrypted_pseudonym").value = encrypted_pseudonym.value.toBase64();
-        document.getElementById("transcryptor_1_input").value = encrypted_pseudonym.value.toBase64();
+        document.getElementById("sender_encrypted_pseudonym").value = encrypted_pseudonym.toBase64();
+        document.getElementById("transcryptor_1_input").value = encrypted_pseudonym.toBase64();
         invalidateTranscryption1();
     });
     document.getElementById("encrypt_datapoint").addEventListener('submit', async (event) => {
@@ -344,10 +344,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!PEPSenderClient) {
             return new Error("PEP client not found - Please start a session first");
         }
-        let datapoint = new DataPoint(GroupElement.fromHex(document.getElementById("sender_datapoint").value));
+        let datapoint = DataPoint.fromHex(document.getElementById("sender_datapoint").value);
         let encrypted_datapoint = PEPSenderClient.encryptData(datapoint);
-        document.getElementById("sender_encrypted_datapoint").value = encrypted_datapoint.value.toBase64();
-        document.getElementById("transcryptor_1_input").value = encrypted_datapoint.value.toBase64();
+        document.getElementById("sender_encrypted_datapoint").value = encrypted_datapoint.toBase64();
+        document.getElementById("transcryptor_1_input").value = encrypted_datapoint.toBase64();
         invalidateTranscryption1();
     });
 
@@ -364,18 +364,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         event.preventDefault();
 
         let input1 = document.getElementById("transcryptor_1_input").value;
-        let in1 = new EncryptedPseudonym(ElGamal.fromBase64(input1));
-        let out1 = await getFirstReceiverTranscryptor().pseudonymize(in1.value.toBase64(), document.getElementById("context_from_1").value, document.getElementById("context_to_1").value, document.getElementById("session_from_1").value, document.getElementById("session_to_1").value);
+        let in1 = EncryptedPseudonym.fromBase64(input1)
+        let out1 = await getFirstReceiverTranscryptor().pseudonymize(in1.toBase64(), document.getElementById("context_from_1").value, document.getElementById("context_to_1").value, document.getElementById("session_from_1").value, document.getElementById("session_to_1").value);
         document.getElementById("transcryptor_1_output").value = out1["encrypted_pseudonym"];
         document.getElementById("transcryptor_2_input").value = out1["encrypted_pseudonym"];
 
-        let in2 = new EncryptedPseudonym(ElGamal.fromBase64(out1["encrypted_pseudonym"]));
-        let out2 = await getSecondReceiverTranscryptor().pseudonymize(in2.value.toBase64(), document.getElementById("context_from_2").value, document.getElementById("context_to_2").value, document.getElementById("session_from_2").value, document.getElementById("session_to_2").value);
+        let in2 = EncryptedPseudonym.fromBase64(out1["encrypted_pseudonym"]);
+        let out2 = await getSecondReceiverTranscryptor().pseudonymize(in2.toBase64(), document.getElementById("context_from_2").value, document.getElementById("context_to_2").value, document.getElementById("session_from_2").value, document.getElementById("session_to_2").value);
         document.getElementById("transcryptor_2_output").value = out2["encrypted_pseudonym"];
         document.getElementById("transcryptor_3_input").value = out2["encrypted_pseudonym"];
 
-        let in3 = new EncryptedPseudonym(ElGamal.fromBase64(out2["encrypted_pseudonym"]));
-        let out3 = await getThirdReceiverTranscryptor().pseudonymize(in3.value.toBase64(), document.getElementById("context_from_3").value, document.getElementById("context_to_3").value, document.getElementById("session_from_3").value, document.getElementById("session_to_3").value);
+        let in3 = EncryptedPseudonym.fromBase64(out2["encrypted_pseudonym"]);
+        let out3 = await getThirdReceiverTranscryptor().pseudonymize(in3.toBase64(), document.getElementById("context_from_3").value, document.getElementById("context_to_3").value, document.getElementById("session_from_3").value, document.getElementById("session_to_3").value);
         document.getElementById("transcryptor_3_output").value = out3["encrypted_pseudonym"];
         document.getElementById("receiver_encrypted_pseudonym").value = out3["encrypted_pseudonym"];
     });
@@ -385,9 +385,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!PEPReceiverClient) {
             return new Error("PEP client not found - Please start a session first");
         }
-        let encrypted_pseudonym = new EncryptedPseudonym(ElGamal.fromBase64(document.getElementById("receiver_encrypted_pseudonym").value));
+        let encrypted_pseudonym = EncryptedPseudonym.fromBase64(document.getElementById("receiver_encrypted_pseudonym").value);
         let pseudonym = PEPReceiverClient.decryptPseudonym(encrypted_pseudonym);
-        document.getElementById("receiver_pseudonym_plaintext").value = pseudonym.value.toHex();
+        document.getElementById("receiver_pseudonym_plaintext").value = pseudonym.toHex();
     });
 
     document.getElementById("decrypt_datapoint").addEventListener('submit', async (event) => {
@@ -395,9 +395,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!PEPReceiverClient) {
             return new Error("PEP client not found - Please start a session first");
         }
-        let encrypted_datapoint = new EncryptedDataPoint(ElGamal.fromBase64(document.getElementById("receiver_encrypted_datapoint").value));
+        let encrypted_datapoint = EncryptedDataPoint.fromBase64(document.getElementById("receiver_encrypted_datapoint").value);
         let datapoint = PEPReceiverClient.decryptData(encrypted_datapoint);
-        document.getElementById("receiver_datapoint_plaintext").value = datapoint.value.toHex();
+        document.getElementById("receiver_datapoint_plaintext").value = datapoint.toHex();
     });
 
 
