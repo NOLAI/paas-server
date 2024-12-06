@@ -7,7 +7,5 @@ build_and_publish:
     - npm run format
     - npm run lint
     - npm run build
-    - echo *auth=$NPM*PUBLSH_KEY >> .npmrc
-    - echo email=$NPM_EMAIL >> .npmrc
-    - echo always-auth=true >> .npmrc
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc
     - npm publish --access public
