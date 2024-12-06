@@ -79,8 +79,7 @@ where
         if let Some(token) = token {
             for (user, user_token) in self.tokens.iter() {
                 if user_token == token.trim_start_matches("Bearer ") {
-                    let found_user = user.clone();
-                    println!("Found user: {}", found_user); // TODO: Should be logged or removed
+                    let found_user = user.clone(); // TODO: Should be logged or removed
                     req.extensions_mut().insert::<AuthenticationInfo>({
                         AuthenticationInfo {
                             username: Arc::new(found_user),

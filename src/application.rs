@@ -4,9 +4,9 @@ use crate::redis_connector::RedisConnector;
 use actix_web::web::{Bytes, Data};
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::key_blinding::{SessionKeyShare};
-use libpep::distributed::systems::PEPSystem;
+use libpep::distributed::systems::{PEPSystem};
 use libpep::high_level::contexts::{EncryptionContext, PseudonymizationContext};
-use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
+use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym, Pseudonym};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::Arc;
@@ -24,6 +24,21 @@ pub struct PseudonymizationRequest {
     enc_context: EncryptionContext,
     dec_context: EncryptionContext,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PseudonymizationBatchRequest {
+    encrypted_pseudonyms: Vec<String>,
+    pseudonym_context_from: PseudonymizationContext,
+    pseudonym_context_to: PseudonymizationContext,
+    enc_context: EncryptionContext,
+    dec_context: EncryptionContext,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PseudonymizationBatchResponse {
+    encrypted_pseudonyms: Vec<String>,
+}
+
 
 #[derive(Serialize, Deserialize)]
 pub struct StatusResponse {
@@ -125,6 +140,72 @@ pub async fn pseudonymize(
         encrypted_pseudonym: msg_out.encode_to_base64(),
     })
 }
+
+
+pub async fn pseudonymize_batch(
+    req: HttpRequest,
+    body: Bytes,
+    redis: Data<RedisConnector>,
+    pep_system: Data<PEPSystem>,
+) -> impl Responder {
+    let auth = req
+        .extensions()
+        .get::<AuthenticationInfo>()
+        .unwrap()
+        .clone();
+    let domain_info = req.extensions().get::<DomainInfo>().unwrap().clone();
+    let item = serde_json::from_slice::<PseudonymizationBatchRequest>(&body);
+
+    let request = item.unwrap();
+
+    let mut redis_connector = redis.get_ref().clone();
+    let sessions = redis_connector
+        .get_sessions_for_user(auth.username.to_string())
+        .expect("Failed to get sessions");
+
+    if !(has_access_to_context(
+        domain_info.from,
+        domain_info.to,
+        request.pseudonym_context_from.clone(),
+        request.pseudonym_context_to.clone(),
+        request.dec_context.clone(),
+        sessions,
+    )) {
+        return HttpResponse::Forbidden().body("Domain not allowed");
+    }
+
+    let msg_in = request
+        .encrypted_pseudonyms
+        .iter()
+        .map(|x| EncryptedPseudonym::from_base64(x))
+        .collect::<Vec<Option<EncryptedPseudonym>>>();
+
+    for msg in msg_in.iter() {
+        if msg.is_none() {
+            return HttpResponse::BadRequest().body("Invalid input");
+        }
+    }
+
+    let mut msg_in = msg_in.iter().map(|x| x.unwrap()).collect::<Vec<EncryptedPseudonym>>();
+    let msg_in = msg_in.as_mut_slice();
+
+    let mut rng = rand::thread_rng();
+    let msg_out = pep_system.pseudonymize_batch(
+        msg_in,
+        &pep_system.pseudonymization_info(
+            &request.pseudonym_context_from,
+            &request.pseudonym_context_to,
+            &request.enc_context,
+            &request.dec_context,
+        ),
+        &mut rng
+    );
+
+    HttpResponse::Ok().json(PseudonymizationBatchResponse {
+        encrypted_pseudonyms: msg_out.iter().map(|x| x.encode_to_base64()).collect(),
+    })
+}
+
 
 pub async fn rekey() -> impl Responder {
     HttpResponse::Ok().body("Rekey")
