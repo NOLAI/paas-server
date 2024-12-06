@@ -1,17 +1,24 @@
 {
   "name": "@nolai/paas-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A client library for interacting with PaaS",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp ../README.md dist",
     "format": "prettier --write .",
     "lint": "eslint --fix",
     "prepublishOnly": "npm run build",
     "test": "npm run build && NODE_OPTIONS=--experimental-vm-modules jest"
   },
+  "files": [
+    "dist/index.d.ts",
+    "dist/index.js",
+    "dist/types.d.ts",
+    "dist/types.js",
+    "dist/README.md"
+  ],
   "author": "Julian van der Horst",
   "license": "Apache-2.0",
   "devDependencies": {
