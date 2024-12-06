@@ -8,7 +8,7 @@ setup_environment:
   stage: setup
   script:
     - echo "Setting up environment"
-    - sudo apt-get install -y nodejs npm
+    - apt-get install -y nodejs npm
 
 build_client:       
   stage: build
