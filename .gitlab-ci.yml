@@ -2,6 +2,7 @@ build_and_publish:
   script:
     - apt-get update
     - apt-get install -y nodejs npm
+    - cd client
     - npm install
     - npm run format
     - npm run lint
