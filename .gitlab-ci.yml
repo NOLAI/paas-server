@@ -1,7 +1,14 @@
-stages:       
+stages:
+  - setup       
   - build
 # - test TODO: Testing should first setup docker images
   - publish
+
+setup_environment:
+  stage: setup
+  script:
+    - echo "Setting up environment"
+    - sudo apt-get install -y nodejs npm
 
 build_client:       
   stage: build
