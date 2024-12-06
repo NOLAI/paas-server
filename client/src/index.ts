@@ -1,17 +1,22 @@
 import {
   BlindedGlobalSecretKey,
   DataPoint,
-  ElGamal,
   EncryptedDataPoint,
   EncryptedPseudonym,
-  GroupElement,
+  GlobalPublicKey,
   PEPClient,
   Pseudonym,
-  ScalarNonZero,
   SessionKeyShare,
 } from "@nolai/libpep-wasm";
 
-import type { StartSessionResponse } from "./types";
+import {
+  GetSessionResponse,
+  PseudonymizationBatchRequest,
+  PseudonymizationBatchResponse,
+  PseudonymizationRequest,
+  PseudonymizationResponse,
+  StartSessionResponse,
+} from "./types";
 
 export class PEPTranscryptor {
   private url: string;
@@ -105,7 +110,7 @@ export class PEPTranscryptor {
         enc_context: encContext,
         // eslint-disable-next-line camelcase
         dec_context: decContext,
-      }),
+      } as PseudonymizationRequest),
     }).catch((err) => {
       this.status = {
         state: "error",
@@ -115,8 +120,50 @@ export class PEPTranscryptor {
     });
 
     if (response.ok) {
-      const data = await response.json();
+      const data: PseudonymizationResponse = await response.json();
       return EncryptedPseudonym.fromBase64(data.encrypted_pseudonym);
+    }
+  }
+
+  public async pseudonymizeBatch(
+    encryptedPseudonym: EncryptedPseudonym[],
+    pseudonymContextFrom: string,
+    pseudonymContextTo: string,
+    encContext: string,
+    decContext: string,
+  ): Promise<EncryptedPseudonym[]> {
+    const response = await fetch(this.url + "/pseudonymize_batch", {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.authToken,
+      },
+      body: JSON.stringify({
+        // eslint-disable-next-line camelcase
+        encrypted_pseudonyms: encryptedPseudonym.map((p) => p.toBase64()),
+        // eslint-disable-next-line camelcase
+        pseudonym_context_from: pseudonymContextFrom,
+        // eslint-disable-next-line camelcase
+        pseudonym_context_to: pseudonymContextTo,
+        // eslint-disable-next-line camelcase
+        enc_context: encContext,
+        // eslint-disable-next-line camelcase
+        dec_context: decContext,
+      } as PseudonymizationBatchRequest),
+    }).catch((err) => {
+      this.status = {
+        state: "error",
+        lastChecked: Date.now(),
+      };
+      return err;
+    });
+
+    if (response.ok) {
+      const data: PseudonymizationBatchResponse = await response.json();
+      return data.encrypted_pseudonyms.map((p) =>
+        EncryptedPseudonym.fromBase64(p),
+      );
     }
   }
 
@@ -140,7 +187,8 @@ export class PEPTranscryptor {
     });
 
     if (response.ok) {
-      return await response.json();
+      const data: GetSessionResponse = response.json();
+      return data.sessions;
     }
   }
 
@@ -158,8 +206,8 @@ export class PEPTranscryptor {
 }
 
 export interface PseudonymServiceConfig {
-  blindedGlobalPrivateKey: string;
-  globalPublicKey: string;
+  blindedGlobalPrivateKey: BlindedGlobalSecretKey;
+  globalPublicKey: GlobalPublicKey;
   transcryptors: PEPTranscryptor[];
 }
 
@@ -200,17 +248,12 @@ export class PseudonymService {
           async (instance) => (await instance.startSession()).keyShare,
         ),
       );
-      this.pepClient = new PEPClient(
-        new BlindedGlobalSecretKey(
-          ScalarNonZero.fromHex(this.config.blindedGlobalPrivateKey),
-        ),
-        sks,
-      );
+      this.pepClient = new PEPClient(this.config.blindedGlobalPrivateKey, sks);
     }
   }
 
   public async pseudonymize(
-    encryptedPseudonym: string,
+    encryptedPseudonym: EncryptedPseudonym,
     pseudonymContextTo: string,
     encryptionContextFrom: string[], // TODO: Order should be the same as the transcryptors
     order?: "random" | number[], //TODO: I don't think default is the right word here
@@ -218,9 +261,6 @@ export class PseudonymService {
     if (this.global) {
       throw new Error("Pseudonymization with global not supported yet");
     }
-
-    // TODO: maybe check if pseudonym is base64 encoded
-    let pseudonym = EncryptedPseudonym.fromBase64(encryptedPseudonym);
 
     if (!this.pepClient) {
       await this.createPEPClient();
@@ -230,8 +270,8 @@ export class PseudonymService {
 
     for (const i of order) {
       const transcryptor = this.config.transcryptors[i];
-      pseudonym = await transcryptor.pseudonymize(
-        pseudonym, //encrypted_pseudonym
+      encryptedPseudonym = await transcryptor.pseudonymize(
+        encryptedPseudonym, //encrypted_pseudonym
         this.context, //pseudonym_context_from
         pseudonymContextTo, //pseudonym_context_to
         encryptionContextFrom[i], //enc_context
@@ -239,24 +279,48 @@ export class PseudonymService {
       );
     }
 
-    return pseudonym;
+    return encryptedPseudonym;
   }
 
-  public async pseudonymizeBatch() {} // TODO: Job vragen
-
-  public async encryptPseudonym(pseudonym: string) {
-    const pseudonymWASM = Pseudonym.fromHex(pseudonym);
+  public async pseudonymizeBatch(
+    encryptedPseudonyms: EncryptedPseudonym[],
+    pseudonymContextTo: string,
+    encryptionContextFrom: string[], // TODO: Order should be the same as the transcryptors
+    order?: "random" | number[],
+  ) {
+    if (this.global) {
+      throw new Error("Pseudonymization with global not supported yet");
+    }
 
     if (!this.pepClient) {
       await this.createPEPClient();
     }
 
-    return this.pepClient.encryptPseudonym(pseudonymWASM);
+    order = this.getTranscryptorOrder(order);
+
+    for (const i of order) {
+      const transcryptor = this.config.transcryptors[i];
+      encryptedPseudonyms = await transcryptor.pseudonymizeBatch(
+        encryptedPseudonyms, //encrypted_pseudonym[]
+        this.context, //pseudonym_context_from
+        pseudonymContextTo, //pseudonym_context_to
+        encryptionContextFrom[i], //enc_context
+        transcryptor.getSessionId(), //dec_context
+      );
+    }
+
+    return encryptedPseudonyms;
   }
 
-  public async encryptData(data: string) {
-    const datapoint = new DataPoint(GroupElement.fromHex(data));
+  public async encryptPseudonym(pseudonym: Pseudonym) {
+    if (!this.pepClient) {
+      await this.createPEPClient();
+    }
 
+    return this.pepClient.encryptPseudonym(pseudonym);
+  }
+
+  public async encryptData(datapoint: DataPoint) {
     if (!this.pepClient) {
       await this.createPEPClient();
     }
@@ -264,16 +328,12 @@ export class PseudonymService {
     return this.pepClient.encryptData(datapoint);
   }
 
-  public async decryptPseudonym(encryptedPseudonym: string) {
-    const encryptedPseudonymWasm = new EncryptedPseudonym(
-      ElGamal.fromBase64(encryptedPseudonym),
-    );
-
+  public async decryptPseudonym(encryptedPseudonym: EncryptedPseudonym) {
     if (!this.pepClient) {
       await this.createPEPClient();
     }
 
-    return this.pepClient.decryptPseudonym(encryptedPseudonymWasm);
+    return this.pepClient.decryptPseudonym(encryptedPseudonym);
   }
 
   public async decryptData(encryptedData: EncryptedDataPoint) {
