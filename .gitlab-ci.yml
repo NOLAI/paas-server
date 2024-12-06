@@ -1,18 +1,16 @@
 stages:
-  - setup       
-  - build
-# - test TODO: Testing should first setup docker images
   - publish
 
-setup_environment:
-  stage: setup
+setup:
+  stage: publish
   script:
     - echo "Setting up environment"
     - apt-get update
     - apt-get install -y nodejs npm
 
-build_client:       
-  stage: build
+build:       
+  stage: publish
+  environment: production
   script:
     - echo "Building the code..."
     - npm install
@@ -23,7 +21,6 @@ build_client:
 
 publish_to_npm:      
   stage: publish 
-  environment: production
   script:
     - echo "Publishing application..."
     - echo _auth=$NPM_PUBLSH_KEY >> .npmrc
