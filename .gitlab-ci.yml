@@ -1,0 +1,25 @@
+stages:       
+  - build
+# - test TODO: Testing should first setup docker images
+  - publish
+
+build_client:       
+  stage: build
+  script:
+    - echo "Building the code..."
+    - npm install
+    - npm run format
+    - npm run lint
+    - npm run build
+    - echo "Compile complete."
+
+publish_to_npm:      
+  stage: publish 
+  environment: production
+  script:
+    - echo "Publishing application..."
+    - echo _auth=$NPM_PUBLSH_KEY >> .npmrc
+    - echo email=$NPM_EMAIL >> .npmrc
+    - echo always-auth=true >> .npmrc
+    - npm publish --access public
+    - echo "Application successfully deployed."
