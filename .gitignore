@@ -21,3 +21,8 @@ recipe.json
 
 client/node_modules/
 client/package-lock.json
+
+client/dist/
+client/tests/coverage/
+example/node_modules/
+example/package-lock.json
