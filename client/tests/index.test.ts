@@ -2,7 +2,7 @@ import {
   PseudonymServiceConfig,
   PEPTranscryptor,
   PseudonymService,
-} from "../dist/index";
+} from "../dist/paas-client.node";
 import {
   BlindedGlobalSecretKey,
   GlobalPublicKey,
