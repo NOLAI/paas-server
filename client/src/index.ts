@@ -1,4 +1,6 @@
 import {
+  // @ts-expect-error: types are not properly exported
+  default as init,
   BlindedGlobalSecretKey,
   DataPoint,
   EncryptedDataPoint,
@@ -9,24 +11,59 @@ import {
   SessionKeyShare,
 } from "@nolai/libpep-wasm";
 
-import {
-  GetSessionResponse,
-  PseudonymizationBatchRequest,
-  PseudonymizationBatchResponse,
-  PseudonymizationRequest,
-  PseudonymizationResponse,
-  StartSessionResponse,
-} from "./types";
+// TODO: This needs to be fixed in the libpep-wasm package
+init(
+  "https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep_bg.wasm",
+).then((_) => console.log("WASM module loaded"));
+
+export interface StartSessionResponse {
+  session_id: string;
+  key_share: string;
+}
+
+export interface GetSessionResponse {
+  sessions: string[];
+}
+
+export interface PseudonymizationResponse {
+  encrypted_pseudonym: string;
+}
+
+export interface PseudonymizationRequest {
+  encrypted_pseudonym: string;
+  pseudonym_context_from: string;
+  pseudonym_context_to: string;
+  enc_context: string;
+  dec_context: string;
+}
+
+export interface PseudonymizationBatchRequest {
+  encrypted_pseudonyms: string[];
+  pseudonym_context_from: string;
+  pseudonym_context_to: string;
+  enc_context: string;
+  dec_context: string;
+}
+
+export interface PseudonymizationBatchResponse {
+  encrypted_pseudonyms: string[];
+}
+
+export function init() {
+  return init(
+    "https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep_bg.wasm",
+  );
+}
 
 export class PEPTranscryptor {
   private url: string;
-  private authToken: string;
+  private jwt: string;
   private status: { state: string; lastChecked: number };
   private sessionId: string | null;
 
-  public constructor(url: string, authToken: string) {
+  public constructor(url: string, jwt: string) {
     this.url = url;
-    this.authToken = authToken;
+    this.jwt = jwt;
     this.status = {
       state: "unknown",
       lastChecked: Date.now(),
@@ -62,7 +99,7 @@ export class PEPTranscryptor {
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + this.authToken,
+        Authorization: "Bearer " + this.jwt,
       },
     }).catch((err) => {
       this.status = {
@@ -97,7 +134,7 @@ export class PEPTranscryptor {
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + this.authToken,
+        Authorization: "Bearer " + this.jwt,
       },
       body: JSON.stringify({
         // eslint-disable-next-line camelcase
@@ -137,7 +174,7 @@ export class PEPTranscryptor {
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
-        Authorization: "Bearer " + this.authToken,
+        Authorization: "Bearer " + this.jwt,
       },
       body: JSON.stringify({
         // eslint-disable-next-line camelcase
@@ -175,7 +212,7 @@ export class PEPTranscryptor {
         mode: "cors",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + this.authToken,
+          Authorization: "Bearer " + this.jwt,
         },
       },
     ).catch((err) => {

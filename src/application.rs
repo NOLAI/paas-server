@@ -1,5 +1,4 @@
-use crate::auth_middleware::AuthenticationInfo;
-use crate::pseudo_domain_middleware::DomainInfo;
+use crate::auth_middleware::{AuthenticationInfo, DomainInfo};
 use crate::redis_connector::RedisConnector;
 use actix_web::web::{Bytes, Data};
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};

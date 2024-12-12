@@ -1,12 +1,10 @@
 mod application;
 mod auth_middleware;
 mod pep_crypto;
-mod pseudo_domain_middleware;
 mod redis_connector;
 
 use crate::application::*;
 use crate::auth_middleware::AuthMiddleware;
-use crate::pseudo_domain_middleware::DomainMiddleware;
 use crate::redis_connector::RedisConnector;
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
@@ -15,8 +13,7 @@ use env_logger::Env; // Import for header configuration
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let auth_middleware = AuthMiddleware::new("resources/tokens.yml");
-    let domain_middleware = DomainMiddleware::new("resources/allowlist.yml");
+    let auth_middleware = AuthMiddleware::new("resources/public.pem","resources/allowlist.yml");
     let redis_connector = RedisConnector::new().expect("Failed to connect to Redis");
     let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
 
@@ -42,7 +39,6 @@ async fn main() -> std::io::Result<()> {
                             .route("/pseudonymize", web::post().to(pseudonymize))
                             .route("/pseudonymize_batch", web::post().to(pseudonymize_batch))
                             .route("/rekey", web::post().to(rekey))
-                            .wrap(domain_middleware.clone()),
                     ),
             )
     })
