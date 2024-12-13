@@ -3,6 +3,7 @@ image: node:lts-slim
 build_and_publish:
   only:
     - main
+  when: manual
   script:
     - cd client
     - npm install
