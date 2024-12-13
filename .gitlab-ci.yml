@@ -1,6 +1,8 @@
 image: node:lts-slim
 
 build_and_publish:
+  only:
+    - main
   script:
     - cd client
     - npm install
