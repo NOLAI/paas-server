@@ -14,7 +14,7 @@ build_and_publish:
     - npm publish --access public
 
 
-build-identity:
+build-transcryptor-image:
     image: docker:27.4.0
     only:
         - main
@@ -24,7 +24,7 @@ build-identity:
         - docker:27.4.0-dind
     variables: 
         DOCKER_TLS_CERTDIR: "/certs"
-        IMAGE_TAG: $CI_REGISTRY/$CI_PROJECT_PATH/PaaS:$CI_COMMIT_REF_SLUG
+        IMAGE_TAG: $CI_REGISTRY/$CI_PROJECT_PATH/paas-transcryptor:$CI_COMMIT_REF_SLUG
     before_script: 
         - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
     script:
