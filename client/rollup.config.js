@@ -1,48 +1,38 @@
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import typescript from "@rollup/plugin-typescript";
-import dts from "rollup-plugin-dts";
-import { wasm } from "@rollup/plugin-wasm";
+import { defineConfig } from "rollup";
 
-export default [
+export default defineConfig([
   // ESM Browser Build
   {
     input: "src/index.ts",
     output: {
       file: "dist/paas-client.browser.js",
-      format: "es",
+      format: "iife",
+      name: "PaaSClient",
+      globals: {
+        "@nolai/libpep-wasm": "libpep",
+      },
     },
     plugins: [
-      resolve({ browser: true, preferBuiltins: false }),
-      commonjs(),
-      typescript(),
-      wasm({ targetEnv: "auto-inline" }),
+      commonjs(), // Handle CommonJS modules
+      resolve({
+        browser: true, // Resolve browser-friendly modules
+        extensions: [".js", ".ts"], // Default extensions
+      }),
+      typescript(), // Compile TypeScript
     ],
-    // external: ["@nolai/libpep-wasm"],
+    external: ["@nolai/libpep-wasm"],
   },
   // Node.js Build
   {
     input: "src/index.ts",
     output: {
       file: "dist/paas-client.js",
-      format: "cjs",
-    },
-    plugins: [
-      resolve({ preferBuiltins: true }),
-      commonjs(),
-      typescript(),
-      wasm(),
-    ],
-    external: ["@nolai/libpep-wasm"],
-  },
-  // Type Definitions
-  {
-    input: "dist/index.d.ts",
-    output: {
-      file: "dist/index.d.ts",
       format: "es",
     },
-    plugins: [dts()],
+    plugins: [resolve({ preferBuiltins: true }), commonjs(), typescript()],
     external: ["@nolai/libpep-wasm"],
   },
-];
+]);

@@ -1,21 +1,19 @@
-import {PEPTranscryptor, PseudonymService} from "./paas-client.browser.js";
-import {default as init, BlindedGlobalSecretKey, GlobalPublicKey, Pseudonym, DataPoint, EncryptedPseudonym, EncryptedDataPoint, GroupElement, ScalarNonZero, SessionKeyShare, PEPClient} from "https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep.js";
-
+import * as libpep from 'https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep.js';
+import PaaSClient from './paas-client.browser.js';
 
 const example_jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsIm5hbWUiOiJKb2huIERvZSIsImdyb3VwcyI6WyJwcm9qZWN0MS1jb29yZGluYXRvciIsInByb2plY3QxLWFuYWx5c3QiXSwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MjMzMTQ2Mzd9.TjVO51wYydPr_OmQm3NyyX4AeGgV2YqIO1B3sMcGKucp1t8z4qQlTjSi1oiNZixkjD7BtvEbSTTiK9XiujHK3pCltoh8dDq4st6SPkOhiqxolGlQfxC_pL4OJKVicOjtRBCRhXwYYbfhiOJ_xmhpBCNn4VG9YWkuxLrp8q761goTts_Iy-YZFTDgOdRAEXRrkvBVOCUx7sP_lLygN1ArTPK7Rmpjk7Pszo0Eet9oLR11Mu_f5hqQzeSwnoEIoBoSxV6ovHKj9TY_8qT-GJVSg1MMdyDQmFLZYJ_UPeSXFKODak9YuDZ0Z0g2f_amSaxSpZvD1os2rafQ1_G5qW3MN_5rCGMA92rjdY0ObaI5Fa1UllPQwR74eK5ifE7N6vwaYUJhKIYCV3Wrdv__ZHBbLBqnlLdfWGmc2axZvrv76AErzHu1nWOp6EKru_fQkik7vZnFMtFxBX9apni-lLF6j3aWXMR2TIqfaHNAuDvkVX-fW0JUo6PvqaWuv4S-Emm1QL3fZadkNJW3N38Z49qZc8uUA1-Ene1npopDVgk_v49daSwoCUhbC5TkqqjGDbhWJQ8IZu5qVxyLegvpgXEEtvuahS7eB3eK6IVIGbrmezODFpemILj2bMlVCBqHmlhC_spDToKGC215je4pSd5_s_cXjcbbyq7qIIenPAvsmWQ";
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await init();
+    const {PEPTranscryptor,PseudonymService } = PaaSClient({}, libpep);
+    const { BlindedGlobalSecretKey, GlobalPublicKey } = libpep;
+
+    await libpep.default("https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep_bg.wasm");
     console.log("Loading...");
     const config = {
         blindedGlobalPrivateKey: BlindedGlobalSecretKey.fromHex("22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007",),
         globalPublicKey: new GlobalPublicKey(),
         transcryptors: [new PEPTranscryptor(document.getElementById("transcryptor_1_url").value, example_jwt), new PEPTranscryptor(document.getElementById("transcryptor_2_url").value, example_jwt), new PEPTranscryptor(document.getElementById("transcryptor_3_url").value, example_jwt)],
     };
-
-    console.log("Here!")
-    console.log(config)
-
 
     document.getElementById("sender_start_session").addEventListener('submit', async (event) => {
         event.preventDefault();

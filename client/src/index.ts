@@ -11,11 +11,6 @@ import {
   SessionKeyShare,
 } from "@nolai/libpep-wasm";
 
-// TODO: This needs to be fixed in the libpep-wasm package
-init(
-  "https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep_bg.wasm",
-).then((_) => console.log("WASM module loaded"));
-
 export interface StartSessionResponse {
   session_id: string;
   key_share: string;
@@ -47,12 +42,6 @@ export interface PseudonymizationBatchRequest {
 
 export interface PseudonymizationBatchResponse {
   encrypted_pseudonyms: string[];
-}
-
-export function init() {
-  return init(
-    "https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep_bg.wasm",
-  );
 }
 
 export class PEPTranscryptor {

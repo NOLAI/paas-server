@@ -1,22 +1,22 @@
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::error::ErrorUnauthorized;
 use actix_web::{Error, HttpMessage};
+use actix_web::error::ErrorUnauthorized;
 use futures_util::future::{ok, LocalBoxFuture, Ready};
-use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 use serde::Serialize;
 use std::borrow::Borrow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{ HashSet};
 use std::fs;
 use std::sync::Arc;
 use chrono::{DateTime, Utc};
+use libpep::high_level::contexts::PseudonymizationContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AllowConfig {
     pub allow: Vec<Permission>,
 }
 
-pub type Domain = String;
 pub type Usergroup = String;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,8 +25,8 @@ pub struct Permission {
     pub usergroups: Vec<Usergroup>,
     pub start: Option<DateTime<Utc>>,
     pub end: Option<DateTime<Utc>>,
-    pub from: Vec<Domain>,
-    pub to: Vec<Domain>,
+    pub from: Vec<PseudonymizationContext>,
+    pub to: Vec<PseudonymizationContext>,
 }
 
 #[derive(Clone)]
@@ -35,9 +35,9 @@ pub struct AuthMiddleware {
     allow_config: Arc<AllowConfig>,
 }
 
-pub fn filter_on_usergroup(allow_config: &AllowConfig, groups_of_user: Vec<Usergroup>) -> (Vec<Domain>, Vec<Domain>) {
-    let mut from: HashSet<Domain> = HashSet::new();
-    let mut to: HashSet<Domain> = HashSet::new();
+pub fn filter_on_usergroup(allow_config: &AllowConfig, groups_of_user: Vec<Usergroup>) -> (Vec<PseudonymizationContext>, Vec<PseudonymizationContext>) {
+    let mut from: HashSet<PseudonymizationContext> = HashSet::new();
+    let mut to: HashSet<PseudonymizationContext> = HashSet::new();
 
     for permission in &allow_config.allow {
         if permission.start.is_some() && permission.start.unwrap() > Utc::now() || permission.end.is_some() && permission.end.unwrap() < Utc::now() {
@@ -58,8 +58,8 @@ pub struct AuthenticationInfo {
 
 #[derive(Clone, Debug)]
 pub struct DomainInfo {
-    pub from: Arc<Vec<Domain>>,
-    pub to: Arc<Vec<Domain>>,
+    pub from: Arc<Vec<PseudonymizationContext>>,
+    pub to: Arc<Vec<PseudonymizationContext>>,
 }
 
 impl AuthMiddleware {
@@ -137,11 +137,7 @@ where
                 ).ok()
             );
         // .and_then(|f| Some(f.claims.sub));
-        println!("{:?}", decode::<Claims
-        >("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsIm5hbWUiOiJKb2huIERvZSIsImdyb3VwcyI6WyJwcm9qZWN0MS1jb29yZGluYXRvciIsInByb2plY3QxLWFuYWx5c3QiXSwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOiIxOTIzMzE0NjM3In0.qRR3pUqFl4jPLjfnodGL3uTq0vg5y7oRBZBCnhOSa1rKFB_dHyeYQfztem22Xv5ziSyUCz1tx2jDnsqfDjCTJSK9stSz8qqwQW58TF7X7BRv31oe7R9UH8_cFXsHgW5VLrugzSyxh5vtUsL7wBQVOwXoksQAGFEBoms80RFvyQWm-W7LRSNLIQQlSBABJvPCb82jUsx4Yz6XLKf61e64HLX2U9VBGLt7g_Ga_GSVGII_bmJ1y86DUTIw2aaKIzG4pgEDCCYr-ufHZB16WTLvkII01DcuGdj5xQg17mNtfCzdVdeIkjbLj03blclgIaqsFul8lMKZuTx_jIds93nVq6h4eu_CpC9_bR_nAHhLiiyt54C-Ttj8qjoaBVSL7F_eI2wQexX_OkABUPPriVhW-LNTSqUB1YKhoAJ3M5DIA-pfCQuAJxhWCNW34YakBZdDp3jbpiQI-Ve9IjOifAEuCe_LzH0kyWGejY8WBcwpp6u7UJMDbrKWmYVw5b9T4kLDTFWQeFiZ_qTTwe1GI-uvh2eCWekog8rgp0qrVYPOL-fgOSeEGHD0r5Oa2I-624FcsEkFFKzTAuZxikJr9Vh_C4b7tggahUPm6Ym3noZay3Oq58QBb5Sq6-IdnJkwTlzHVm0pY5XORp90-SzcDdfiU6Qw0XJt_oFyD2s5bB3HjVw", self.decoding_key.borrow(), &Validation::new(Algorithm::RS256)));
-
-        println!("{:?}", token_data);
-
+        
         if let Some(data) = token_data {
             let found_user = data.claims.sub;
             req.extensions_mut().insert::<AuthenticationInfo>({
@@ -150,9 +146,7 @@ where
                 }
             });
 
-
             let (from, to) = filter_on_usergroup(&self.allow_config, data.claims.groups.clone());
-
             req.extensions_mut().insert(DomainInfo {
                 from: Arc::new(from),
                 to: Arc::new(to),
@@ -164,6 +158,8 @@ where
             });
         }
 
-        Box::pin(async move { Err(ErrorUnauthorized("Unauthorized")) }) // TODO check actix-extras#260 to give correct CORS headers on error
+        Box::pin(async {
+            Err(ErrorUnauthorized("Unauthorized"))
+        })
     }
 }

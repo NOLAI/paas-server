@@ -2,14 +2,14 @@ allow:
   - name: Initalize forms
     usergroups:
       - project1-coordinator
-    start: 2024-12-10T00:00:00+0000
-    end: 2024-12-12T15:30:00+0000
     from:
       - project1:participant-registration
     to:
       - project1:qualtrics
       - project1:upload
   - name: Research data analysis
+    start: 2024-12-10T00:00:00+0000
+    end: 2024-12-12T15:30:00+0000
     usergroups:
       - project1-analyst
     from:
