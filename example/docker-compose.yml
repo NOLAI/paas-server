@@ -8,9 +8,9 @@ services:
     depends_on:
       - redis1
     volumes:
+      - ./public.pem:/resources/public.pem:ro
       - ./allowlist.yml:/resources/allowlist.yml:ro
       - ./server_config1.yml:/resources/server_config.yml:ro
-      - ./tokens1.yml:/resources/tokens.yml:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
@@ -29,9 +29,9 @@ services:
     depends_on:
       - redis2
     volumes:
+      - ./public.pem:/resources/public.pem:ro
       - ./allowlist.yml:/resources/allowlist.yml:ro
       - ./server_config2.yml:/resources/server_config.yml:ro
-      - ./tokens2.yml:/resources/tokens.yml:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
@@ -50,9 +50,9 @@ services:
     depends_on:
       - redis3
     volumes:
+      - ./public.pem:/resources/public.pem:ro
       - ./allowlist.yml:/resources/allowlist.yml:ro
       - ./server_config3.yml:/resources/server_config.yml:ro
-      - ./tokens3.yml:/resources/tokens.yml:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s

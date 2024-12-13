@@ -4,6 +4,7 @@ use rand::Rng;
 use redis::RedisError;
 use redis::{Client, Commands};
 use std::env;
+use libpep::high_level::contexts::{EncryptionContext};
 
 #[derive(Clone)]
 pub struct RedisConnector {
@@ -50,25 +51,27 @@ impl RedisConnector {
         Ok(())
     }
 
-    pub fn get_sessions_for_user(&mut self, username: String) -> Result<Vec<String>, RedisError> {
+    pub fn get_sessions_for_user(&mut self, username: String) -> Result<Vec<EncryptionContext>, RedisError> {
         let mut connection = self.client.get_connection()?;
 
         let key = format!("sessions:{}:*", username);
         let keys: Vec<String> = connection.keys(key).expect("Failed to get keys");
-        let sessions: Vec<String> = keys
+        let sessions: Vec<EncryptionContext> = keys
             .iter()
             .map(|key| key.split(":").collect::<Vec<&str>>()[2].to_string())
+            .map(|session_id| EncryptionContext::from(&session_id))
             .collect();
         Ok(sessions)
     }
 
-    pub fn get_all_sessions(&mut self) -> Result<Vec<String>, RedisError> {
+    pub fn get_all_sessions(&mut self) -> Result<Vec<EncryptionContext>, RedisError> {
         let mut connection = self.client.get_connection()?;
 
         let keys: Vec<String> = connection.keys("sessions:*:*").expect("Failed to get keys");
-        let sessions: Vec<String> = keys
+        let sessions: Vec<EncryptionContext> = keys
             .iter()
             .map(|key| key.split(":").collect::<Vec<&str>>()[2].to_string())
+            .map(|session_id| EncryptionContext::from(&session_id))
             .collect();
         Ok(sessions)
     }

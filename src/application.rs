@@ -1,12 +1,11 @@
-use crate::auth_middleware::AuthenticationInfo;
-use crate::pseudo_domain_middleware::DomainInfo;
+use crate::auth_middleware::{AuthenticationInfo, DomainInfo};
 use crate::redis_connector::RedisConnector;
 use actix_web::web::{Bytes, Data};
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::key_blinding::{SessionKeyShare};
 use libpep::distributed::systems::{PEPSystem};
 use libpep::high_level::contexts::{EncryptionContext, PseudonymizationContext};
-use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym, Pseudonym};
+use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::sync::Arc;
@@ -48,11 +47,11 @@ pub struct StatusResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetSessionsRequest {
-    username: Option<String>,
+    username: Option<EncryptionContext>,
 }
 #[derive(Serialize, Deserialize)]
 pub struct GetSessionResponse {
-    sessions: Vec<String>,
+    sessions: Vec<EncryptionContext>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -76,12 +75,12 @@ pub async fn status() -> impl Responder {
 }
 
 fn has_access_to_context(
-    from: Arc<Vec<String>>,
-    to: Arc<Vec<String>>,
+    from: Arc<Vec<PseudonymizationContext>>,
+    to: Arc<Vec<PseudonymizationContext>>,
     pseudonym_context_from: PseudonymizationContext,
     pseudonym_context_to: PseudonymizationContext,
     dec_context: EncryptionContext,
-    user_sessions: Vec<String>,
+    user_sessions: Vec<EncryptionContext>,
 ) -> bool {
     // Access control alleen bij de prefix en niet postfix. Voor nu postfix loggen.
     // dec_context moet gelijk zijn aan jou sessie.
@@ -112,8 +111,8 @@ pub async fn pseudonymize(
         .expect("Failed to get sessions");
 
     if !(has_access_to_context(
-        domain_info.from,
-        domain_info.to,
+        domain_info.from.clone(),
+        domain_info.to.clone(),
         request.pseudonym_context_from.clone(),
         request.pseudonym_context_to.clone(),
         request.dec_context.clone(),
@@ -137,7 +136,7 @@ pub async fn pseudonymize(
     );
 
     HttpResponse::Ok().json(PseudonymizationResponse {
-        encrypted_pseudonym: msg_out.encode_to_base64(),
+        encrypted_pseudonym: msg_out.to_base64(),
     })
 }
 
@@ -268,7 +267,7 @@ pub async fn get_sessions(
     let mut redis_connector = data.get_ref().clone();
 
     let sessions = redis_connector
-        .get_sessions_for_user(path.username.clone().unwrap())
+        .get_sessions_for_user(path.username.clone().unwrap().to_string())
         .unwrap();
     HttpResponse::Ok().json(GetSessionResponse { sessions })
 }

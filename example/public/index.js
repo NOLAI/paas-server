@@ -1,181 +1,46 @@
-import * as libpep from "./libpep.js";
-import {
-    BlindedGlobalSecretKey,
-    DataPoint,
-    ElGamal,
-    EncryptedDataPoint,
-    EncryptedPseudonym,
-    GroupElement,
-    PEPClient,
-    Pseudonym,
-    ScalarNonZero,
-    SessionKeyShare
-} from "./libpep.js";
+import * as libpep from 'https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep.js';
+import PaaSClient from './paas-client.browser.js';
+
+const example_jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsIm5hbWUiOiJKb2huIERvZSIsImdyb3VwcyI6WyJwcm9qZWN0MS1jb29yZGluYXRvciIsInByb2plY3QxLWFuYWx5c3QiXSwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MjMzMTQ2Mzd9.TjVO51wYydPr_OmQm3NyyX4AeGgV2YqIO1B3sMcGKucp1t8z4qQlTjSi1oiNZixkjD7BtvEbSTTiK9XiujHK3pCltoh8dDq4st6SPkOhiqxolGlQfxC_pL4OJKVicOjtRBCRhXwYYbfhiOJ_xmhpBCNn4VG9YWkuxLrp8q761goTts_Iy-YZFTDgOdRAEXRrkvBVOCUx7sP_lLygN1ArTPK7Rmpjk7Pszo0Eet9oLR11Mu_f5hqQzeSwnoEIoBoSxV6ovHKj9TY_8qT-GJVSg1MMdyDQmFLZYJ_UPeSXFKODak9YuDZ0Z0g2f_amSaxSpZvD1os2rafQ1_G5qW3MN_5rCGMA92rjdY0ObaI5Fa1UllPQwR74eK5ifE7N6vwaYUJhKIYCV3Wrdv__ZHBbLBqnlLdfWGmc2axZvrv76AErzHu1nWOp6EKru_fQkik7vZnFMtFxBX9apni-lLF6j3aWXMR2TIqfaHNAuDvkVX-fW0JUo6PvqaWuv4S-Emm1QL3fZadkNJW3N38Z49qZc8uUA1-Ene1npopDVgk_v49daSwoCUhbC5TkqqjGDbhWJQ8IZu5qVxyLegvpgXEEtvuahS7eB3eK6IVIGbrmezODFpemILj2bMlVCBqHmlhC_spDToKGC215je4pSd5_s_cXjcbbyq7qIIenPAvsmWQ";
 
 document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        await libpep.default();
-    } catch (e) {
-        console.error("Error in libpep", e);
-    }
+    const {PEPTranscryptor,PseudonymService } = PaaSClient({}, libpep);
+    const { BlindedGlobalSecretKey, GlobalPublicKey } = libpep;
 
-    const BLINDING_SECRET_PEP = new BlindedGlobalSecretKey(ScalarNonZero.fromHex(document.getElementById("blinded_global_secret_key").value));
+    await libpep.default("https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@1.0.0-alpha.4/pkg-web/libpep_bg.wasm");
+    console.log("Loading...");
+    const config = {
+        blindedGlobalPrivateKey: BlindedGlobalSecretKey.fromHex("22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007",),
+        globalPublicKey: new GlobalPublicKey(),
+        transcryptors: [new PEPTranscryptor(document.getElementById("transcryptor_1_url").value, example_jwt), new PEPTranscryptor(document.getElementById("transcryptor_2_url").value, example_jwt), new PEPTranscryptor(document.getElementById("transcryptor_3_url").value, example_jwt)],
+    };
 
-    class TranscryptorClient {
-
-        constructor(url, auth_token) {
-            this.url = url;
-            this.auth_token = auth_token;
-            this.system_id = null;
-            this.status = {
-                state: 'unknown', last_checked: Date.now()
-            };
-            this.session_id = null;
-        }
-
-        async check_status() {
-            let response = await fetch(this.url + '/status').catch(err => {
-                this.status = {
-                    state: 'error', last_checked: Date.now()
-                }
-                return err;
-            });
-
-            if (!response.ok) {
-                this.status = {
-                    state: response.status === 404 ? 'offline' : 'error', last_checked: Date.now()
-                }
-                return
-            }
-            let data = await response.json();
-            this.status = {
-                state: 'online', last_checked: Date.now()
-            }
-            this.system_id = data.system_id;
-        }
-
-        async start_session() {
-            let response = await fetch(this.url + '/start_session', {
-                method: 'POST',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.auth_token
-                }
-            }).catch(err => {
-                this.status = {
-                    state: 'error', last_checked: Date.now()
-                }
-                return err;
-            });
-
-            if (response.ok) {
-                let data = await response.json();
-                this.session_id = data.session_id;
-                return data;
-            }
-        }
-
-        async pseudonymize(encrypted_pseudonym, pseudonym_context_from, pseudonym_context_to, enc_context, dec_context) {
-            let response = await fetch(this.url + '/pseudonymize', {
-                method: 'POST',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.auth_token
-                },
-                body: JSON.stringify({
-                    encrypted_pseudonym,
-                    pseudonym_context_from, pseudonym_context_to,
-                    enc_context, dec_context
-                })
-            }).catch(err => {
-                this.status = {
-                    state: 'error', last_checked: Date.now()
-                }
-                return err;
-            });
-
-            if (response.ok) {
-                return await response.json();
-            }
-
-        }
-
-        async get_sessions(username = null) {
-            let response = await fetch(`${this.url}/get_sessions${username ? "/" + username : ""}`, {
-                method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.auth_token
-                },
-            }).catch(err => {
-                this.status = {
-                    state: 'error', last_checked: Date.now()
-                }
-                return err;
-            });
-
-            if (response.ok) {
-                return await response.json();
-            }
-        }
-    }
-
-    let sender_transcryptor_1 = new TranscryptorClient(document.getElementById("transcryptor_1_url").value, document.getElementById("transcryptor_1_sender_token").value);
-    let sender_transcryptor_2 = new TranscryptorClient(document.getElementById("transcryptor_2_url").value, document.getElementById("transcryptor_2_sender_token").value);
-    let sender_transcryptor_3 = new TranscryptorClient(document.getElementById("transcryptor_3_url").value, document.getElementById("transcryptor_3_sender_token").value);
-
-    let receiver_transcryptor_1 = new TranscryptorClient(document.getElementById("transcryptor_1_url").value, document.getElementById("transcryptor_1_receiver_token").value);
-    let receiver_transcryptor_2 = new TranscryptorClient(document.getElementById("transcryptor_2_url").value, document.getElementById("transcryptor_2_receiver_token").value);
-    let receiver_transcryptor_3 = new TranscryptorClient(document.getElementById("transcryptor_3_url").value, document.getElementById("transcryptor_3_receiver_token").value);
-
-    let PEPSenderClient = null;
-    let PEPReceiverClient = null;
-
-    document.getElementById("sender_start_session_1").addEventListener('submit', async (event) => {
+    document.getElementById("sender_start_session").addEventListener('submit', async (event) => {
         event.preventDefault();
-        let response = await sender_transcryptor_1.start_session();
-        document.getElementById("transcryptor_1_sender_sks").value = response.key_share;
-        document.getElementById("transcryptor_1_sender_session_id").value = response.session_id;
-        updateSenderSessionKey();
-        invalidateSender();
-        await updateTranscryptorSessions();
-    });
-    document.getElementById("sender_start_session_2").addEventListener('submit', async (event) => {
-        event.preventDefault();
-        let response = await sender_transcryptor_2.start_session();
-        document.getElementById("transcryptor_2_sender_sks").value = response.key_share;
-        document.getElementById("transcryptor_2_sender_session_id").value = response.session_id;
-        updateSenderSessionKey();
-        invalidateSender();
-        await updateTranscryptorSessions();
-    });
-    document.getElementById("sender_start_session_3").addEventListener('submit', async (event) => {
-        event.preventDefault();
-        let response = await sender_transcryptor_3.start_session();
-        document.getElementById("transcryptor_3_sender_sks").value = response.key_share;
-        document.getElementById("transcryptor_3_sender_session_id").value = response.session_id;
+        const pseudonymService = new PseudonymService(config, "domain1", false);
+        await pseudonymService.createPEPClient();
+
+        // document.getElementById("transcryptor_1_sender_sks").value = response.key_share;
+        // document.getElementById("transcryptor_1_sender_session_id").value = response;
         updateSenderSessionKey();
         invalidateSender();
         await updateTranscryptorSessions();
     });
 
     function updateSenderSessionKey() {
-        let sks = [];
+        // let sks = [];
+        //
+        // try {
+        //     sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_1_sender_sks").value)));
+        //     sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_2_sender_sks").value)));
+        //     sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_3_sender_sks").value)));
+        // } catch(err) {
+        //     document.getElementById("sender_pseudonym_encrypt_button").disabled = true;
+        //     document.getElementById("sender_datapoint_encrypt_button").disabled = true;
+        //     return
+        // }
 
-        try {
-            sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_1_sender_sks").value)));
-            sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_2_sender_sks").value)));
-            sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_3_sender_sks").value)));
-        } catch(err) {
-            document.getElementById("sender_pseudonym_encrypt_button").disabled = true;
-            document.getElementById("sender_datapoint_encrypt_button").disabled = true;
-            return
-        }
-
-        PEPSenderClient = new PEPClient(BLINDING_SECRET_PEP, sks);
+        // PEPSenderClient = new PEPClient(BLINDING_SECRET_PEP, sks);
         document.getElementById("sender_pseudonym_encrypt_button").disabled = false;
         document.getElementById("sender_datapoint_encrypt_button").disabled = false;
         document.getElementById("sender_session_key").value = "Established";
@@ -216,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_1_receiver_sks").value)));
             sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_2_receiver_sks").value)));
             sks.push(new SessionKeyShare(ScalarNonZero.fromHex(document.getElementById("transcryptor_3_receiver_sks").value)));
-        } catch(err) {
+        } catch (err) {
             document.getElementById("receiver_pseudonym_decrypt_button").disabled = true;
             document.getElementById("receiver_datapoint_decrypt_button").disabled = true;
             return
@@ -311,17 +176,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function updateTranscryptorSessions() {
         let firstTranscryptorSessions = await getFirstReceiverTranscryptor().get_sessions();
-        add_sessions_to_select(firstTranscryptorSessions["sessions"].sort(),document.getElementById("session_from_1"), getFirstSenderTranscryptor().session_id)
-        add_sessions_to_select(firstTranscryptorSessions["sessions"].sort(),document.getElementById("session_to_1"), getFirstReceiverTranscryptor().session_id)
+        add_sessions_to_select(firstTranscryptorSessions["sessions"].sort(), document.getElementById("session_from_1"), getFirstSenderTranscryptor().session_id)
+        add_sessions_to_select(firstTranscryptorSessions["sessions"].sort(), document.getElementById("session_to_1"), getFirstReceiverTranscryptor().session_id)
 
         let secondTranscryptorSessions = await getSecondReceiverTranscryptor().get_sessions();
-        add_sessions_to_select(secondTranscryptorSessions["sessions"].sort(),document.getElementById("session_from_2"), getSecondSenderTranscryptor().session_id)
-        add_sessions_to_select(secondTranscryptorSessions["sessions"].sort(),document.getElementById("session_to_2"), getSecondReceiverTranscryptor().session_id)
+        add_sessions_to_select(secondTranscryptorSessions["sessions"].sort(), document.getElementById("session_from_2"), getSecondSenderTranscryptor().session_id)
+        add_sessions_to_select(secondTranscryptorSessions["sessions"].sort(), document.getElementById("session_to_2"), getSecondReceiverTranscryptor().session_id)
 
 
         let thirdTranscryptorSessions = await getThirdReceiverTranscryptor().get_sessions();
-        add_sessions_to_select(thirdTranscryptorSessions["sessions"].sort(),document.getElementById("session_from_3"), getThirdSenderTranscryptor().session_id)
-        add_sessions_to_select(thirdTranscryptorSessions["sessions"].sort(),document.getElementById("session_to_3"), getThirdReceiverTranscryptor().session_id)
+        add_sessions_to_select(thirdTranscryptorSessions["sessions"].sort(), document.getElementById("session_from_3"), getThirdSenderTranscryptor().session_id)
+        add_sessions_to_select(thirdTranscryptorSessions["sessions"].sort(), document.getElementById("session_to_3"), getThirdReceiverTranscryptor().session_id)
 
         let enabled = document.getElementById("session_from_1").value !== "0" && document.getElementById("session_from_2").value !== "0" && document.getElementById("session_from_3").value !== "0" && document.getElementById("session_to_1").value !== "0" && document.getElementById("session_to_2").value !== "0" && document.getElementById("session_to_3") !== "0";
         document.getElementById("pseudonymize_button").disabled = !enabled;
@@ -401,17 +266,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
 
-
     function invalidateTranscryption3() {
         document.getElementById("transcryptor_3_output").value = "";
         document.getElementById("receiver_encrypted_pseudonym").value = "";
         document.getElementById("receiver_encrypted_datapoint").value = "";
     }
+
     function invalidateTranscryption2() {
         document.getElementById("transcryptor_2_output").value = "";
         document.getElementById("transcryptor_3_input").value = "";
         invalidateTranscryption3()
     }
+
     function invalidateTranscryption1() {
         document.getElementById("transcryptor_1_output").value = "";
         document.getElementById("transcryptor_2_input").value = "";
@@ -425,6 +291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         invalidateTranscryption1();
         invalidateReceiver();
     }
+
     function invalidateReceiver() {
         invalidateTranscryption1();
     }
@@ -439,6 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             invalidateTranscryption3();
         }
     }
+
     function invalidateReceiver2() {
         if (getFirstReceiverTranscryptor() === receiver_transcryptor_2) {
             invalidateTranscryption1();
@@ -458,7 +326,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             invalidateTranscryption3();
         }
     }
-
 
 
     document.getElementById("context_from_1").addEventListener("change", async (event) => {

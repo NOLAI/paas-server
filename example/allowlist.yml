@@ -1,17 +1,19 @@
-from:
-  user1:
-    - "domain1"
-    - "domain2"
-    - "domain3"
-  user2:
-    - "domain1"
-    - "domain3"
-
-to:
-  user1:
-      - "domain1"
-      - "domain2"
-  user2:
-      - "domain1"
-      - "domain2"
-      - "domain3"
+allow:
+  - name: Initalize forms
+    usergroups:
+      - project1-coordinator
+    from:
+      - project1:participant-registration
+    to:
+      - project1:qualtrics
+      - project1:upload
+  - name: Research data analysis
+    start: 2024-12-10T00:00:00+0000
+    end: 2024-12-12T15:30:00+0000
+    usergroups:
+      - project1-analyst
+    from:
+      - project1:qualtrics
+      - project1:upload
+    to:
+      - project1:study2

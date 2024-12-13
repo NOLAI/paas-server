@@ -69,14 +69,9 @@
     <hr/>
     <div class="mb-3">
         <h2>Sender (encryption)</h2>
+        <form id="sender_start_session">
         <div class="row mb-3">
             <div class="col-md-4">
-                <form id="sender_start_session_1">
-                    <div class="input-group mb-1">
-                        <label class="input-group-text" for="transcryptor_1_sender_token">Token 1</label>
-                        <input type="text" class="form-control font-monospace" disabled value="mysecrettoken1" id="transcryptor_1_sender_token">
-                        <button type="submit" class="btn btn-primary">Start session</button>
-                    </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="transcryptor_1_sender_session_id">Session ID 1</label>
                         <input type="text" class="form-control font-monospace" disabled id="transcryptor_1_sender_session_id">
@@ -85,15 +80,8 @@
                         <label class="input-group-text" for="transcryptor_1_sender_sks">SKS 1</label>
                         <input type="text" class="form-control font-monospace" disabled id="transcryptor_1_sender_sks">
                     </div>
-                </form>
             </div>
             <div class="col-md-4">
-                <form id="sender_start_session_2">
-                    <div class="input-group mb-1">
-                        <label class="input-group-text" for="transcryptor_2_sender_token">Token 2</label>
-                        <input type="text" class="form-control font-monospace" disabled value="mysecrettoken2" id="transcryptor_2_sender_token">
-                        <button type="submit" class="btn btn-primary">Start session</button>
-                    </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="transcryptor_2_sender_session_id">Session ID 2</label>
                         <input type="text" class="form-control font-monospace" disabled id="transcryptor_2_sender_session_id">
@@ -102,15 +90,8 @@
                         <label class="input-group-text" for="transcryptor_2_sender_sks">SKS 2</label>
                         <input type="text" class="form-control font-monospace" disabled id="transcryptor_2_sender_sks">
                     </div>
-                </form>
             </div>
             <div class="col-md-4">
-                <form id="sender_start_session_3">
-                    <div class="input-group mb-1">
-                        <label class="input-group-text" for="transcryptor_3_sender_token">Token 3</label>
-                        <input type="text" class="form-control font-monospace" disabled value="mysecrettoken3" id="transcryptor_3_sender_token">
-                        <button type="submit" class="btn btn-primary">Start session</button>
-                    </div>
                     <div class="input-group mb-1">
                         <label class="input-group-text" for="transcryptor_3_sender_session_id">Session ID 3</label>
                         <input type="text" class="form-control font-monospace" disabled id="transcryptor_3_sender_session_id">
@@ -119,9 +100,10 @@
                         <label class="input-group-text" for="transcryptor_3_sender_sks">SKS 3</label>
                         <input type="text" class="form-control font-monospace" disabled id="transcryptor_3_sender_sks">
                     </div>
-                </form>
             </div>
         </div>
+            <button type="submit" class="btn btn-primary">Start session</button>
+        </form>
         <div class="input-group mb-4">
             <label class="input-group-text" for="sender_session_key">Session key</label>
             <input type="text" class="form-control font-monospace" id="sender_session_key" disabled>
@@ -386,9 +368,7 @@
         </div>
     </div>
 </div>
-
-<script src="public/libpep.js" type="module"></script>
-<script src="public/index.js" type="module"></script>
+<script src="public/index.js" type="module"></sc>
 
 </body>
 </html>
