@@ -1,6 +1,4 @@
 import {
-  // @ts-expect-error: types are not properly exported
-  default as init,
   BlindedGlobalSecretKey,
   DataPoint,
   EncryptedDataPoint,
