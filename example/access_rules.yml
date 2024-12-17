@@ -1,5 +1,5 @@
 allow:
-  - name: Initalize forms
+  - name: Initialize forms
     usergroups:
       - project1-coordinator
     from:
@@ -7,6 +7,7 @@ allow:
     to:
       - project1:qualtrics
       - project1:upload
+
   - name: Research data analysis
     start: 2024-12-10T00:00:00+0000
     end: 2024-12-12T15:30:00+0000

@@ -1,9 +1,9 @@
+use chrono::{DateTime, Utc};
+use libpep::high_level::contexts::PseudonymizationContext;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::sync::Arc;
-use chrono::{DateTime, Utc};
-use libpep::high_level::contexts::PseudonymizationContext;
 
 pub type Usergroup = String;
 
@@ -30,10 +30,21 @@ impl AccessRules {
         let file = std::fs::read_to_string(file_path).expect("Failed to read access rules file");
         serde_yml::from_str(&file).expect("Failed to parse access rules file")
     }
-    pub fn has_access(&self, authentication_info: &AuthenticatedUser, from: &PseudonymizationContext, to: &PseudonymizationContext) -> bool {
+    pub fn has_access(
+        &self,
+        authentication_info: &AuthenticatedUser,
+        from: &PseudonymizationContext,
+        to: &PseudonymizationContext,
+    ) -> bool {
         for permission in &self.allow {
-            if permission.usergroups.iter().any(|group| authentication_info.usergroups.contains(group)) {
-                if permission.from.iter().any(|context| context == from) && permission.to.iter().any(|context| context == to) {
+            if permission
+                .usergroups
+                .iter()
+                .any(|group| authentication_info.usergroups.contains(group))
+            {
+                if permission.from.iter().any(|context| context == from)
+                    && permission.to.iter().any(|context| context == to)
+                {
                     return true;
                 }
             }

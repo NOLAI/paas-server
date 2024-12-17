@@ -12,7 +12,8 @@ struct PEPSystemConfig {
 }
 
 pub fn create_pep_crypto_system(system_config_file: &str) -> PEPSystem {
-    let file_content = fs::read_to_string(system_config_file).expect("Failed to read PEP system config file");
+    let file_content =
+        fs::read_to_string(system_config_file).expect("Failed to read PEP system config file");
     let pep_system_config: PEPSystemConfig =
         serde_yml::from_str(&file_content).expect("Failed to PEP system config file");
 

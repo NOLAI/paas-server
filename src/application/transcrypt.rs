@@ -1,11 +1,11 @@
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder};
+use crate::access_rules::{AccessRules, AuthenticatedUser};
+use crate::session_storage::SessionStorage;
 use actix_web::web::{Bytes, Data};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::{EncryptionContext, PseudonymizationContext};
 use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
 use serde::{Deserialize, Serialize};
-use crate::access_rules::{AccessRules, AuthenticatedUser};
-use crate::session_storage::SessionStorage;
 
 #[derive(Serialize, Deserialize)]
 pub struct PseudonymizationResponse {
@@ -50,7 +50,11 @@ pub async fn pseudonymize(
         .unwrap();
     let request = serde_json::from_slice::<PseudonymizationRequest>(&body).unwrap();
 
-    if !access_rules.has_access(&user, &request.pseudonym_context_from, &request.pseudonym_context_to) {
+    if !access_rules.has_access(
+        &user,
+        &request.pseudonym_context_from,
+        &request.pseudonym_context_to,
+    ) {
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
 
@@ -81,7 +85,6 @@ pub async fn pseudonymize(
     })
 }
 
-
 pub async fn pseudonymize_batch(
     req: HttpRequest,
     body: Bytes,
@@ -97,7 +100,11 @@ pub async fn pseudonymize_batch(
         .unwrap();
     let request = serde_json::from_slice::<PseudonymizationBatchRequest>(&body).unwrap();
 
-    if !access_rules.has_access(&user, &request.pseudonym_context_from, &request.pseudonym_context_to) {
+    if !access_rules.has_access(
+        &user,
+        &request.pseudonym_context_from,
+        &request.pseudonym_context_to,
+    ) {
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
 
@@ -121,7 +128,10 @@ pub async fn pseudonymize_batch(
         }
     }
 
-    let mut msg_in = msg_in.iter().map(|x| x.unwrap()).collect::<Vec<EncryptedPseudonym>>();
+    let mut msg_in = msg_in
+        .iter()
+        .map(|x| x.unwrap())
+        .collect::<Vec<EncryptedPseudonym>>();
     let msg_in = msg_in.as_mut_slice();
 
     let mut rng = rand::thread_rng();
@@ -133,14 +143,13 @@ pub async fn pseudonymize_batch(
             &request.enc_context,
             &request.dec_context,
         ),
-        &mut rng
+        &mut rng,
     );
 
     HttpResponse::Ok().json(PseudonymizationBatchResponse {
         encrypted_pseudonyms: msg_out.iter().map(|x| x.encode_to_base64()).collect(),
     })
 }
-
 
 pub async fn rekey() -> impl Responder {
     HttpResponse::Ok().body("Rekey")

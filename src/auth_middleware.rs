@@ -1,6 +1,7 @@
+use crate::access_rules::AuthenticatedUser;
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::{Error, HttpMessage};
 use actix_web::error::ErrorUnauthorized;
+use actix_web::{Error, HttpMessage};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
@@ -8,7 +9,6 @@ use serde::Serialize;
 use std::borrow::Borrow;
 use std::fs;
 use std::sync::Arc;
-use crate::access_rules::AuthenticatedUser;
 
 #[derive(Clone)]
 pub struct JWTAuthMiddleware {
@@ -17,7 +17,8 @@ pub struct JWTAuthMiddleware {
 
 impl JWTAuthMiddleware {
     pub fn new(jwt_key_file: &str) -> Self {
-        let jwt_key_file_content = fs::read_to_string(jwt_key_file).expect("Failed to read token file");
+        let jwt_key_file_content =
+            fs::read_to_string(jwt_key_file).expect("Failed to read token file");
         let jwt_key = DecodingKey::from_rsa_pem(jwt_key_file_content.as_bytes())
             .expect("Failed to use provided public key for JWTs");
         JWTAuthMiddleware {
@@ -71,23 +72,22 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let len = "bearer ".len();
-        let token_data=  req
+        let token_data = req
             .headers()
             .get("Authorization")
             .and_then(|header| header.to_str().ok())
             .and_then(|hv| Some(&hv[len..]))
-            .and_then(|token|
+            .and_then(|token| {
                 decode::<Claims>(
                     token,
                     self.jwt_key.borrow(),
                     &Validation::new(Algorithm::RS256),
-                ).ok()
-            );
+                )
+                .ok()
+            });
 
         if token_data.is_none() {
-            return Box::pin(async {
-                Err(ErrorUnauthorized("Invalid JWT"))
-            });
+            return Box::pin(async { Err(ErrorUnauthorized("Invalid JWT")) });
         }
 
         let data = token_data.unwrap();

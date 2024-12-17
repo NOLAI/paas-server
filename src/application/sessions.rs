@@ -1,11 +1,11 @@
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use crate::access_rules::AuthenticatedUser;
+use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
+use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::key_blinding::SessionKeyShare;
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::EncryptionContext;
 use serde::{Deserialize, Serialize};
-use crate::access_rules::AuthenticatedUser;
-use crate::session_storage::{SessionStorage};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetSessionsRequest {
@@ -42,8 +42,7 @@ pub async fn start_session(
         .start_session(user.username.to_string())
         .unwrap();
 
-    let key_share = pep_system
-        .session_key_share(&EncryptionContext::from(&session_id.clone()));
+    let key_share = pep_system.session_key_share(&EncryptionContext::from(&session_id.clone()));
 
     HttpResponse::Ok().json(StartSessionResponse {
         session_id,

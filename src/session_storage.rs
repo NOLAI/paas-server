@@ -1,10 +1,10 @@
-use std::fmt::Error;
 use chrono::Utc;
+use libpep::high_level::contexts::EncryptionContext;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
-use redis::{Connection, IntoConnectionInfo, RedisError};
 use redis::{Client, Commands};
-use libpep::high_level::contexts::{EncryptionContext};
+use redis::{Connection, IntoConnectionInfo, RedisError};
+use std::fmt::Error;
 
 pub trait SessionStorage: Send + Sync {
     fn start_session(&self, username: String) -> Result<String, Error>;
@@ -34,7 +34,6 @@ impl RedisSessionStorage {
     }
 }
 impl SessionStorage for RedisSessionStorage {
-
     fn start_session(&self, username: String) -> Result<String, Error> {
         // Generate a random string for the session ID
         let session_postfix: String = rand::thread_rng()
