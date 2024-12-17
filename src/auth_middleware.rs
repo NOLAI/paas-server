@@ -21,7 +21,6 @@ pub type Usergroup = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Permission {
-    pub name: String,
     pub usergroups: Vec<Usergroup>,
     pub start: Option<DateTime<Utc>>,
     pub end: Option<DateTime<Utc>>,
@@ -106,7 +105,6 @@ pub struct AuthMiddlewareService<S> {
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     sub: String,
-    name: String, // For logs
     groups: Vec<String>,
 }
 
