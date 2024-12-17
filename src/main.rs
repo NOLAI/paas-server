@@ -1,20 +1,32 @@
-mod application;
-mod auth_middleware;
+mod application {
+    pub mod sessions;
+    pub mod transcrypt;
+    pub mod status;
+}
+mod access_rules;
 mod pep_crypto;
-mod redis_connector;
+mod session_storage;
+mod auth_middleware;
 
-use crate::application::*;
-use crate::auth_middleware::AuthMiddleware;
-use crate::redis_connector::RedisConnector;
+use std::env;
+use crate::access_rules::{AccessRules};
+use crate::session_storage::{RedisSessionStorage, SessionStorage};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
-use env_logger::Env; // Import for header configuration
+use env_logger::Env;
+use crate::application::sessions::{end_session, get_all_sessions, get_sessions, start_session};
+use crate::application::status::status;
+use crate::application::transcrypt::{pseudonymize, pseudonymize_batch, rekey};
+use crate::auth_middleware::JWTAuthMiddleware;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let auth_middleware = AuthMiddleware::new("resources/public.pem","resources/allowlist.yml");
-    let redis_connector = RedisConnector::new().expect("Failed to connect to Redis");
+    let access_rules = AccessRules::load("resources/access_rules.yml");
+    let auth_middleware = JWTAuthMiddleware::new("resources/public.pem");
+    let session_storage: Box<dyn SessionStorage> = Box::new(
+        RedisSessionStorage::new(env::var("REDIS_URL").unwrap()).expect("Failed to connect to Redis")
+    );
     let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
@@ -24,16 +36,20 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Cors::permissive())
             .wrap(Logger::default())
-            .route("/status", web::get().to(status))
             .service(
                 web::scope("")
-                    .app_data(web::Data::new(redis_connector.clone()))
+                    .app_data(web::Data::new(access_rules.clone()))
+                    .app_data(web::Data::new(session_storage.clone()))
                     .app_data(web::Data::new(pep_system.clone()))
-                    .wrap(auth_middleware.clone()) // Not needed for random
-                    .route("/start_session", web::post().to(start_session))
-                    .route("/end_session", web::post().to(end_session))
-                    .route("/get_sessions", web::get().to(get_all_sessions))
-                    .route("/get_sessions/{username}", web::get().to(get_sessions))
+                    .wrap(auth_middleware.clone())
+                    .route("/status", web::get().to(status))
+                    .service(
+                        web::scope("sessions")
+                            .route("/get", web::get().to(get_all_sessions))
+                            .route("/get/{username}", web::get().to(get_sessions))
+                            .route("/start", web::post().to(start_session))
+                            .route("/end", web::post().to(end_session))
+                    )
                     .service(
                         web::scope("")
                             .route("/pseudonymize", web::post().to(pseudonymize))

@@ -9,7 +9,7 @@ services:
       - redis1
     volumes:
       - ./public.pem:/resources/public.pem:ro
-      - ./allowlist.yml:/resources/allowlist.yml:ro
+      - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config1.yml:/resources/server_config.yml:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
@@ -30,7 +30,7 @@ services:
       - redis2
     volumes:
       - ./public.pem:/resources/public.pem:ro
-      - ./allowlist.yml:/resources/allowlist.yml:ro
+      - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config2.yml:/resources/server_config.yml:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
@@ -51,7 +51,7 @@ services:
       - redis3
     volumes:
       - ./public.pem:/resources/public.pem:ro
-      - ./allowlist.yml:/resources/allowlist.yml:ro
+      - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config3.yml:/resources/server_config.yml:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1

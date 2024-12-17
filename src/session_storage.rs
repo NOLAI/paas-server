@@ -1,23 +1,41 @@
+use std::fmt::Error;
 use chrono::Utc;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
-use redis::RedisError;
+use redis::{Connection, IntoConnectionInfo, RedisError};
 use redis::{Client, Commands};
-use std::env;
 use libpep::high_level::contexts::{EncryptionContext};
 
+pub trait SessionStorage: Send + Sync {
+    fn start_session(&self, username: String) -> Result<String, Error>;
+    fn end_session(&self, username: String, session_id: String) -> Result<(), Error>;
+    fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error>;
+    fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error>;
+    fn clone_box(&self) -> Box<dyn SessionStorage>;
+}
+impl Clone for Box<dyn SessionStorage> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
+}
+
 #[derive(Clone)]
-pub struct RedisConnector {
+pub struct RedisSessionStorage {
     client: Client,
 }
 
-impl RedisConnector {
-    pub fn new() -> Result<RedisConnector, RedisError> {
-        let client = Client::open(env::var("REDIS_URL").unwrap())?;
-        Ok(RedisConnector { client })
+impl RedisSessionStorage {
+    pub fn new<T: IntoConnectionInfo>(connection_info: T) -> Result<Self, RedisError> {
+        let client = Client::open(connection_info)?;
+        Ok(Self { client })
     }
+    fn get_connection(&self) -> Result<Connection, Error> {
+        self.client.get_connection().map_err(|_| Error)
+    }
+}
+impl SessionStorage for RedisSessionStorage {
 
-    pub fn start_session(&mut self, username: String) -> Result<String, RedisError> {
+    fn start_session(&self, username: String) -> Result<String, Error> {
         // Generate a random string for the session ID
         let session_postfix: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
@@ -30,7 +48,7 @@ impl RedisConnector {
         let session_id = format!("{}_{}", username, session_postfix);
         let key = format!("sessions:{}:{}", username, session_id);
 
-        let mut connection = self.client.get_connection()?;
+        let mut connection = self.get_connection()?;
 
         let _: () = connection
             .set(key.clone(), session_time)
@@ -43,16 +61,16 @@ impl RedisConnector {
         Ok(session_id)
     }
 
-    pub fn end_session(&mut self, username: String, session_id: String) -> Result<(), RedisError> {
-        let mut connection = self.client.get_connection()?;
+    fn end_session(&self, username: String, session_id: String) -> Result<(), Error> {
+        let mut connection = self.get_connection()?;
 
         let key = format!("sessions:{}:{}", username, session_id);
         let _: () = connection.del(key).expect("Failed to delete session");
         Ok(())
     }
 
-    pub fn get_sessions_for_user(&mut self, username: String) -> Result<Vec<EncryptionContext>, RedisError> {
-        let mut connection = self.client.get_connection()?;
+    fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
+        let mut connection = self.get_connection()?;
 
         let key = format!("sessions:{}:*", username);
         let keys: Vec<String> = connection.keys(key).expect("Failed to get keys");
@@ -63,9 +81,8 @@ impl RedisConnector {
             .collect();
         Ok(sessions)
     }
-
-    pub fn get_all_sessions(&mut self) -> Result<Vec<EncryptionContext>, RedisError> {
-        let mut connection = self.client.get_connection()?;
+    fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
+        let mut connection = self.get_connection()?;
 
         let keys: Vec<String> = connection.keys("sessions:*:*").expect("Failed to get keys");
         let sessions: Vec<EncryptionContext> = keys
@@ -74,5 +91,9 @@ impl RedisConnector {
             .map(|session_id| EncryptionContext::from(&session_id))
             .collect();
         Ok(sessions)
+    }
+
+    fn clone_box(&self) -> Box<dyn SessionStorage> {
+        Box::new(self.clone())
     }
 }

@@ -11,11 +11,10 @@ struct PEPSystemConfig {
     blinding_factor: String,
 }
 
-pub fn create_pep_crypto_system(resource_file: &str) -> PEPSystem {
-    // Create PEP system
-    let file_content = fs::read_to_string(resource_file).expect("Failed to read config file");
+pub fn create_pep_crypto_system(system_config_file: &str) -> PEPSystem {
+    let file_content = fs::read_to_string(system_config_file).expect("Failed to read PEP system config file");
     let pep_system_config: PEPSystemConfig =
-        serde_yml::from_str(&file_content).expect("Failed to parse token file");
+        serde_yml::from_str(&file_content).expect("Failed to PEP system config file");
 
     let blinding_factor =
         BlindingFactor::decode_from_hex(pep_system_config.blinding_factor.as_str())
