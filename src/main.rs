@@ -1,3 +1,4 @@
+use std::io::Write;
 mod application {
     pub mod sessions;
     pub mod status;
@@ -17,37 +18,27 @@ use crate::session_storage::{RedisSessionStorage, SessionStorage};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
-use env_logger::{Env, Builder};
 use std::fs::File;
-use std::io::Write;
-use std::env;
+
+fn setup_logging(logging_file: &str) {
+    let _file = File::options()
+        .append(true)
+        .create(true)
+        .open(logging_file)
+        .expect("Failed to open log file");
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let access_rules = AccessRules::load("resources/access_rules.yml");
     let auth_middleware = JWTAuthMiddleware::new("resources/public.pem");
-    let session_storage: Box<dyn SessionStorage> = Box::new(
-        RedisSessionStorage::new(env::var("REDIS_URL").unwrap())
-            .expect("Failed to connect to Redis"),
-    );
+    // let session_storage: Box<dyn SessionStorage> = Box::new(
+    //     RedisSessionStorage::new(env::var("REDIS_URL").unwrap())
+    //         .expect("Failed to connect to Redis"),
+    // );
     let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
 
-    // Initialize logging to both console and file
-    let log_file = File::options()
-        .append(true)
-        .create(true)
-        .open("app.log")
-        .expect("Failed to open log file");
-    Builder::from_env(Env::default().default_filter_or("info"))
-        .format(move |buf, record| {
-            writeln!(buf, "{}: {}", record.level(), record.args())
-        })
-        .target(env_logger::Target::Stdout)
-        .write_style(env_logger::WriteStyle::Always)
-        .init();
-    log::set_boxed_logger(Box::new(env_logger::Logger::from_default_env()))
-        .map(|()| log::set_max_level(log::LevelFilter::Info))
-        .expect("Failed to set logger");
+    setup_logging("resources/server.log");
 
     println!("Starting server");
     HttpServer::new(move || {
@@ -58,7 +49,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("")
                     .app_data(web::Data::new(access_rules.clone()))
-                    .app_data(web::Data::new(session_storage.clone()))
+                    // .app_data(web::Data::new(session_storage.clone()))
                     .app_data(web::Data::new(pep_system.clone()))
                     .wrap(auth_middleware.clone())
                     .service(
