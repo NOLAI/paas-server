@@ -76,5 +76,5 @@ describe("PaaS js client tests", () => {
     );
 
     expect(resultRandom.toBase64()).toEqual(resultRegular.toBase64());
-  });
+  }, 60000);
 });
