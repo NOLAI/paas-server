@@ -42,7 +42,10 @@ fn setup_logging(logging_file: &str) {
             )
         })
         .filter(None, LevelFilter::Info)
-        .target(env_logger::Target::Pipe(Box::new(file), Box::new(std::io::stdout())))
+        .target(env_logger::Target::Pipe(Box::new(MultiWriter::new(vec![
+            Box::new(file),
+            Box::new(std::io::stdout()),
+        ]))))
         .write_style(env_logger::WriteStyle::Always)
         .init();
 
