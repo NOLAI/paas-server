@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "Starting PEP API Service"
+echo "Starting PaaS server"
 
-./pep_api_service
+./PaaS-server
 

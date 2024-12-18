@@ -5,6 +5,7 @@ use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::key_blinding::SessionKeyShare;
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::EncryptionContext;
+use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,6 +43,8 @@ pub async fn start_session(
         .start_session(user.username.to_string())
         .unwrap();
 
+    info!("{:?} started session {:?}", user.username, session_id);
+
     let key_share = pep_system.session_key_share(&EncryptionContext::from(&session_id.clone()));
 
     HttpResponse::Ok().json(StartSessionResponse {
@@ -67,6 +70,8 @@ pub async fn end_session(
     if user.username.as_str() != username_in_session {
         return HttpResponse::Forbidden().body("Session not owned by user");
     }
+
+    info!("{:?} ended session {:?}", user.username, session_id);
 
     session_storage
         .end_session(user.username.to_string(), session_id)

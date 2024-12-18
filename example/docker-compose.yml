@@ -18,6 +18,7 @@ services:
       retries: 3
       start_period: 60s
     environment:
+      PAAS_SYSTEM_ID: PaaS-demo-1
       REDIS_URL: redis://redis1:6379
   redis1:
     image: redis:alpine
@@ -39,6 +40,7 @@ services:
       retries: 3
       start_period: 60s
     environment:
+      PAAS_SYSTEM_ID: PaaS-demo-2
       REDIS_URL: redis://redis2:6379
   redis2:
     image: redis:alpine
@@ -60,6 +62,7 @@ services:
       retries: 3
       start_period: 60s
     environment:
+      PAAS_SYSTEM_ID: PaaS-demo-3
       REDIS_URL: redis://redis3:6379
   redis3:
     image: redis:alpine

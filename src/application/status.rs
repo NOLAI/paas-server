@@ -9,7 +9,7 @@ pub struct StatusResponse {
 }
 
 pub async fn status() -> impl Responder {
-    let system_id = env::var("HOSTNAME").unwrap();
+    let system_id = env::var("PAAS_SYSTEM_ID").unwrap();
 
     HttpResponse::Ok().json(StatusResponse {
         system_id,

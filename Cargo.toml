@@ -1,5 +1,5 @@
 [package]
-name = "pep_api_service"
+name = "PaaS-server"
 version = "0.2.0"
 edition = "2021"
 
@@ -10,11 +10,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yml = "0.0.12"
 futures-util = "0.3.30"
-env_logger = "0.11.3"
 libpep = "^0.4"
 rand = "^0.8"
 redis = "0.27.0"
 chrono = { version = "0.4.39", features = ["serde"] }
 jsonwebtoken = {features = ["use_pem"], version = "9.3.0" }
-serde_yaml = "0.9.34+deprecated"
 log = "0.4"

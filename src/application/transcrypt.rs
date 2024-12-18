@@ -1,11 +1,11 @@
 use crate::access_rules::{AccessRules, AuthenticatedUser};
 use crate::session_storage::SessionStorage;
 use actix_web::web::{Bytes, Data};
-use log::{info, warn, error};
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::{EncryptionContext, PseudonymizationContext};
 use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -56,7 +56,10 @@ pub async fn pseudonymize(
         &request.pseudonym_context_from,
         &request.pseudonym_context_to,
     ) {
-        info!("{} tried, but was not allowed to pseudonymize from {:?} to {:?}", user.username, request.pseudonym_context_from, request.pseudonym_context_to);
+        warn!(
+            "{:?} tried, but was not allowed to pseudonymize from {:?} to {:?}",
+            user.username, request.pseudonym_context_from, request.pseudonym_context_to
+        );
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
 
@@ -65,7 +68,10 @@ pub async fn pseudonymize(
         .expect("Failed to get sessions");
 
     if !sessions.contains(&request.dec_context) {
-        info!("{} tried to pseudonymize to an invalid decryption context", user.username);
+        warn!(
+            "{:?} tried to pseudonymize to an invalid decryption context",
+            user.username
+        );
         return HttpResponse::Forbidden().body("Decryption context not allowed");
     }
 
@@ -83,8 +89,10 @@ pub async fn pseudonymize(
         ),
     );
 
-    info!("{} pseudonymized from {:?} to {:?}", user.username, request.pseudonym_context_from, request.pseudonym_context_to);
-
+    info!(
+        "{:?} pseudonymized from {:?} to {:?}",
+        user.username, request.pseudonym_context_from, request.pseudonym_context_to
+    );
 
     HttpResponse::Ok().json(PseudonymizationResponse {
         encrypted_pseudonym: msg_out.to_base64(),
@@ -111,7 +119,10 @@ pub async fn pseudonymize_batch(
         &request.pseudonym_context_from,
         &request.pseudonym_context_to,
     ) {
-        info!("{} tried, but was not allowed to pseudonymize from {:?} to {:?}", user.username, request.pseudonym_context_from, request.pseudonym_context_to);
+        warn!(
+            "{:?} tried, but was not allowed to pseudonymize from {:?} to {:?}",
+            user.username, request.pseudonym_context_from, request.pseudonym_context_to
+        );
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
 
@@ -120,7 +131,10 @@ pub async fn pseudonymize_batch(
         .expect("Failed to get sessions");
 
     if !sessions.contains(&request.dec_context) {
-        info!("{} tried to pseudonymize to an invalid decryption context", user.username);
+        warn!(
+            "{:?} tried to pseudonymize to an invalid decryption context",
+            user.username
+        );
         return HttpResponse::Forbidden().body("Decryption context not allowed");
     }
 
@@ -154,7 +168,13 @@ pub async fn pseudonymize_batch(
         &mut rng,
     );
 
-    info!("{} batch-pseudonymized {:?} pseudonyms from {:?} to {:?}", user.username, msg_in.len(), request.pseudonym_context_from, request.pseudonym_context_to);
+    info!(
+        "{:?} batch-pseudonymized {:?} pseudonyms from {:?} to {:?}",
+        user.username,
+        msg_in.len(),
+        request.pseudonym_context_from,
+        request.pseudonym_context_to
+    );
 
     HttpResponse::Ok().json(PseudonymizationBatchResponse {
         encrypted_pseudonyms: msg_out.iter().map(|x| x.encode_to_base64()).collect(),
