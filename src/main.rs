@@ -29,7 +29,9 @@ fn setup_logging(logging_file: &str) {
         .open(logging_file)
         .expect("Failed to open log file");
 
-    Builder::new()
+    let mut builder = Builder::new();
+
+    builder
         .format(|buf, record| {
             writeln!(
                 buf,
@@ -40,7 +42,7 @@ fn setup_logging(logging_file: &str) {
             )
         })
         .filter(None, LevelFilter::Info)
-        .target(env_logger::Target::Stdout)
+        .target(env_logger::Target::Pipe(Box::new(file), Box::new(std::io::stdout())))
         .write_style(env_logger::WriteStyle::Always)
         .init();
 
