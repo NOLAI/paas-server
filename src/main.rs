@@ -18,14 +18,40 @@ use crate::session_storage::{RedisSessionStorage, SessionStorage};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
-use std::fs::File;
+use std::fs::OpenOptions;
+use log::LevelFilter;
+use env_logger::Builder;
+use std::env;
+use std::io::Write;
 
 fn setup_logging(logging_file: &str) {
-    let _file = File::options()
+    let file = OpenOptions::new()
         .append(true)
         .create(true)
         .open(logging_file)
         .expect("Failed to open log file");
+
+    Builder::new()
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "{} [{}] - {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                record.level(),
+                record.args()
+            )
+        })
+        .filter(None, LevelFilter::Info)
+        .target(env_logger::Target::Stdout)
+        .write_style(env_logger::WriteStyle::Always)
+        .init();
+
+    log::set_boxed_logger(Box::new(env_logger::Logger::from_default_env()))
+        .map(|()| log::set_max_level(log::LevelFilter::Info))
+        .expect("Failed to set logger");
+
+    log::set_logger(&env_logger::Logger::from_default_env()).unwrap();
+    log::set_max_level(log::LevelFilter::Info);
 }
 
 #[actix_web::main]
