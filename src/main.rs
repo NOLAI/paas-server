@@ -17,7 +17,9 @@ use crate::session_storage::{RedisSessionStorage, SessionStorage};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
-use env_logger::Env;
+use env_logger::{Env, Builder};
+use std::fs::File;
+use std::io::Write;
 use std::env;
 
 #[actix_web::main]
@@ -30,7 +32,18 @@ async fn main() -> std::io::Result<()> {
     );
     let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
 
-    env_logger::init_from_env(Env::default().default_filter_or("info"));
+    // Initialize logging to both console and file
+    let log_file = File::create("app.log").expect("Failed to create log file");
+    Builder::from_env(Env::default().default_filter_or("info"))
+        .format(move |buf, record| {
+            writeln!(buf, "{}: {}", record.level(), record.args())
+        })
+        .target(env_logger::Target::Stdout)
+        .write_style(env_logger::WriteStyle::Always)
+        .init();
+    log::set_boxed_logger(Box::new(env_logger::Logger::from_default_env()))
+        .map(|()| log::set_max_level(log::LevelFilter::Info))
+        .expect("Failed to set logger");
 
     println!("Starting server");
     HttpServer::new(move || {
