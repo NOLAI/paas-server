@@ -19,6 +19,7 @@ use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use std::env;
 use futures_util::TryFutureExt;
+use log::info;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -30,7 +31,7 @@ async fn main() -> std::io::Result<()> {
     );
     let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
 
-    println!("Starting HTTP service");
+    info!("Starting HTTP service");
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
