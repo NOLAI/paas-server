@@ -1,5 +1,6 @@
 use env_logger::{Builder, Env};
 use std::fs::File;
+use std::io::Write;
 
 pub struct Logging {
     pub file: File,
