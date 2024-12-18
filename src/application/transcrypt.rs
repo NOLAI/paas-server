@@ -1,6 +1,7 @@
 use crate::access_rules::{AccessRules, AuthenticatedUser};
 use crate::session_storage::SessionStorage;
 use actix_web::web::{Bytes, Data};
+use log::{info, warn, error};
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::{EncryptionContext, PseudonymizationContext};
@@ -42,6 +43,7 @@ pub async fn pseudonymize(
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
 ) -> impl Responder {
+    info!("Pseudonymize function called");
     let session_storage = session_storage.get_ref();
     let user = req
         .extensions()
