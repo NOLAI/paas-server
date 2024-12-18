@@ -19,10 +19,13 @@ use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use std::env;
 use futures_util::TryFutureExt;
-use log::info;
+use log::{info, warn};
+use env_logger;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
+
     let access_rules = AccessRules::load("resources/access_rules.yml");
     let auth_middleware = JWTAuthMiddleware::new("resources/public.pem");
     let session_storage: Box<dyn SessionStorage> = Box::new(
