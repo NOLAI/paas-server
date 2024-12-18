@@ -1,4 +1,3 @@
-use std::io::Write;
 mod application {
     pub mod sessions;
     pub mod status;
@@ -21,7 +20,6 @@ use actix_web::{web, App, HttpServer};
 use std::fs::OpenOptions;
 use log::LevelFilter;
 use env_logger::Builder;
-use std::env;
 use std::io::Write;
 
 fn setup_logging(logging_file: &str) {
