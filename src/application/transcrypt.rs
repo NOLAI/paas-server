@@ -43,7 +43,6 @@ pub async fn pseudonymize(
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
 ) -> impl Responder {
-    info!("Pseudonymize function called");
     let session_storage = session_storage.get_ref();
     let user = req
         .extensions()
@@ -57,6 +56,7 @@ pub async fn pseudonymize(
         &request.pseudonym_context_from,
         &request.pseudonym_context_to,
     ) {
+        info!("{} tried, but was not allowed to pseudonymize from {:?} to {:?}", user.username, request.pseudonym_context_from, request.pseudonym_context_to);
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
 
@@ -65,6 +65,7 @@ pub async fn pseudonymize(
         .expect("Failed to get sessions");
 
     if !sessions.contains(&request.dec_context) {
+        info!("{} tried to pseudonymize to an invalid decryption context", user.username);
         return HttpResponse::Forbidden().body("Decryption context not allowed");
     }
 
@@ -81,6 +82,9 @@ pub async fn pseudonymize(
             &request.dec_context,
         ),
     );
+
+    info!("{} pseudonymized from {:?} to {:?}", user.username, request.pseudonym_context_from, request.pseudonym_context_to);
+
 
     HttpResponse::Ok().json(PseudonymizationResponse {
         encrypted_pseudonym: msg_out.to_base64(),
@@ -107,6 +111,7 @@ pub async fn pseudonymize_batch(
         &request.pseudonym_context_from,
         &request.pseudonym_context_to,
     ) {
+        info!("{} tried, but was not allowed to pseudonymize from {:?} to {:?}", user.username, request.pseudonym_context_from, request.pseudonym_context_to);
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
 
@@ -115,6 +120,7 @@ pub async fn pseudonymize_batch(
         .expect("Failed to get sessions");
 
     if !sessions.contains(&request.dec_context) {
+        info!("{} tried to pseudonymize to an invalid decryption context", user.username);
         return HttpResponse::Forbidden().body("Decryption context not allowed");
     }
 
@@ -147,6 +153,8 @@ pub async fn pseudonymize_batch(
         ),
         &mut rng,
     );
+
+    info!("{} batch-pseudonymized {:?} pseudonyms from {:?} to {:?}", user.username, msg_in.len(), request.pseudonym_context_from, request.pseudonym_context_to);
 
     HttpResponse::Ok().json(PseudonymizationBatchResponse {
         encrypted_pseudonyms: msg_out.iter().map(|x| x.encode_to_base64()).collect(),
