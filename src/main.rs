@@ -33,7 +33,11 @@ async fn main() -> std::io::Result<()> {
     let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
 
     // Initialize logging to both console and file
-    let log_file = File::create("app.log").expect("Failed to create log file");
+    let log_file = File::options()
+        .append(true)
+        .create(true)
+        .open("app.log")
+        .expect("Failed to open log file");
     Builder::from_env(Env::default().default_filter_or("info"))
         .format(move |buf, record| {
             writeln!(buf, "{}: {}", record.level(), record.args())
