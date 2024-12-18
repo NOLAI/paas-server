@@ -23,7 +23,7 @@ use env_logger;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,actix_web=warn,actix_server=warn")).init();
 
     let access_rules = AccessRules::load("resources/access_rules.yml");
     let auth_middleware = JWTAuthMiddleware::new("resources/public.pem");
