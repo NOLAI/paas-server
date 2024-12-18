@@ -25,15 +25,19 @@ use env_logger;
 async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,actix_web=warn,actix_server=warn")).init();
 
+    info!("Loading access rules");
     let access_rules = AccessRules::load("resources/access_rules.yml");
+    info!("Loading JWT authentication middleware");
     let auth_middleware = JWTAuthMiddleware::new("resources/public.pem");
+    info!("Connecting to Redis session storage");
     let session_storage: Box<dyn SessionStorage> = Box::new(
         RedisSessionStorage::new(env::var("REDIS_URL").unwrap())
             .expect("Failed to connect to Redis"),
     );
+    info!("Creating PEP crypto system");
     let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
 
-    info!("Starting HTTP service");
+    info!("Starting PaaS HTTP service");
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
