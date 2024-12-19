@@ -1,6 +1,6 @@
 {
   "name": "@nolai/paas-client",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A client library for interacting with PaaS",
   "type": "module",
   "main": "dist/paas-client.js",

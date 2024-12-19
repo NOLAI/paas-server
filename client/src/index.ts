@@ -9,6 +9,11 @@ import {
   SessionKeyShare,
 } from "@nolai/libpep-wasm";
 
+export interface StatusResponse {
+  timestamp: string;
+  system_id: string;
+}
+
 export interface StartSessionResponse {
   session_id: string;
   key_share: string;
@@ -47,6 +52,7 @@ export class PEPTranscryptor {
   private jwt: string;
   private status: { state: string; lastChecked: number };
   private sessionId: string | null;
+  private systemId: string | null;
 
   public constructor(url: string, jwt: string) {
     this.url = url;
@@ -77,6 +83,8 @@ export class PEPTranscryptor {
         state: "online",
         lastChecked: Date.now(),
       };
+      const data: StatusResponse = await response.json();
+      this.systemId = data.system_id;
     }
   }
 
@@ -227,6 +235,10 @@ export class PEPTranscryptor {
   public getUrl() {
     return this.url;
   }
+
+  public getSystemId() {
+    return this.systemId;
+  }
 }
 
 export interface PseudonymServiceConfig {
@@ -267,6 +279,20 @@ export class PseudonymService {
       throw new Error("Global pseudonymization not supported yet");
       // this.pepClient = new OfflinePEPClient(
     } else {
+      await Promise.all(
+        this.config.transcryptors.map(
+          async (instance) => await instance.checkStatus(),
+        ),
+      );
+
+      for (const transcryptor of this.config.transcryptors) {
+        if (transcryptor.getStatus().state !== "online") {
+          throw new Error(
+            `Transcryptor ${transcryptor.getUrl()} is not online`,
+          );
+        }
+      }
+
       const sks = await Promise.all(
         this.config.transcryptors.map(
           async (instance) => (await instance.startSession()).keyShare,
@@ -301,6 +327,7 @@ export class PseudonymService {
         encryptionContextFrom[i], //enc_context
         transcryptor.getSessionId(), //dec_context
       );
+      // TODO: Handle error if pseudonymization fails
     }
 
     return encryptedPseudonym;
@@ -331,6 +358,7 @@ export class PseudonymService {
         encryptionContextFrom[i], //enc_context
         transcryptor.getSessionId(), //dec_context
       );
+      // TODO: Handle error if pseudonymization fails same as above
     }
 
     return encryptedPseudonyms;
@@ -366,5 +394,24 @@ export class PseudonymService {
     }
 
     return this.pepClient.decryptData(encryptedData);
+  }
+
+  public getTranscryptorSessionIds() {
+    return this.config.transcryptors.map((t) => {
+      return {
+        transcryptor: t.getSystemId(),
+        url: t.getUrl(),
+        session: t.getSessionId(),
+      };
+    });
+  }
+
+  public getTranscryptorStatus() {
+    return this.config.transcryptors.map((t) => {
+      return {
+        transcryptor: t.getSystemId(),
+        status: t.getStatus(),
+      };
+    });
   }
 }
