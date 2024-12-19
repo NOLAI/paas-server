@@ -1,7 +1,7 @@
 FROM rust:slim-buster AS chef
 LABEL authors=["Julian van der Horst"]
 RUN cargo install cargo-chef
-WORKDIR /PaaS-server
+WORKDIR /paas_server
 
 
 FROM chef AS planner
@@ -11,7 +11,7 @@ RUN cargo chef prepare  --recipe-path recipe.json
 
 
 FROM chef AS build
-COPY --from=planner /PaaS-server/recipe.json recipe.json
+COPY --from=planner /paas_server/recipe.json recipe.json
 ## copy over your manifests
 #COPY ./Cargo.lock ./Cargo.lock
 #COPY ./Cargo.toml ./Cargo.toml
@@ -31,7 +31,7 @@ EXPOSE 8080
 
 RUN apt-get update && apt-get install -y netcat-openbsd curl
 # copy the build artifact from the build stage
-COPY --from=build /PaaS-server/target/release/PaaS-server .
+COPY --from=build /paas_server/target/release/paas_server .
 
 COPY ./resources/entrypoint.sh /
 RUN chmod +x /entrypoint.sh
