@@ -1,7 +1,16 @@
 [package]
-name = "PaaS-server"
+name = "paas_server"
 version = "0.2.0"
 edition = "2021"
+
+[[bin]]
+name = "paas_server"
+path = "src/main.rs"
+
+[lib]
+name = "paas_server"
+path = "src/lib.rs"
+
 
 [dependencies]
 actix-web = "4.0"

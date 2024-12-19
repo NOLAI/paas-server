@@ -1,25 +1,16 @@
-mod application {
-    pub mod sessions;
-    pub mod status;
-    pub mod transcrypt;
-}
-mod access_rules;
-mod auth_middleware;
-mod pep_crypto;
-mod session_storage;
-
-use crate::access_rules::AccessRules;
-use crate::application::sessions::{end_session, get_all_sessions, get_sessions, start_session};
-use crate::application::status::status;
-use crate::application::transcrypt::{pseudonymize, pseudonymize_batch, rekey};
-use crate::auth_middleware::JWTAuthMiddleware;
-use crate::session_storage::{RedisSessionStorage, SessionStorage};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
-use std::env;
-use log::{info};
 use env_logger;
+use log::info;
+use paas_server::access_rules::*;
+use paas_server::application::sessions::*;
+use paas_server::application::status::*;
+use paas_server::application::transcrypt::*;
+use paas_server::auth_middleware::*;
+use paas_server::pep_crypto::*;
+use paas_server::session_storage::*;
+use std::env;
 
 const ACCESS_RULES_FILE_PATH: &str = "resources/access_rules.yml";
 const JWT_PUBLIC_KEY_FILE_PATH: &str = "resources/public.pem";
@@ -28,7 +19,10 @@ const SERVER_LISTEN_ADDRESS: &str = "0.0.0.0:8080";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,actix_web=warn,actix_server=warn")).init();
+    env_logger::Builder::from_env(
+        env_logger::Env::default().default_filter_or("info,actix_web=warn,actix_server=warn"),
+    )
+    .init();
 
     info!("Loading access rules from {ACCESS_RULES_FILE_PATH}");
     let access_rules = AccessRules::load(ACCESS_RULES_FILE_PATH);
@@ -38,16 +32,19 @@ async fn main() -> std::io::Result<()> {
     let session_storage: Box<dyn SessionStorage>;
     if env::var("REDIS_URL").is_err() {
         info!("Using in-memory session storage");
-        session_storage = Box::new(session_storage::InMemorySessionStorage::new());
+        session_storage = Box::new(InMemorySessionStorage::new());
     } else {
-        info!("Connecting to Redis session storage using Redis URL: {}", env::var("REDIS_URL").unwrap());
-        session_storage= Box::new(
+        info!(
+            "Connecting to Redis session storage using Redis URL: {}",
+            env::var("REDIS_URL").unwrap()
+        );
+        session_storage = Box::new(
             RedisSessionStorage::new(env::var("REDIS_URL").unwrap())
                 .expect("Failed to connect to Redis"),
         );
     }
     info!("Creating PEP crypto system from {PEP_CRYPTO_SERVER_CONFIG_FILE_PATH}");
-    let pep_system = pep_crypto::create_pep_crypto_system(PEP_CRYPTO_SERVER_CONFIG_FILE_PATH);
+    let pep_system = create_pep_crypto_system(PEP_CRYPTO_SERVER_CONFIG_FILE_PATH);
 
     info!("Starting PaaS HTTP service on {SERVER_LISTEN_ADDRESS}");
     HttpServer::new(move || {

@@ -98,7 +98,6 @@ impl SessionStorage for RedisSessionStorage {
     }
 }
 
-
 pub struct InMemorySessionStorage {
     sessions: Mutex<std::collections::HashMap<String, String>>,
 }
@@ -120,7 +119,10 @@ impl SessionStorage for InMemorySessionStorage {
         let session_time = Utc::now().format("%Y%m%d_%H").to_string();
 
         let session_id = format!("{}_{}", username, session_postfix);
-        self.sessions.lock().unwrap().insert(session_id.clone(), session_time);
+        self.sessions
+            .lock()
+            .unwrap()
+            .insert(session_id.clone(), session_time);
         Ok(session_id)
     }
 
