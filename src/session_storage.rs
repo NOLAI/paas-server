@@ -5,6 +5,7 @@ use rand::Rng;
 use redis::{Client, Commands};
 use redis::{Connection, IntoConnectionInfo, RedisError};
 use std::fmt::Error;
+use std::sync::Mutex;
 
 pub trait SessionStorage: Send + Sync {
     fn start_session(&self, username: String) -> Result<String, Error>;
@@ -99,7 +100,7 @@ impl SessionStorage for RedisSessionStorage {
 
 
 pub struct InMemorySessionStorage {
-    sessions: std::collections::HashMap<String, String>,
+    sessions: Mutex<std::collections::HashMap<String, String>>,
 }
 
 impl InMemorySessionStorage {
@@ -126,13 +127,14 @@ impl SessionStorage for InMemorySessionStorage {
 
     fn end_session(&self, username: String, session_id: String) -> Result<(), Error> {
         let session_id = format!("{}_{}", username, session_id);
-        self.sessions.remove(&session_id);
+        let mut sessions = self.sessions.lock().unwrap();
+        sessions.remove(&session_id);
         Ok(())
     }
 
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
-        let sessions: Vec<EncryptionContext> = self
-            .sessions
+        let sessions = self.sessions.lock().unwrap();
+        let sessions: Vec<EncryptionContext> = sessions
             .iter()
             .filter(|(session_id, _)| session_id.starts_with(&username))
             .map(|(session_id, _)| EncryptionContext::from(session_id))
@@ -141,8 +143,8 @@ impl SessionStorage for InMemorySessionStorage {
     }
 
     fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
-        let sessions: Vec<EncryptionContext> = self
-            .sessions
+        let sessions = self.sessions.lock().unwrap();
+        let sessions: Vec<EncryptionContext> = sessions
             .keys()
             .map(|session_id| EncryptionContext::from(session_id))
             .collect();
