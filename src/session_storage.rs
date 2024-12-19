@@ -94,7 +94,7 @@ impl SessionStorage for RedisSessionStorage {
     }
 
     fn clone_box(&self) -> Box<dyn SessionStorage> {
-        Box::new(self.clone())
+        Box::new((*self).clone())
     }
 }
 
