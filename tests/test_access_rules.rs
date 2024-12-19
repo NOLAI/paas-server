@@ -1,4 +1,4 @@
-use PaaS_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
+use crate::access_rules::{AccessRules, AuthenticatedUser, Permission};
 use libpep::high_level::contexts::PseudonymizationContext;
 use chrono::Utc;
 use std::collections::HashSet;
