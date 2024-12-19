@@ -96,3 +96,60 @@ impl SessionStorage for RedisSessionStorage {
         Box::new(self.clone())
     }
 }
+
+
+pub struct InMemorySessionStorage {
+    sessions: std::collections::HashMap<String, String>,
+}
+
+impl InMemorySessionStorage {
+    pub fn new() -> Self {
+        Self {
+            sessions: std::collections::HashMap::new(),
+        }
+    }
+}
+impl SessionStorage for InMemorySessionStorage {
+    fn start_session(&self, username: String) -> Result<String, Error> {
+        let session_postfix: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(10) // Random string length
+            .map(char::from)
+            .collect();
+
+        let session_time = Utc::now().format("%Y%m%d_%H").to_string();
+
+        let session_id = format!("{}_{}", username, session_postfix);
+        self.sessions.insert(session_id.clone(), session_time);
+        Ok(session_id)
+    }
+
+    fn end_session(&self, username: String, session_id: String) -> Result<(), Error> {
+        let session_id = format!("{}_{}", username, session_id);
+        self.sessions.remove(&session_id);
+        Ok(())
+    }
+
+    fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
+        let sessions: Vec<EncryptionContext> = self
+            .sessions
+            .iter()
+            .filter(|(session_id, _)| session_id.starts_with(&username))
+            .map(|(session_id, _)| EncryptionContext::from(session_id))
+            .collect();
+        Ok(sessions)
+    }
+
+    fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
+        let sessions: Vec<EncryptionContext> = self
+            .sessions
+            .keys()
+            .map(|session_id| EncryptionContext::from(session_id))
+            .collect();
+        Ok(sessions)
+    }
+
+    fn clone_box(&self) -> Box<dyn SessionStorage> {
+        Box::new(self.clone())
+    }
+}
