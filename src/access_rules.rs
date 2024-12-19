@@ -30,13 +30,31 @@ impl AccessRules {
         let file = std::fs::read_to_string(file_path).expect("Failed to read access rules file");
         serde_yml::from_str(&file).expect("Failed to parse access rules file")
     }
+    fn get_currently_valid_permissions(&self) -> Vec<&Permission> {
+        self.allow
+            .iter()
+            .filter(|permission| {
+                if let Some(start) = permission.start {
+                    if start > Utc::now() {
+                        return false;
+                    }
+                }
+                if let Some(end) = permission.end {
+                    if end < Utc::now() {
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect()
+    }
     pub fn has_access(
         &self,
         authentication_info: &AuthenticatedUser,
         from: &PseudonymizationContext,
         to: &PseudonymizationContext,
     ) -> bool {
-        for permission in &self.allow {
+        for permission in self.get_currently_valid_permissions() {
             if permission
                 .usergroups
                 .iter()
