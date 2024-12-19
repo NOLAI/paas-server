@@ -1,81 +1,33 @@
+use crate::access_rules::AuthenticatedUser;
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::{Error, HttpMessage};
 use actix_web::error::ErrorUnauthorized;
+use actix_web::{Error, HttpMessage};
 use futures_util::future::{ok, LocalBoxFuture, Ready};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 use serde::Serialize;
 use std::borrow::Borrow;
-use std::collections::{ HashSet};
 use std::fs;
 use std::sync::Arc;
-use chrono::{DateTime, Utc};
-use libpep::high_level::contexts::PseudonymizationContext;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AllowConfig {
-    pub allow: Vec<Permission>,
-}
-
-pub type Usergroup = String;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Permission {
-    pub usergroups: Vec<Usergroup>,
-    pub start: Option<DateTime<Utc>>,
-    pub end: Option<DateTime<Utc>>,
-    pub from: Vec<PseudonymizationContext>,
-    pub to: Vec<PseudonymizationContext>,
-}
 
 #[derive(Clone)]
-pub struct AuthMiddleware {
-    decoding_key: Arc<DecodingKey>,
-    allow_config: Arc<AllowConfig>,
+pub struct JWTAuthMiddleware {
+    jwt_key: Arc<DecodingKey>,
 }
 
-pub fn filter_on_usergroup(allow_config: &AllowConfig, groups_of_user: Vec<Usergroup>) -> (Vec<PseudonymizationContext>, Vec<PseudonymizationContext>) {
-    let mut from: HashSet<PseudonymizationContext> = HashSet::new();
-    let mut to: HashSet<PseudonymizationContext> = HashSet::new();
-
-    for permission in &allow_config.allow {
-        if permission.start.is_some() && permission.start.unwrap() > Utc::now() || permission.end.is_some() && permission.end.unwrap() < Utc::now() {
-            continue;
-        }
-        if permission.usergroups.iter().any(|x| groups_of_user.contains(x)) {
-            from.extend(permission.from.clone());
-            to.extend(permission.to.clone());
-        }
-    }
-
-    (from.into_iter().collect(), to.into_iter().collect())
-}
-#[derive(Clone, Debug)]
-pub struct AuthenticationInfo {
-    pub username: Arc<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct DomainInfo {
-    pub from: Arc<Vec<PseudonymizationContext>>,
-    pub to: Arc<Vec<PseudonymizationContext>>,
-}
-
-impl AuthMiddleware {
-    pub fn new(token_file: &str, allow_file: &str) -> Self {
-        let toke_file_content = fs::read_to_string(token_file).expect("Failed to read token file");
-        let allow_file_content = fs::read_to_string(allow_file).expect("Failed to read allow file");
-        let allow_config: AllowConfig = serde_yaml::from_str(&allow_file_content).expect("Failed to parse allow file");
-        let decoding_key = DecodingKey::from_rsa_pem(toke_file_content.as_bytes())
+impl JWTAuthMiddleware {
+    pub fn new(jwt_key_file: &str) -> Self {
+        let jwt_key_file_content =
+            fs::read_to_string(jwt_key_file).expect("Failed to read token file");
+        let jwt_key = DecodingKey::from_rsa_pem(jwt_key_file_content.as_bytes())
             .expect("Failed to use provided public key for JWTs");
-        AuthMiddleware {
-            decoding_key: Arc::new(decoding_key),
-            allow_config: Arc::new(allow_config),
+        JWTAuthMiddleware {
+            jwt_key: Arc::new(jwt_key),
         }
     }
 }
 
-impl<S, B> Transform<S, ServiceRequest> for AuthMiddleware
+impl<S, B> Transform<S, ServiceRequest> for JWTAuthMiddleware
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
@@ -83,23 +35,21 @@ where
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type Transform = AuthMiddlewareService<S>;
+    type Transform = JWTAuthMiddlewareService<S>;
     type InitError = ();
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ok(AuthMiddlewareService {
+        ok(JWTAuthMiddlewareService {
             service,
-            decoding_key: Arc::clone(&self.decoding_key),
-            allow_config: Arc::clone(&self.allow_config),
+            jwt_key: Arc::clone(&self.jwt_key),
         })
     }
 }
 
-pub struct AuthMiddlewareService<S> {
+pub struct JWTAuthMiddlewareService<S> {
     service: S,
-    decoding_key: Arc<DecodingKey>,
-    allow_config: Arc<AllowConfig>,
+    jwt_key: Arc<DecodingKey>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -108,7 +58,7 @@ struct Claims {
     groups: Vec<String>,
 }
 
-impl<S, B> Service<ServiceRequest> for AuthMiddlewareService<S>
+impl<S, B> Service<ServiceRequest> for JWTAuthMiddlewareService<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
@@ -122,42 +72,36 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let len = "bearer ".len();
-        let token_data=  req
+        let token_data = req
             .headers()
             .get("Authorization")
             .and_then(|header| header.to_str().ok())
             .and_then(|hv| Some(&hv[len..]))
-            .and_then(|token|
+            .and_then(|token| {
                 decode::<Claims>(
                     token,
-                    self.decoding_key.borrow(),
+                    self.jwt_key.borrow(),
                     &Validation::new(Algorithm::RS256),
-                ).ok()
-            );
-        // .and_then(|f| Some(f.claims.sub));
-        
-        if let Some(data) = token_data {
-            let found_user = data.claims.sub;
-            req.extensions_mut().insert::<AuthenticationInfo>({
-                AuthenticationInfo {
-                    username: Arc::new(found_user),
-                }
+                )
+                .ok()
             });
 
-            let (from, to) = filter_on_usergroup(&self.allow_config, data.claims.groups.clone());
-            req.extensions_mut().insert(DomainInfo {
-                from: Arc::new(from),
-                to: Arc::new(to),
-            });
-            let fut = self.service.call(req);
-            return Box::pin(async move {
-                let res = fut.await?;
-                Ok(res)
-            });
+        if token_data.is_none() {
+            return Box::pin(async { Err(ErrorUnauthorized("Invalid JWT")) });
         }
 
-        Box::pin(async {
-            Err(ErrorUnauthorized("Unauthorized"))
+        let data = token_data.unwrap();
+        req.extensions_mut().insert::<AuthenticatedUser>({
+            AuthenticatedUser {
+                username: Arc::new(data.claims.sub),
+                usergroups: Arc::new(data.claims.groups.into_iter().collect()),
+            }
+        });
+
+        let fut = self.service.call(req);
+        Box::pin(async move {
+            let res = fut.await?;
+            Ok(res)
         })
     }
 }

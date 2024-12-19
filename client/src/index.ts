@@ -81,7 +81,7 @@ export class PEPTranscryptor {
   }
 
   public async startSession() {
-    const response = await fetch(this.url + "/start_session", {
+    const response = await fetch(this.url + "/sessions/start", {
       method: "POST",
       mode: "cors",
       headers: {
@@ -193,7 +193,7 @@ export class PEPTranscryptor {
 
   public async getSessions(username = null) {
     const response = await fetch(
-      `${this.url}/get_sessions${username ? "/" + username : ""}`,
+      `${this.url}/sessions/get${username ? "/" + username : ""}`,
       {
         method: "GET",
         mode: "cors",
