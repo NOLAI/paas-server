@@ -399,9 +399,9 @@ export class PseudonymService {
   public getTranscryptorSessionIds() {
     return this.config.transcryptors.map((t) => {
       return {
-        transcryptor: t.getSystemId(),
-        url: t.getUrl(),
-        session: t.getSessionId(),
+        transcryptorId: t.getSystemId(),
+        transcryptorUrl: t.getUrl(),
+        sessionId: t.getSessionId(),
       };
     });
   }
@@ -409,7 +409,8 @@ export class PseudonymService {
   public getTranscryptorStatus() {
     return this.config.transcryptors.map((t) => {
       return {
-        transcryptor: t.getSystemId(),
+        transcryptorId: t.getSystemId(),
+        transcryptorUrl: t.getUrl(),
         status: t.getStatus(),
       };
     });
