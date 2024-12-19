@@ -63,7 +63,7 @@ pub async fn end_session(
         .get::<AuthenticatedUser>()
         .cloned()
         .unwrap();
-    let session_storage = session_storage.get_ref();
+    let session_storage = session_storage.get_mut();
 
     let session_id = item.session_id.clone();
     let username_in_session = session_id.split('_').next().unwrap();
