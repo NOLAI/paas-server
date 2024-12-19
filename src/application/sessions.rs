@@ -37,7 +37,7 @@ pub async fn start_session(
         .get::<AuthenticatedUser>()
         .cloned()
         .unwrap();
-    let session_storage: &mut Box<dyn SessionStorage> = session_storage.get_ref();
+    let session_storage: &mut Box<dyn SessionStorage> = session_storage.get_mut();
 
     let session_id = session_storage
         .start_session(user.username.to_string())
