@@ -106,7 +106,7 @@ pub struct InMemorySessionStorage {
 impl InMemorySessionStorage {
     pub fn new() -> Self {
         Self {
-            sessions: std::collections::HashMap::new(),
+            sessions: Mutex::new(std::collections::HashMap::new()),
         }
     }
 }
