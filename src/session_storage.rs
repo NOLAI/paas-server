@@ -102,7 +102,6 @@ impl SessionStorage for RedisSessionStorage {
 pub struct InMemorySessionStorage {
     sessions: Mutex<std::collections::HashMap<String, String>>,
 }
-
 impl InMemorySessionStorage {
     pub fn new() -> Self {
         Self {
@@ -152,6 +151,8 @@ impl SessionStorage for InMemorySessionStorage {
     }
 
     fn clone_box(&self) -> Box<dyn SessionStorage> {
-        Box::new((*self).clone())
+        Box::new(Self {
+            sessions: Mutex::new(self.sessions.lock().unwrap().clone()),
+        })
     }
 }

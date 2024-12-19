@@ -18,26 +18,38 @@ use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use std::env;
-use log::{info, warn};
+use log::{info};
 use env_logger;
+
+const ACCESS_RULES_FILE_PATH: &str = "resources/access_rules.yml";
+const JWT_PUBLIC_KEY_FILE_PATH: &str = "resources/public.pem";
+const PEP_CRYPTO_SERVER_CONFIG_FILE_PATH: &str = "resources/server_config.yml";
+const SERVER_LISTEN_ADDRESS: &str = "0.0.0.0:8080";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,actix_web=warn,actix_server=warn")).init();
 
-    info!("Loading access rules");
-    let access_rules = AccessRules::load("resources/access_rules.yml");
-    info!("Loading JWT authentication middleware");
-    let auth_middleware = JWTAuthMiddleware::new("resources/public.pem");
-    info!("Connecting to Redis session storage");
-    let session_storage: Box<dyn SessionStorage> = Box::new(
-        RedisSessionStorage::new(env::var("REDIS_URL").unwrap())
-            .expect("Failed to connect to Redis"),
-    );
-    info!("Creating PEP crypto system");
-    let pep_system = pep_crypto::create_pep_crypto_system("resources/server_config.yml");
+    info!("Loading access rules from {ACCESS_RULES_FILE_PATH}");
+    let access_rules = AccessRules::load(ACCESS_RULES_FILE_PATH);
+    info!("Loading JWT authentication middleware using public key from {JWT_PUBLIC_KEY_FILE_PATH}");
+    let auth_middleware = JWTAuthMiddleware::new(JWT_PUBLIC_KEY_FILE_PATH);
 
-    info!("Starting PaaS HTTP service");
+    let session_storage: Box<dyn SessionStorage>;
+    if env::var("REDIS_URL").is_err() {
+        info!("Using in-memory session storage");
+        session_storage = Box::new(session_storage::InMemorySessionStorage::new());
+    } else {
+        info!("Connecting to Redis session storage using Redis URL: {}", env::var("REDIS_URL").unwrap());
+        session_storage= Box::new(
+            RedisSessionStorage::new(env::var("REDIS_URL").unwrap())
+                .expect("Failed to connect to Redis"),
+        );
+    }
+    info!("Creating PEP crypto system from {PEP_CRYPTO_SERVER_CONFIG_FILE_PATH}");
+    let pep_system = pep_crypto::create_pep_crypto_system(PEP_CRYPTO_SERVER_CONFIG_FILE_PATH);
+
+    info!("Starting PaaS HTTP service on {SERVER_LISTEN_ADDRESS}");
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive())
@@ -64,7 +76,7 @@ async fn main() -> std::io::Result<()> {
                     ),
             )
     })
-    .bind("0.0.0.0:8080")?
+    .bind(SERVER_LISTEN_ADDRESS)?
     .run()
     .await
 }
