@@ -10,6 +10,5 @@ export default {
     ],
   },
   moduleFileExtensions: ["ts", "js", "mjs"],
-  moduleResolution: "bundler",
   extensionsToTreatAsEsm: [".ts"],
 };
