@@ -48,6 +48,6 @@
     "typescript-eslint": "^8.17.0"
   },
   "dependencies": {
-    "@nolai/libpep-wasm": "^0.5"
+    "@nolai/libpep-wasm": "^0.5.1"
   }
 }
