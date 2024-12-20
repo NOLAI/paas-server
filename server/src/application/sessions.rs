@@ -10,22 +10,22 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetSessionsRequest {
-    username: Option<EncryptionContext>,
+    pub username: Option<EncryptionContext>,
 }
 #[derive(Serialize, Deserialize)]
 pub struct GetSessionResponse {
-    sessions: Vec<EncryptionContext>,
+    pub sessions: Vec<EncryptionContext>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct StartSessionResponse {
-    session_id: String,
-    key_share: SessionKeyShare,
+    pub session_id: String,
+    pub key_share: SessionKeyShare,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EndSessionRequest {
-    session_id: String,
+    pub session_id: String,
 }
 pub async fn start_session(
     req: HttpRequest,

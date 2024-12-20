@@ -10,30 +10,30 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct PseudonymizationResponse {
-    encrypted_pseudonym: String,
+    pub encrypted_pseudonym: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PseudonymizationRequest {
-    encrypted_pseudonym: String,
-    pseudonym_context_from: PseudonymizationContext,
-    pseudonym_context_to: PseudonymizationContext,
-    enc_context: EncryptionContext,
-    dec_context: EncryptionContext,
+    pub encrypted_pseudonym: String,
+    pub pseudonym_context_from: PseudonymizationContext,
+    pub pseudonym_context_to: PseudonymizationContext,
+    pub enc_context: EncryptionContext,
+    pub dec_context: EncryptionContext,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PseudonymizationBatchRequest {
-    encrypted_pseudonyms: Vec<String>,
-    pseudonym_context_from: PseudonymizationContext,
-    pseudonym_context_to: PseudonymizationContext,
-    enc_context: EncryptionContext,
-    dec_context: EncryptionContext,
+    pub encrypted_pseudonyms: Vec<String>,
+    pub pseudonym_context_from: PseudonymizationContext,
+    pub pseudonym_context_to: PseudonymizationContext,
+    pub enc_context: EncryptionContext,
+    pub dec_context: EncryptionContext,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct PseudonymizationBatchResponse {
-    encrypted_pseudonyms: Vec<String>,
+    pub encrypted_pseudonyms: Vec<String>,
 }
 
 pub async fn pseudonymize(
@@ -95,7 +95,7 @@ pub async fn pseudonymize(
     );
 
     HttpResponse::Ok().json(PseudonymizationResponse {
-        encrypted_pseudonym: msg_out.to_base64(),
+        encrypted_pseudonym: msg_out.as_base64(),
     })
 }
 
@@ -177,7 +177,7 @@ pub async fn pseudonymize_batch(
     );
 
     HttpResponse::Ok().json(PseudonymizationBatchResponse {
-        encrypted_pseudonyms: msg_out.iter().map(|x| x.encode_to_base64()).collect(),
+        encrypted_pseudonyms: msg_out.iter().map(|x| x.encode_as_base64()).collect(),
     })
 }
 

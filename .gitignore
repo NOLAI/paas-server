@@ -36,3 +36,4 @@ server/example/yarn.lock
 server/resources/access_rules.yml
 server/resources/public.pem
 server/resources/server_config.yml
+.aider*
