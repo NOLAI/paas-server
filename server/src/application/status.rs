@@ -4,8 +4,8 @@ use std::env;
 
 #[derive(Serialize, Deserialize)]
 pub struct StatusResponse {
-    system_id: String,
-    timestamp: String,
+    pub system_id: String,
+    pub timestamp: String,
 }
 
 pub async fn status() -> impl Responder {
