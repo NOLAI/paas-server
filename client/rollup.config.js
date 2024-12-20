@@ -4,11 +4,29 @@ import typescript from "@rollup/plugin-typescript";
 import { defineConfig } from "rollup";
 
 export default defineConfig([
-  // ESM Browser Build
+  // Node Browser Build
   {
     input: "src/index.ts",
     output: {
       file: "dist/paas-client.browser.js",
+      format: "es",
+      name: "PaaSClient",
+    },
+    plugins: [
+      commonjs(), // Handle CommonJS modules
+      resolve({
+        browser: true, // Resolve browser-friendly modules
+        extensions: [".js", ".ts"], // Default extensions
+      }),
+      typescript(), // Compile TypeScript
+    ],
+    external: ["@nolai/libpep-wasm"],
+  },
+  // ESM Browser Build
+  {
+    input: "src/index.ts",
+    output: {
+      file: "dist/paas-client.browser.plain.js",
       format: "iife",
       name: "PaaSClient",
       globals: {

@@ -1,11 +1,12 @@
 {
   "name": "@nolai/paas-client",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "A client library for interacting with PaaS",
   "type": "module",
   "main": "dist/paas-client.js",
   "exports": {
     "browser": "./dist/paas-client.browser.js",
+    "plain": "./dist/paas-client.browser.plain.js",
     "node": "./dist/paas-client.js",
     "default": "./dist/paas-client.js"
   },
@@ -13,6 +14,7 @@
   "types": "dist/paas-client.d.ts",
   "files": [
     "dist/paas-client.browser.js",
+    "dist/paas-client.browser.plain.js",
     "dist/paas-client.js",
     "dist/paas-client.d.ts",
     "README.md"
@@ -46,6 +48,6 @@
     "typescript-eslint": "^8.17.0"
   },
   "dependencies": {
-    "@nolai/libpep-wasm": "^0.4"
+    "@nolai/libpep-wasm": "^0.5"
   }
 }
