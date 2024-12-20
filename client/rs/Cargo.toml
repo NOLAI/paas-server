@@ -1,0 +1,12 @@
+[package]
+name = "paas_client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libpep = "^0.5"
+paas_server = { path = "../../server" }
+reqwest = { version = "0.12.9", features = ["json"] }
+serde_json = "1.0"
+serde_yml = "0.0.12"
+chrono = "0.4.39"
