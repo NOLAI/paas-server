@@ -58,13 +58,8 @@ impl AccessRules {
             if permission
                 .usergroups
                 .iter()
-                .any(|group| authentication_info.usergroups.contains(group))
-            {
-                if permission.from.iter().any(|context| context == from)
-                    && permission.to.iter().any(|context| context == to)
-                {
-                    return true;
-                }
+                .any(|group| authentication_info.usergroups.contains(group)) && permission.from.iter().any(|context| context == from) && permission.to.iter().any(|context| context == to) {
+                return true;
             }
         }
         false

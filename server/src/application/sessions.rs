@@ -37,7 +37,6 @@ pub async fn start_session(
         .get::<AuthenticatedUser>()
         .cloned()
         .unwrap();
-    let session_storage: &Box<dyn SessionStorage> = session_storage.get_ref();
 
     let session_id = session_storage
         .start_session(user.username.to_string())
@@ -63,7 +62,6 @@ pub async fn end_session(
         .get::<AuthenticatedUser>()
         .cloned()
         .unwrap();
-    let session_storage = session_storage.get_ref();
 
     let session_id = item.session_id.clone();
     let username_in_session = session_id.split('_').next().unwrap();
@@ -77,14 +75,13 @@ pub async fn end_session(
         .end_session(user.username.to_string(), session_id)
         .unwrap();
 
-    HttpResponse::Ok().json({})
+    HttpResponse::Ok().json(())
 }
 
 pub async fn get_sessions(
     path: web::Path<GetSessionsRequest>,
     session_storage: Data<Box<dyn SessionStorage>>,
 ) -> impl Responder {
-    let session_storage = session_storage.get_ref();
     let sessions = session_storage
         .get_sessions_for_user(path.username.clone().unwrap().to_string())
         .unwrap();
