@@ -7,7 +7,6 @@ import {
   BlindedGlobalSecretKey,
   GlobalPublicKey,
   Pseudonym,
-  // @ts-expect-error: Resolution is not correct
 } from "@nolai/libpep-wasm";
 
 describe("PaaS js client tests", () => {

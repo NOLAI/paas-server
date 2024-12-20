@@ -1,11 +1,12 @@
 {
   "name": "@nolai/paas-client",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "A client library for interacting with PaaS",
   "type": "module",
   "main": "dist/paas-client.js",
   "exports": {
     "browser": "./dist/paas-client.browser.js",
+    "plain": "./dist/paas-client.browser.plain.js",
     "node": "./dist/paas-client.js",
     "default": "./dist/paas-client.js"
   },
@@ -13,12 +14,13 @@
   "types": "dist/paas-client.d.ts",
   "files": [
     "dist/paas-client.browser.js",
+    "dist/paas-client.browser.plain.js",
     "dist/paas-client.js",
     "dist/paas-client.d.ts",
     "README.md"
   ],
   "scripts": {
-    "build": "rollup -c && sed '$d;N;$d' dist/paas-client.browser.js > dist/paas-client.browser.js.tmp && echo '})\nexport default PaaSClient;' >> dist/paas-client.browser.js.tmp && mv dist/paas-client.browser.js.tmp dist/paas-client.browser.js && mv dist/index.d.ts dist/paas-client.d.ts",
+    "build": "rollup -c && sed '$d;N;$d' dist/paas-client.browser.plain.js > dist/paas-client.browser.plain.js.tmp && echo '})\nexport default PaaSClient;' >> dist/paas-client.browser.plain.js.tmp && mv dist/paas-client.browser.plain.js.tmp dist/paas-client.browser.plain.js && mv dist/index.d.ts dist/paas-client.d.ts",
     "format": "prettier --write .",
     "lint": "eslint --fix",
     "prepublishOnly": "npm run build && cp ../README.md README.md",

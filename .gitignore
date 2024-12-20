@@ -25,8 +25,10 @@ recipe.json
 
 client/node_modules/
 client/package-lock.json
+client/yarn.lock
 
 client/dist/
 client/tests/coverage/
 example/node_modules/
 example/package-lock.json
+example/yarn.lock
