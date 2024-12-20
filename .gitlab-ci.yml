@@ -5,7 +5,7 @@ build_and_publish:
     - main
   when: manual
   script:
-    - cd client
+    - cd client/js
     - npm install
     - npm run format
     - npm run lint

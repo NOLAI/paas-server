@@ -1,7 +1,6 @@
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
-use env_logger;
 use log::info;
 use paas_server::access_rules::*;
 use paas_server::application::sessions::*;
@@ -11,6 +10,7 @@ use paas_server::auth_middleware::*;
 use paas_server::pep_crypto::*;
 use paas_server::session_storage::*;
 use std::env;
+use std::sync::Arc;
 
 const ACCESS_RULES_FILE_PATH: &str = "resources/access_rules.yml";
 const JWT_PUBLIC_KEY_FILE_PATH: &str = "resources/public.pem";
@@ -29,20 +29,16 @@ async fn main() -> std::io::Result<()> {
     info!("Loading JWT authentication middleware using public key from {JWT_PUBLIC_KEY_FILE_PATH}");
     let auth_middleware = JWTAuthMiddleware::new(JWT_PUBLIC_KEY_FILE_PATH);
 
-    let session_storage: Box<dyn SessionStorage>;
-    if env::var("REDIS_URL").is_err() {
+    let session_storage: Arc<dyn SessionStorage> = if env::var("REDIS_URL").is_err() {
         info!("Using in-memory session storage");
-        session_storage = Box::new(InMemorySessionStorage::new());
+        Arc::new(InMemorySessionStorage::new())
     } else {
-        info!(
-            "Connecting to Redis session storage using Redis URL: {}",
-            env::var("REDIS_URL").unwrap()
-        );
-        session_storage = Box::new(
-            RedisSessionStorage::new(env::var("REDIS_URL").unwrap())
-                .expect("Failed to connect to Redis"),
-        );
-    }
+        let redis_url = env::var("REDIS_URL").unwrap();
+        info!("Connecting to Redis session storage using Redis URL: {}", redis_url);
+        Arc::new(
+            RedisSessionStorage::new(redis_url).expect("Failed to connect to Redis"),
+        )
+    };
     info!("Creating PEP crypto system from {PEP_CRYPTO_SERVER_CONFIG_FILE_PATH}");
     let pep_system = create_pep_crypto_system(PEP_CRYPTO_SERVER_CONFIG_FILE_PATH);
 

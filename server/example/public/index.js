@@ -1,5 +1,5 @@
 import * as libpep from 'https://cdn.jsdelivr.net/npm/@nolai/libpep-wasm@0.5.1/pkg-web/libpep.js';
-import PaaSClient from 'https://cdn.jsdelivr.net/npm/@nolai/paas-client@0.4.2/dist/paas-client.browser.plain.js';
+import PaaSClient from 'https://cdn.jsdelivr.net/npm/@nolai/paas-js@0.4.2/dist/paas-js.browser.plain.js';
 
 const example_jwt = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsIm5hbWUiOiJKb2huIERvZSIsImdyb3VwcyI6WyJwcm9qZWN0MS1jb29yZGluYXRvciIsInByb2plY3QxLWFuYWx5c3QiXSwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MjMzMTQ2Mzd9.TjVO51wYydPr_OmQm3NyyX4AeGgV2YqIO1B3sMcGKucp1t8z4qQlTjSi1oiNZixkjD7BtvEbSTTiK9XiujHK3pCltoh8dDq4st6SPkOhiqxolGlQfxC_pL4OJKVicOjtRBCRhXwYYbfhiOJ_xmhpBCNn4VG9YWkuxLrp8q761goTts_Iy-YZFTDgOdRAEXRrkvBVOCUx7sP_lLygN1ArTPK7Rmpjk7Pszo0Eet9oLR11Mu_f5hqQzeSwnoEIoBoSxV6ovHKj9TY_8qT-GJVSg1MMdyDQmFLZYJ_UPeSXFKODak9YuDZ0Z0g2f_amSaxSpZvD1os2rafQ1_G5qW3MN_5rCGMA92rjdY0ObaI5Fa1UllPQwR74eK5ifE7N6vwaYUJhKIYCV3Wrdv__ZHBbLBqnlLdfWGmc2axZvrv76AErzHu1nWOp6EKru_fQkik7vZnFMtFxBX9apni-lLF6j3aWXMR2TIqfaHNAuDvkVX-fW0JUo6PvqaWuv4S-Emm1QL3fZadkNJW3N38Z49qZc8uUA1-Ene1npopDVgk_v49daSwoCUhbC5TkqqjGDbhWJQ8IZu5qVxyLegvpgXEEtvuahS7eB3eK6IVIGbrmezODFpemILj2bMlVCBqHmlhC_spDToKGC215je4pSd5_s_cXjcbbyq7qIIenPAvsmWQ";
 
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById("encrypt_pseudonym").addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!PEPSenderClient) {
-            return new Error("PEP client not found - Please start a session first");
+            return new Error("PEP js not found - Please start a session first");
         }
         let pseudonym = Pseudonym.fromHex(document.getElementById("sender_pseudonym").value);
         let encrypted_pseudonym = PEPSenderClient.encryptPseudonym(pseudonym);
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById("encrypt_datapoint").addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!PEPSenderClient) {
-            return new Error("PEP client not found - Please start a session first");
+            return new Error("PEP js not found - Please start a session first");
         }
         let datapoint = DataPoint.fromHex(document.getElementById("sender_datapoint").value);
         let encrypted_datapoint = PEPSenderClient.encryptData(datapoint);
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById("decrypt_pseudonym").addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!PEPReceiverClient) {
-            return new Error("PEP client not found - Please start a session first");
+            return new Error("PEP js not found - Please start a session first");
         }
         let encrypted_pseudonym = EncryptedPseudonym.fromBase64(document.getElementById("receiver_encrypted_pseudonym").value);
         let pseudonym = PEPReceiverClient.decryptPseudonym(encrypted_pseudonym);
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById("decrypt_datapoint").addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!PEPReceiverClient) {
-            return new Error("PEP client not found - Please start a session first");
+            return new Error("PEP js not found - Please start a session first");
         }
         let encrypted_datapoint = EncryptedDataPoint.fromBase64(document.getElementById("receiver_encrypted_datapoint").value);
         let datapoint = PEPReceiverClient.decryptData(encrypted_datapoint);

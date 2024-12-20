@@ -7,7 +7,7 @@
     "module": "NodeNext",
     "moduleResolution": "nodenext",
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "src"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts"]
 }

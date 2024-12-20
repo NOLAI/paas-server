@@ -101,6 +101,12 @@ impl SessionStorage for RedisSessionStorage {
 pub struct InMemorySessionStorage {
     sessions: Mutex<std::collections::HashMap<String, String>>,
 }
+impl Default for InMemorySessionStorage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InMemorySessionStorage {
     pub fn new() -> Self {
         Self {
