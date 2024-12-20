@@ -16,8 +16,12 @@ Cargo.lock
 
 recipe.json
 
-.*
+.env
+.env.local
+.local.env
+
 .idea
+.vscode
 
 client/node_modules/
 client/package-lock.json
