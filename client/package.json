@@ -1,6 +1,6 @@
 {
   "name": "@nolai/paas-client",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "A client library for interacting with PaaS",
   "type": "module",
   "main": "dist/paas-client.js",
@@ -46,6 +46,6 @@
     "typescript-eslint": "^8.17.0"
   },
   "dependencies": {
-    "@nolai/libpep-wasm": "^0.5"
+    "@nolai/libpep-wasm": "^0.5.1"
   }
 }

@@ -133,7 +133,7 @@ export class PEPTranscryptor {
       },
       body: JSON.stringify({
         // eslint-disable-next-line camelcase
-        encrypted_pseudonym: encryptedPseudonym.toBase64(),
+        encrypted_pseudonym: encryptedPseudonym.asBase64(),
         // eslint-disable-next-line camelcase
         pseudonym_context_from: pseudonymContextFrom,
         // eslint-disable-next-line camelcase
@@ -173,7 +173,7 @@ export class PEPTranscryptor {
       },
       body: JSON.stringify({
         // eslint-disable-next-line camelcase
-        encrypted_pseudonyms: encryptedPseudonym.map((p) => p.toBase64()),
+        encrypted_pseudonyms: encryptedPseudonym.map((p) => p.asBase64()),
         // eslint-disable-next-line camelcase
         pseudonym_context_from: pseudonymContextFrom,
         // eslint-disable-next-line camelcase
