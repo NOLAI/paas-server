@@ -1,4 +1,5 @@
-use actix_web::{test, web, App};
+use std::collections::HashSet;
+use actix_web::{test, web, App, HttpMessage};
 use paas_server::application::sessions::{start_session, end_session, StartSessionResponse};
 use paas_server::application::transcrypt::{pseudonymize, PseudonymizationResponse};
 use paas_server::access_rules::{AccessRules, AuthenticatedUser};
@@ -40,7 +41,6 @@ async fn test_start_session_and_pseudonymize() {
     // Test starting a session
     let req = test::TestRequest::post()
         .uri("/sessions/start")
-        .insert_header(("Authorization", "Bearer <your_jwt_token_here>"))
         .to_request();
     req.extensions_mut().insert(AuthenticatedUser {
         username: Arc::new("test_user".to_string()),
