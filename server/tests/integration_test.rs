@@ -40,7 +40,12 @@ async fn test_start_session_and_pseudonymize() {
     // Test starting a session
     let req = test::TestRequest::post()
         .uri("/sessions/start")
+        .insert_header(("Authorization", "Bearer <your_jwt_token_here>"))
         .to_request();
+    req.extensions_mut().insert(AuthenticatedUser {
+        username: Arc::new("test_user".to_string()),
+        usergroups: Arc::new(HashSet::from(["group1".to_string()])),
+    });
     let resp: StartSessionResponse = test::call_and_read_body_json(&app, req).await;
 
     // Test pseudonymization
