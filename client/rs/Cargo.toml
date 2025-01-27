@@ -9,10 +9,12 @@ path = "src/lib.rs"
 
 [dependencies]
 libpep = "^0.6.2"
-paas_server = { path = "../../server" }
+paas_server = { path = "../../server" } # TODO change to published version
 reqwest = { version = "0.12.9", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 chrono = "0.4.39"
 rand_core = "0.6.4"
-mockito = "0.31.0"
+
+[dev-dependencies]
 tokio = { version = "1", features = ["full"] }
+mockito = "0.31.0"

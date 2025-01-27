@@ -11,7 +11,7 @@ use paas_server::application::transcrypt::{PseudonymizationBatchRequest, Pseudon
 pub struct TranscryptorConfig {
     pub system_id: SystemId,
     pub url: String,
-    pub auth_token: String,
+    pub auth_token: String, // TODO: Auth should be a separate struct
 }
 pub enum TranscryptorState {
     Unknown,
@@ -52,7 +52,7 @@ impl TranscryptorClient {
         let _session = response.json::<StatusResponse>().await?;
         self.status = TranscryptorStatus {
             state: TranscryptorState::Online,
-            last_checked: Some(chrono::offset::Local::now().into()),
+            last_checked: Some(chrono::offset::Local::now().into()), // TODO use the time from the response
         };
         Ok(())
     }
@@ -68,6 +68,8 @@ impl TranscryptorClient {
         self.session_id = Some(session.session_id.clone());
         Ok((session.session_id, session.key_share))
     }
+
+    // TODO: end the session
 
     /// Ask the transcryptor pseudonymize an encrypted pseudonym.
     pub async fn pseudonymize(&self, encrypted_pseudonym: &EncryptedPseudonym, domain_from: &PseudonymizationDomain, domain_to: &PseudonymizationDomain, session_from: &EncryptionContext, session_to: &EncryptionContext) -> Result<EncryptedPseudonym, reqwest::Error> {

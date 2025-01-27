@@ -13,13 +13,13 @@ pub struct PseudonymServiceConfig {
     pub blinded_global_secret_key: BlindedGlobalSecretKey,
     pub global_public_key: GlobalPublicKey,
     pub transcryptors: Vec<TranscryptorConfig>
-}
-pub type EncryptionContexts = HashMap<String, EncryptionContext>;
+} // TODO servers should host these configs in a well-known location
+pub type EncryptionContexts = HashMap<String, EncryptionContext>; // TODO we should make a nicer way to handle this, probably in libpep
 
 pub struct PseudonymService {
     config: PseudonymServiceConfig,
     transcryptors: Vec<TranscryptorClient>,
-    pub pep_crypto_client: Option<PEPClient>,
+    pub pep_crypto_client: Option<PEPClient>, // TODO make this private
     current_session: EncryptionContexts
 }
 
@@ -48,7 +48,9 @@ impl PseudonymService {
             self.current_session.insert(transcryptor.config.system_id.clone(), EncryptionContext::from(&session_id));
         }
         self.pep_crypto_client = Some(PEPClient::new(self.config.blinded_global_secret_key, &sks));
-    }
+    } // TODO: add a way to check if the session is still valid, and add a way to refresh the session
+
+    // TODO: end the session
 
     /// Transform an encrypted pseudonym into your own pseudonym.
     pub async fn pseudonymize(&mut self, encrypted_pseudonym: &EncryptedPseudonym, session_from: &EncryptionContexts, domain_from: &PseudonymizationDomain, domain_to: &PseudonymizationDomain) -> EncryptedPseudonym {
@@ -63,6 +65,7 @@ impl PseudonymService {
         }
         transcrypted
     }
+    // TODO add a way to change the order of transcryptors, and add a way to add new transcryptors
 
     /// Transform a batch of encrypted pseudonyms into your own pseudonyms.
     /// Notice that the order of the pseudonyms in the input and output vectors are NOT the same, to prevent linking.
@@ -79,6 +82,8 @@ impl PseudonymService {
         }
         transcrypted
     }
+
+    // TODO add transcypt_batch method
 
     /// Encrypt a message using the [PEPClient]'s current session.
     pub fn encrypt<R: RngCore + CryptoRng, E: Encryptable>(
