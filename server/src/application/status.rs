@@ -2,9 +2,11 @@ use actix_web::{HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::env;
 
-#[derive(Serialize, Deserialize)]
+pub type SystemId = String;
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct StatusResponse {
-    pub system_id: String,
+    pub system_id: SystemId,
     pub timestamp: String,
 }
 

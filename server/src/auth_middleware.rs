@@ -75,7 +75,8 @@ where
         let token_data = req
             .headers()
             .get("Authorization")
-            .and_then(|header| header.to_str().ok()).map(|hv| &hv[len..])
+            .and_then(|header| header.to_str().ok())
+            .map(|hv| &hv[len..])
             .and_then(|token| {
                 decode::<Claims>(
                     token,

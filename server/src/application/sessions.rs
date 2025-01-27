@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-use std::sync::Arc;
 use crate::access_rules::AuthenticatedUser;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
@@ -34,10 +32,12 @@ pub async fn start_session(
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
 ) -> impl Responder {
-    let user = AuthenticatedUser {
-        username: Arc::from("test".to_string()),
-        usergroups: Arc::from(HashSet::new()),
-    };
+    let user = req
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .cloned()
+        .unwrap();
+
     let session_id = session_storage
         .start_session(user.username.to_string())
         .unwrap();

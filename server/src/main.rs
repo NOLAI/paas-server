@@ -34,10 +34,11 @@ async fn main() -> std::io::Result<()> {
         Arc::new(InMemorySessionStorage::new())
     } else {
         let redis_url = env::var("REDIS_URL").unwrap();
-        info!("Connecting to Redis session storage using Redis URL: {}", redis_url);
-        Arc::new(
-            RedisSessionStorage::new(redis_url).expect("Failed to connect to Redis"),
-        )
+        info!(
+            "Connecting to Redis session storage using Redis URL: {}",
+            redis_url
+        );
+        Arc::new(RedisSessionStorage::new(redis_url).expect("Failed to connect to Redis"))
     };
     info!("Creating PEP crypto system from {PEP_CRYPTO_SERVER_CONFIG_FILE_PATH}");
     let pep_system = create_pep_crypto_system(PEP_CRYPTO_SERVER_CONFIG_FILE_PATH);
