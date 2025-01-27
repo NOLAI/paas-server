@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use std::sync::Arc;
 use crate::access_rules::AuthenticatedUser;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
@@ -12,42 +14,42 @@ use serde::{Deserialize, Serialize};
 pub struct GetSessionsRequest {
     pub username: Option<EncryptionContext>,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GetSessionResponse {
     pub sessions: Vec<EncryptionContext>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct StartSessionResponse {
-    pub session_id: String,
+    pub session_id: EncryptionContext,
     pub key_share: SessionKeyShare,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EndSessionRequest {
-    pub session_id: String,
+    pub session_id: EncryptionContext,
 }
 pub async fn start_session(
     req: HttpRequest,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
 ) -> impl Responder {
-    let user = req
-        .extensions()
-        .get::<AuthenticatedUser>()
-        .cloned()
-        .unwrap();
-
+    let user = AuthenticatedUser {
+        username: Arc::from("test".to_string()),
+        usergroups: Arc::from(HashSet::new()),
+    };
     let session_id = session_storage
         .start_session(user.username.to_string())
         .unwrap();
 
+    let ec_context = EncryptionContext::from(&session_id.clone());
+
     info!("{:?} started session {:?}", user.username, session_id);
 
-    let key_share = pep_system.session_key_share(&EncryptionContext::from(&session_id.clone()));
+    let key_share = pep_system.session_key_share(&ec_context.clone());
 
     HttpResponse::Ok().json(StartSessionResponse {
-        session_id,
+        session_id: ec_context,
         key_share,
     })
 }
@@ -72,7 +74,7 @@ pub async fn end_session(
     info!("{:?} ended session {:?}", user.username, session_id);
 
     session_storage
-        .end_session(user.username.to_string(), session_id)
+        .end_session(user.username.to_string(), session_id.to_string())
         .unwrap();
 
     HttpResponse::Ok().json(())
