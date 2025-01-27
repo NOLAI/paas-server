@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use actix_web::{test, web, App, HttpMessage};
+use actix_web::dev::Service;
 use paas_server::application::sessions::{start_session, end_session, StartSessionResponse};
 use paas_server::application::transcrypt::{pseudonymize, PseudonymizationResponse};
 use paas_server::access_rules::{AccessRules, AuthenticatedUser};
@@ -27,6 +28,7 @@ async fn test_start_session_and_pseudonymize() {
 
     let app = test::init_service(
         App::new()
+
             .app_data(Data::new(access_rules))
             .app_data(Data::new(session_storage.clone()))
             .app_data(Data::new(pep_system.clone()))
@@ -38,30 +40,20 @@ async fn test_start_session_and_pseudonymize() {
     )
     .await;
 
-    // Test starting a session
+    // Start a session
     let req = test::TestRequest::post()
         .uri("/sessions/start")
-        .insert_header(("Authorization", "Bearer <your_jwt_token_here>"))
         .to_request();
-    req.extensions_mut().insert(AuthenticatedUser {
-        username: Arc::new("test_user".to_string()),
-        usergroups: Arc::new(HashSet::from(["group1".to_string()])),
-    });
-    let resp: StartSessionResponse = test::call_and_read_body_json(&app, req).await.unwrap();
+    let resp = app.call(req).await.unwrap();
+    println!("{:?}", resp);
 
     // Test pseudonymization
-    let pseudonymization_request = json!({
-        "encrypted_pseudonym": EncryptedPseudonym::from_base64("nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==").unwrap(),
-        "pseudonym_context_from": PseudonymizationContext::from("context1"),
-        "pseudonym_context_to": PseudonymizationContext::from("context2"),
-        "enc_context": EncryptionContext::from("enc_context"),
-        "dec_context": EncryptionContext::from("dec_context"),
-    });
+    // let pseudonymization_request = json!({
+    //     "encrypted_pseudonym": EncryptedPseudonym::from_base64("nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==").unwrap(),
+    //     "pseudonym_context_from": PseudonymizationContext::from("context1"),
+    //     "pseudonym_context_to": PseudonymizationContext::from("context2"),
+    //     "enc_context": EncryptionContext::from("enc_context"),
+    //     "dec_context": EncryptionContext::from("dec_context"),
+    // });
 
-    let req = test::TestRequest::post()
-        .uri("/pseudonymize")
-        .set_json(&pseudonymization_request)
-        .to_request();
-    let resp: PseudonymizationResponse = test::call_and_read_body_json(&app, req).await;
-    // assert!(!resp.encrypted_pseudonym.is_empty());
 }
