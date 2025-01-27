@@ -45,7 +45,10 @@ async fn test_start_session_and_pseudonymize() {
         .uri("/sessions/start")
         .to_request();
     let resp = app.call(req).await.unwrap();
-    println!("{:?}", resp);
+    assert_eq!(resp.status(), 200, "Failed to start session: {:?}", resp);
+
+    let body = test::read_body(resp).await;
+    println!("Response Body: {:?}", body);
 
     // Test pseudonymization
     // let pseudonymization_request = json!({
