@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use libpep::high_level::contexts::PseudonymizationContext;
+use libpep::high_level::contexts::PseudonymizationDomain;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashSet;
@@ -18,8 +18,8 @@ pub struct Permission {
     pub usergroups: Vec<Usergroup>,
     pub start: Option<DateTime<Utc>>,
     pub end: Option<DateTime<Utc>>,
-    pub from: Vec<PseudonymizationContext>,
-    pub to: Vec<PseudonymizationContext>,
+    pub from: Vec<PseudonymizationDomain>,
+    pub to: Vec<PseudonymizationDomain>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AccessRules {
@@ -51,8 +51,8 @@ impl AccessRules {
     pub fn has_access(
         &self,
         authentication_info: &AuthenticatedUser,
-        from: &PseudonymizationContext,
-        to: &PseudonymizationContext,
+        from: &PseudonymizationDomain,
+        to: &PseudonymizationDomain,
     ) -> bool {
         for permission in self.get_currently_valid_permissions() {
             if permission

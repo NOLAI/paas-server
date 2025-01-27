@@ -4,13 +4,11 @@ use actix_web::web::Data;
 use actix_web::{test, web, App, HttpMessage};
 use libpep::distributed::key_blinding::{BlindingFactor, SafeScalar};
 use libpep::distributed::systems::PEPSystem;
-use libpep::high_level::contexts::{PseudonymizationContext};
+use libpep::high_level::contexts::PseudonymizationContext;
 use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
 use libpep::high_level::keys::{EncryptionSecret, PseudonymizationSecret};
 use paas_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
-use paas_server::application::sessions::{
-    start_session, StartSessionResponse,
-};
+use paas_server::application::sessions::{start_session, StartSessionResponse};
 use paas_server::application::transcrypt::{pseudonymize, PseudonymizationResponse};
 use paas_server::session_storage::{InMemorySessionStorage, SessionStorage};
 use serde_json::json;
