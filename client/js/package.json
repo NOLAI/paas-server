@@ -27,7 +27,17 @@
     "postpublish": "rm README.md",
     "test": "npm run build && NODE_OPTIONS=--experimental-vm-modules jest"
   },
-  "author": "Julian van der Horst",
+  "authors": [
+    {
+      "name": "Julian van der Horst",
+      "email": "julian.vanderhorst@ru.nl"
+    },
+    {
+      "name": "Job Doesburg",
+      "email": "job@jobdoesburg.nl",
+      "url": "https://jobdoesburg.nl"
+    }
+  ],
   "license": "Apache-2.0",
   "devDependencies": {
     "@eslint/js": "^9.16.0",

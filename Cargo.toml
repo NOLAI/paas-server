@@ -14,7 +14,7 @@ serde_yml = "0.0.12"
 
 [workspace.package]
 authors = [
-    "Job Doesburg <job.doesburg@ru.nl>",
+    "Job Doesburg <job@jobdoesburg.nl>",
     "Julian van der Horst <julian.vanderhorst@ru.nl"
 ]
 edition = "2021"
