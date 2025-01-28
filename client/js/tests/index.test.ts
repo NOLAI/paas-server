@@ -1,7 +1,6 @@
-import {PseudonymService, PseudonymServiceConfig} from "../dist/paas-client";
+import {PseudonymService, PseudonymServiceConfig, TranscryptorConfig} from "../dist/paas-client";
 // @ts-ignore
 import {BlindedGlobalSecretKey, EncryptedPseudonym, GlobalPublicKey} from "@nolai/libpep-wasm";
-import {TranscryptorConfig} from "../src/transcryptor";
 import {setupServer} from "msw/node";
 import {http} from "msw";
 
