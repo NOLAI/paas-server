@@ -69,7 +69,7 @@ impl TranscryptorClient {
         &mut self,
     ) -> Result<(EncryptionContext, SessionKeyShare), reqwest::Error> {
         let response = reqwest::Client::new()
-            .get(format!("{}/session/start", self.config.url))
+            .post(format!("{}/sessions/start", self.config.url))
             .header("Authorization", format!("Bearer {}", self.auth_token))
             .send()
             .await?;

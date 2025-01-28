@@ -9,6 +9,14 @@ license.workspace = true
 name = "paas_client"
 path = "src/lib.rs"
 
+[[bin]]
+name = "paascli"
+required-features = ["build-binary"]
+
+[features]
+default = ["build-binary"]
+build-binary = ["clap"]
+
 [dependencies]
 libpep = {  workspace = true }
 serde = { workspace = true }
@@ -16,7 +24,12 @@ paas-common = { path = "../../common" }
 rand_core = "0.6.4"
 reqwest = { version = "0.12.9", features = ["json"] }
 chrono = "0.4.39"
+clap = { version = "4.5.27", optional = true }
+serde_json = "1.0.137"
+tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+base64 = "0.22.1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 mockito = "0.31.0"
+

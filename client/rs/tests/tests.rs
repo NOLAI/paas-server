@@ -3,14 +3,16 @@ use libpep::high_level::contexts::{EncryptionContext, PseudonymizationDomain};
 use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
 use libpep::high_level::keys::{GlobalPublicKey, PublicKey};
 use mockito::mock;
+use paas_client::auth::AuthTokens;
 use paas_client::pseudonym_service::{PseudonymService, PseudonymServiceConfig};
+use paas_client::sessions::EncryptionContexts;
 use paas_client::transcryptor_client::TranscryptorConfig;
 use std::collections::HashMap;
 
 #[tokio::test]
 async fn test_create_pep_client() {
     // Mock response for /session/start
-    let _m = mock("GET", "/session/start")
+    let _m = mock("POST", "/sessions/start")
         .with_status(200)
         .with_body(r#"{"session_id": "test_session", "key_share": "5f5289d6909083257b9372c362a1905a0f0370181c5b75af812815513edcda0a"}"#)
         .create();
@@ -35,10 +37,10 @@ async fn test_create_pep_client() {
             },
         ],
     };
-    let auth_tokens = HashMap::from([
+    let auth_tokens = AuthTokens(HashMap::from([
         ("test_system_1".to_string(), "test_token_1".to_string()),
         ("test_system_2".to_string(), "test_token_2".to_string()),
-    ]);
+    ]));
     let mut service = PseudonymService::new(config, auth_tokens);
     service.init().await;
     assert!(service.pep_crypto_client.is_some());
@@ -47,7 +49,7 @@ async fn test_create_pep_client() {
 #[tokio::test]
 async fn test_pseudonymize() {
     // Mock response for /session/start
-    let _m1 = mock("GET", "/session/start")
+    let _m1 = mock("POST", "/sessions/start")
         .with_status(200)
         .with_header("Content-Type", "application/json")
         .with_body(r#"{"session_id": "test_session", "key_share": "5f5289d6909083257b9372c362a1905a0f0370181c5b75af812815513edcda0a"}"#)
@@ -80,16 +82,16 @@ async fn test_pseudonymize() {
             },
         ],
     };
-    let auth_tokens = HashMap::from([
+    let auth_tokens = AuthTokens(HashMap::from([
         ("test_system_1".to_string(), "test_token_1".to_string()),
         ("test_system_2".to_string(), "test_token_2".to_string()),
-    ]);
+    ]));
 
     let encrypted_pseudonym = EncryptedPseudonym::from_base64(
         "nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==",
     )
     .unwrap();
-    let sessions = HashMap::from([
+    let sessions = EncryptionContexts(HashMap::from([
         (
             "test_system_1".to_string(),
             EncryptionContext::from("session_1"),
@@ -98,7 +100,8 @@ async fn test_pseudonymize() {
             "test_system_2".to_string(),
             EncryptionContext::from("session_2"),
         ),
-    ]);
+    ]));
+
     let domain_from = PseudonymizationDomain::from("domain1");
     let domain_to = PseudonymizationDomain::from("domain2");
 

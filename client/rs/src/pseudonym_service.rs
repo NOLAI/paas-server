@@ -1,13 +1,13 @@
-use crate::transcryptor_client::{AuthToken, TranscryptorClient, TranscryptorConfig};
+use crate::auth::AuthTokens;
+use crate::sessions::EncryptionContexts;
+use crate::transcryptor_client::{TranscryptorClient, TranscryptorConfig};
 use libpep::distributed::key_blinding::BlindedGlobalSecretKey;
 use libpep::distributed::systems::PEPClient;
-use libpep::high_level::contexts::{EncryptionContext, PseudonymizationDomain};
+use libpep::high_level::contexts::PseudonymizationDomain;
 use libpep::high_level::data_types::{Encryptable, Encrypted, EncryptedPseudonym};
 use libpep::high_level::keys::GlobalPublicKey;
-use paas_common::status::SystemId;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PseudonymServiceConfig {
@@ -15,7 +15,6 @@ pub struct PseudonymServiceConfig {
     pub global_public_key: GlobalPublicKey,
     pub transcryptors: Vec<TranscryptorConfig>,
 } // TODO servers should host these configs in a well-known location
-pub type EncryptionContexts = HashMap<String, EncryptionContext>; // TODO we should make a nicer way to handle this, probably in libpep
 
 pub struct PseudonymService {
     config: PseudonymServiceConfig,
@@ -26,7 +25,7 @@ pub struct PseudonymService {
 /// Convert encrypted pseudonyms into your own pseudonyms, using the [PseudonymService].
 /// The service will communicate with the configured transcryptors, and wraps around a [PEPClient] for cryptographic operations.
 impl PseudonymService {
-    pub fn new(config: PseudonymServiceConfig, auth_tokens: HashMap<SystemId, AuthToken>) -> Self {
+    pub fn new(config: PseudonymServiceConfig, auth_tokens: AuthTokens) -> Self {
         let transcryptors = config
             .transcryptors
             .iter()
@@ -58,6 +57,8 @@ impl PseudonymService {
     } // TODO: add a way to check if the session is still valid, and add a way to refresh the session
 
     // TODO: end the session
+
+    // TODO: check status, and check if system id is correct
 
     /// Transform an encrypted pseudonym into your own pseudonym.
     pub async fn pseudonymize(
@@ -137,10 +138,12 @@ impl PseudonymService {
     }
 
     pub fn get_current_sessions(&self) -> EncryptionContexts {
-        self.transcryptors
+        let sessions = self
+            .transcryptors
             .iter()
             .map(|t| (t.config.system_id.clone(), t.session_id.clone().unwrap()))
-            .collect()
+            .collect();
+        EncryptionContexts(sessions)
     }
 
     /// Decrypt an encrypted message using the [PEPClient]'s current session.
