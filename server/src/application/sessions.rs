@@ -2,31 +2,13 @@ use crate::access_rules::AuthenticatedUser;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
-use libpep::distributed::key_blinding::SessionKeyShare;
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::EncryptionContext;
 use log::info;
-use serde::{Deserialize, Serialize};
+use paas_common::sessions::{
+    EndSessionRequest, GetSessionResponse, GetSessionsRequest, StartSessionResponse,
+};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GetSessionsRequest {
-    username: Option<EncryptionContext>,
-}
-#[derive(Serialize, Deserialize)]
-pub struct GetSessionResponse {
-    sessions: Vec<EncryptionContext>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct StartSessionResponse {
-    session_id: String,
-    key_share: SessionKeyShare,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EndSessionRequest {
-    session_id: String,
-}
 pub async fn start_session(
     req: HttpRequest,
     session_storage: Data<Box<dyn SessionStorage>>,
@@ -42,12 +24,14 @@ pub async fn start_session(
         .start_session(user.username.to_string())
         .unwrap();
 
+    let ec_context = EncryptionContext::from(&session_id.clone());
+
     info!("{:?} started session {:?}", user.username, session_id);
 
-    let key_share = pep_system.session_key_share(&EncryptionContext::from(&session_id.clone()));
+    let key_share = pep_system.session_key_share(&ec_context.clone());
 
     HttpResponse::Ok().json(StartSessionResponse {
-        session_id,
+        session_id: ec_context,
         key_share,
     })
 }
@@ -72,7 +56,7 @@ pub async fn end_session(
     info!("{:?} ended session {:?}", user.username, session_id);
 
     session_storage
-        .end_session(user.username.to_string(), session_id)
+        .end_session(user.username.to_string(), session_id.to_string())
         .unwrap();
 
     HttpResponse::Ok().json(())

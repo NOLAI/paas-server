@@ -5,7 +5,7 @@ use serde::Deserialize;
 use std::fs;
 
 #[derive(Deserialize, Debug)]
-struct PEPSystemConfig {
+pub struct PEPSystemConfig {
     pseudonymization_secret: String,
     rekeying_secret: String,
     blinding_factor: String,

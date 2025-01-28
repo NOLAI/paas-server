@@ -1,5 +1,5 @@
 use chrono::Utc;
-use libpep::high_level::contexts::PseudonymizationContext;
+use libpep::high_level::contexts::PseudonymizationDomain;
 use paas_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -15,8 +15,8 @@ fn test_access_rules_integration() {
         usergroups: vec!["group1".to_string()],
         start: Some(Utc::now() - chrono::Duration::hours(1)),
         end: Some(Utc::now() + chrono::Duration::hours(1)),
-        from: vec![PseudonymizationContext::from("context1")],
-        to: vec![PseudonymizationContext::from("context2")],
+        from: vec![PseudonymizationDomain::from("domain1")],
+        to: vec![PseudonymizationDomain::from("domain2")],
     };
 
     let access_rules = AccessRules {
@@ -25,8 +25,8 @@ fn test_access_rules_integration() {
 
     assert!(access_rules.has_access(
         &user,
-        &PseudonymizationContext::from("context1"),
-        &PseudonymizationContext::from("context2")
+        &PseudonymizationDomain::from("domain1"),
+        &PseudonymizationDomain::from("domain2")
     ));
 }
 
@@ -46,19 +46,19 @@ fn test_access_rules_edge_cases() {
         usergroups: vec!["group1".to_string()],
         start: Some(Utc::now() - chrono::Duration::hours(1)),
         end: Some(Utc::now() + chrono::Duration::hours(1)),
-        from: vec![PseudonymizationContext::from("context1")],
-        to: vec![PseudonymizationContext::from("context2")],
+        from: vec![PseudonymizationDomain::from("domain1")],
+        to: vec![PseudonymizationDomain::from("domain2")],
     };
 
     let access_rules = AccessRules {
         allow: vec![permission],
     };
 
-    // Test valid user with valid time and contexts
+    // Test valid user with valid time and domains
     assert!(access_rules.has_access(
         &user_with_valid_group,
-        &PseudonymizationContext::from("context1"),
-        &PseudonymizationContext::from("context2")
+        &PseudonymizationDomain::from("domain1"),
+        &PseudonymizationDomain::from("domain2")
     ));
 
     // Test valid user with valid group but outside valid time range
@@ -66,8 +66,8 @@ fn test_access_rules_edge_cases() {
         usergroups: vec!["group1".to_string()],
         start: Some(Utc::now() + chrono::Duration::hours(1)),
         end: Some(Utc::now() + chrono::Duration::hours(2)),
-        from: vec![PseudonymizationContext::from("context1")],
-        to: vec![PseudonymizationContext::from("context2")],
+        from: vec![PseudonymizationDomain::from("domain1")],
+        to: vec![PseudonymizationDomain::from("domain2")],
     };
 
     let access_rules_outside_time = AccessRules {
@@ -76,21 +76,21 @@ fn test_access_rules_edge_cases() {
 
     assert!(!access_rules_outside_time.has_access(
         &user_with_valid_group,
-        &PseudonymizationContext::from("context1"),
-        &PseudonymizationContext::from("context2")
+        &PseudonymizationDomain::from("domain1"),
+        &PseudonymizationDomain::from("domain2")
     ));
 
     // Test user with invalid group
     assert!(!access_rules.has_access(
         &user_with_invalid_group,
-        &PseudonymizationContext::from("context1"),
-        &PseudonymizationContext::from("context2")
+        &PseudonymizationDomain::from("domain1"),
+        &PseudonymizationDomain::from("domain2")
     ));
 
-    // Test valid user with valid group and time but incorrect contexts
+    // Test valid user with valid group and time but incorrect domains
     assert!(!access_rules.has_access(
         &user_with_valid_group,
-        &PseudonymizationContext::from("context3"),
-        &PseudonymizationContext::from("context4")
+        &PseudonymizationDomain::from("domain3"),
+        &PseudonymizationDomain::from("domain4")
     ));
 }

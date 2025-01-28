@@ -1,80 +1,165 @@
-import {
-  PseudonymServiceConfig,
-  PEPTranscryptor,
-  PseudonymService,
-} from "../dist/paas-client";
-import {
-  BlindedGlobalSecretKey,
-  GlobalPublicKey,
-  Pseudonym,
-} from "@nolai/libpep-wasm";
+import {PseudonymService, PseudonymServiceConfig} from "../dist/paas-client";
+// @ts-ignore
+import {BlindedGlobalSecretKey, EncryptedPseudonym, GlobalPublicKey} from "@nolai/libpep-wasm";
+import {TranscryptorConfig} from "../src/transcryptor";
+import {setupServer} from "msw/node";
+import {http} from "msw";
+
+const server = setupServer();
+server.use(
+    http.post("http://localhost:8080/sessions/start", async ({request}) => {
+        // Verify request headers
+        const authHeader = request.headers.get("Authorization");
+        expect(authHeader).toBe("Bearer test_token_1");
+
+        return new Response(
+            JSON.stringify({
+                // eslint-disable-next-line camelcase
+                session_id: "test_session_1",
+                // eslint-disable-next-line camelcase
+                key_share:
+                    "5f5289d6909083257b9372c362a1905a0f0370181c5b75af812815513edcda0a",
+            }),
+            {
+                status: 200,
+                headers: {"Content-Type": "application/json"},
+            },
+        );
+    }),
+
+    http.post("http://localhost:8081/sessions/start", async ({request}) => {
+        const authHeader = request.headers.get("Authorization");
+        expect(authHeader).toBe("Bearer test_token_2");
+
+        return new Response(
+            JSON.stringify({
+                // eslint-disable-next-line camelcase
+                session_id: "test_session_2",
+                // eslint-disable-next-line camelcase
+                key_share:
+                    "5f5289d6909083257b9372c362a1905a0f0370181c5b75af812815513edcda0a",
+            }),
+            {
+                status: 200,
+                headers: {"Content-Type": "application/json"},
+            },
+        );
+    }),
+
+    http.post("http://localhost:8080/pseudonymize", async ({request}) => {
+        const authHeader = request.headers.get("Authorization");
+        expect(authHeader).toBe("Bearer test_token_1");
+
+        const body = await request.json();
+        expect(body).toHaveProperty("encrypted_pseudonym");
+        expect(body).toHaveProperty("domain_from", "domain1");
+        expect(body).toHaveProperty("domain_to", "domain2");
+        expect(body).toHaveProperty("session_from", "session_1");
+        expect(body).toHaveProperty("session_to", "test_session_1");
+
+        return new Response(
+            JSON.stringify({
+                // eslint-disable-next-line camelcase
+                encrypted_pseudonym:
+                    "gqmiHiFA8dMdNtbCgsJ-EEfT9fjTV91BrfcHKN57e2vaLR2_UJEVExd6o9tdZg7vKGQklYZwV3REOaOQedKtUA==",
+            }),
+            {
+                status: 200,
+                headers: {"Content-Type": "application/json"},
+            },
+        );
+    }),
+
+    http.post("http://localhost:8081/pseudonymize", async ({request}) => {
+        const authHeader = request.headers.get("Authorization");
+        expect(authHeader).toBe("Bearer test_token_2");
+
+        const body = await request.json();
+        expect(body).toHaveProperty("encrypted_pseudonym");
+        expect(body).toHaveProperty("domain_from", "domain1");
+        expect(body).toHaveProperty("domain_to", "domain2");
+        expect(body).toHaveProperty("session_from", "session_2");
+        expect(body).toHaveProperty("session_to", "test_session_2");
+
+        return new Response(
+            JSON.stringify({
+                // eslint-disable-next-line camelcase
+                encrypted_pseudonym:
+                    "gqmiHiFA8dMdNtbCgsJ-EEfT9fjTV91BrfcHKN57e2vaLR2_UJEVExd6o9tdZg7vKGQklYZwV3REOaOQedKtUA==",
+            }),
+            {
+                status: 200,
+                headers: {"Content-Type": "application/json"},
+            },
+        );
+    }),
+);
 
 describe("PaaS js client tests", () => {
-  test("Create PaaS client", async () => {
-    const exampleJwt =
-      "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsIm5hbWUiOiJKb2huIERvZSIsImdyb3VwcyI6WyJwcm9qZWN0MS1jb29yZGluYXRvciIsInByb2plY3QxLWFuYWx5c3QiXSwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MjMzMTQ2Mzd9.TjVO51wYydPr_OmQm3NyyX4AeGgV2YqIO1B3sMcGKucp1t8z4qQlTjSi1oiNZixkjD7BtvEbSTTiK9XiujHK3pCltoh8dDq4st6SPkOhiqxolGlQfxC_pL4OJKVicOjtRBCRhXwYYbfhiOJ_xmhpBCNn4VG9YWkuxLrp8q761goTts_Iy-YZFTDgOdRAEXRrkvBVOCUx7sP_lLygN1ArTPK7Rmpjk7Pszo0Eet9oLR11Mu_f5hqQzeSwnoEIoBoSxV6ovHKj9TY_8qT-GJVSg1MMdyDQmFLZYJ_UPeSXFKODak9YuDZ0Z0g2f_amSaxSpZvD1os2rafQ1_G5qW3MN_5rCGMA92rjdY0ObaI5Fa1UllPQwR74eK5ifE7N6vwaYUJhKIYCV3Wrdv__ZHBbLBqnlLdfWGmc2axZvrv76AErzHu1nWOp6EKru_fQkik7vZnFMtFxBX9apni-lLF6j3aWXMR2TIqfaHNAuDvkVX-fW0JUo6PvqaWuv4S-Emm1QL3fZadkNJW3N38Z49qZc8uUA1-Ene1npopDVgk_v49daSwoCUhbC5TkqqjGDbhWJQ8IZu5qVxyLegvpgXEEtvuahS7eB3eK6IVIGbrmezODFpemILj2bMlVCBqHmlhC_spDToKGC215je4pSd5_s_cXjcbbyq7qIIenPAvsmWQ";
+    beforeAll(() => server.listen());
+    afterAll(() => server.close());
 
-    // Test the constructor
-    const configOriginalSender: PseudonymServiceConfig = {
-      blindedGlobalPrivateKey: BlindedGlobalSecretKey.fromHex(
-        "22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007",
-      ),
-      globalPublicKey: {} as GlobalPublicKey,
-      transcryptors: [
-        new PEPTranscryptor("http://localhost:8080", exampleJwt),
-        new PEPTranscryptor("http://localhost:8081", exampleJwt),
-        new PEPTranscryptor("http://localhost:8082", exampleJwt),
-      ],
-    };
+    test("Create PEP client", async () => {
+        const config: PseudonymServiceConfig = {
+            blindedGlobalPrivateKey: BlindedGlobalSecretKey.fromHex(
+                "dacec694506fa1c1ab562059174b022151acab4594723614811eaaa93a9c5908",
+            ),
+            globalPublicKey: GlobalPublicKey.fromHex(
+                "3025b1584bc729154f33071f73bb9499509bb504f887496ba86cb57e88d5dc62",
+            ),
+            transcryptors: [
+                new TranscryptorConfig("test_system_1", "http://localhost:8080"),
+                new TranscryptorConfig("test_system_2", "http://localhost:8081"),
+            ],
+        };
 
-    const pseudonymServiceOriginalSender = new PseudonymService(
-      configOriginalSender,
-      "project1:participant-registration",
-      false,
-    );
+        const authTokens = new Map<string, string>();
+        authTokens.set("test_system_1", "test_token_1");
+        authTokens.set("test_system_2", "test_token_2");
 
-    const randomGroupElement = Pseudonym.random();
-    const encrypted =
-      await pseudonymServiceOriginalSender.encryptPseudonym(randomGroupElement);
+        const service = new PseudonymService(config, authTokens);
+        await service.init();
+        expect(service).toBeDefined();
+    });
 
-    const orginalEncryptSession = configOriginalSender.transcryptors.map((t) =>
-      t.getSessionId(),
-    );
+    test("Pseudonymize", async () => {
+        const config: PseudonymServiceConfig = {
+            blindedGlobalPrivateKey: BlindedGlobalSecretKey.fromHex(
+                "dacec694506fa1c1ab562059174b022151acab4594723614811eaaa93a9c5908",
+            ),
+            globalPublicKey: GlobalPublicKey.fromHex(
+                "3025b1584bc729154f33071f73bb9499509bb504f887496ba86cb57e88d5dc62",
+            ),
+            transcryptors: [
+                new TranscryptorConfig("test_system_1", "http://localhost:8080"),
+                new TranscryptorConfig("test_system_2", "http://localhost:8081"),
+            ],
+        };
 
-    // ======== encrypted
+        const authTokens = new Map<string, string>();
+        authTokens.set("test_system_1", "test_token_1");
+        authTokens.set("test_system_2", "test_token_2");
 
-    const config: PseudonymServiceConfig = {
-      blindedGlobalPrivateKey: BlindedGlobalSecretKey.fromHex(
-        "22e81de441de01e689873e5b7a0c0166f295b75d4bd5b15ad1a5079c919dd007",
-      ),
-      globalPublicKey: {} as GlobalPublicKey,
-      transcryptors: [
-        new PEPTranscryptor("http://localhost:8080", exampleJwt),
-        new PEPTranscryptor("http://localhost:8081", exampleJwt),
-        new PEPTranscryptor("http://localhost:8082", exampleJwt),
-      ],
-    };
+        const encryptedPseudonym = EncryptedPseudonym.fromBase64(
+            "nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==",
+        );
+        const sessions = new Map<string, string>();
+        sessions.set("test_system_1", "session_1");
+        sessions.set("test_system_2", "session_2");
 
-    const pseudonymService = new PseudonymService(
-      config,
-      "project1:participant-registration",
-      false,
-    );
+        const domainFrom = "domain1";
+        const domainTo = "domain2";
 
-    const resultRandom = await pseudonymService.pseudonymize(
-      encrypted,
-      "project1:qualtrics",
-      orginalEncryptSession,
-      "random",
-    );
+        const service = new PseudonymService(config, authTokens);
+        const result = await service.pseudonymize(
+            encryptedPseudonym,
+            sessions,
+            domainFrom,
+            domainTo,
+        );
 
-    const resultRegular = await pseudonymService.pseudonymize(
-      encrypted,
-      "project1:qualtrics",
-      orginalEncryptSession,
-      [0, 1, 2],
-    );
-
-    expect(resultRandom.asBase64()).toEqual(resultRegular.asBase64());
-  }, 60000);
+        expect(result.asBase64()).toEqual(
+            "gqmiHiFA8dMdNtbCgsJ-EEfT9fjTV91BrfcHKN57e2vaLR2_UJEVExd6o9tdZg7vKGQklYZwV3REOaOQedKtUA==",
+        );
+    }, 60000);
 });
