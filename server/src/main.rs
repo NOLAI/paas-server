@@ -29,16 +29,16 @@ async fn main() -> std::io::Result<()> {
     info!("Loading JWT authentication middleware using public key from {JWT_PUBLIC_KEY_FILE_PATH}");
     let auth_middleware = JWTAuthMiddleware::new(JWT_PUBLIC_KEY_FILE_PATH);
 
-    let session_storage: Arc<dyn SessionStorage> = if env::var("REDIS_URL").is_err() {
+    let session_storage: Box<dyn SessionStorage> = if env::var("REDIS_URL").is_err() {
         info!("Using in-memory session storage");
-        Arc::new(InMemorySessionStorage::new())
+        Box::new(InMemorySessionStorage::new())
     } else {
         let redis_url = env::var("REDIS_URL").unwrap();
         info!(
             "Connecting to Redis session storage using Redis URL: {}",
             redis_url
         );
-        Arc::new(RedisSessionStorage::new(redis_url).expect("Failed to connect to Redis"))
+        Box::new(RedisSessionStorage::new(redis_url).expect("Failed to connect to Redis"))
     };
     info!("Creating PEP crypto system from {PEP_CRYPTO_SERVER_CONFIG_FILE_PATH}");
     let pep_system = create_pep_crypto_system(PEP_CRYPTO_SERVER_CONFIG_FILE_PATH);
