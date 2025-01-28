@@ -14,29 +14,32 @@ use serde::{Deserialize, Serialize};
 pub struct TranscryptorConfig {
     pub system_id: SystemId,
     pub url: String,
-    pub auth_token: String, // TODO: Auth should be a separate struct
 }
 pub enum TranscryptorState {
     Unknown,
-    Error,
     Online,
+    Offline,
+    Error,
 }
 pub struct TranscryptorStatus {
     pub state: TranscryptorState,
     pub last_checked: Option<DateTime<Utc>>,
 }
+pub type AuthToken = String;
+
 /// A client that communicates with a single Transcryptor.
 pub struct TranscryptorClient {
     pub(crate) config: TranscryptorConfig,
+    auth_token: AuthToken,
     status: TranscryptorStatus,
-    session_id: Option<EncryptionContext>,
+    pub session_id: Option<EncryptionContext>,
 }
-
 impl TranscryptorClient {
     /// Create a new TranscryptorClient with the given configuration.
-    pub fn new(config: TranscryptorConfig) -> Self {
+    pub fn new(config: TranscryptorConfig, auth_token: AuthToken) -> Self {
         Self {
             config,
+            auth_token,
             status: TranscryptorStatus {
                 state: TranscryptorState::Unknown,
                 last_checked: None,
@@ -49,12 +52,10 @@ impl TranscryptorClient {
     pub async fn check_status(&mut self) -> Result<(), reqwest::Error> {
         let response = reqwest::Client::new()
             .get(format!("{}/status", self.config.url))
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.config.auth_token),
-            )
+            .header("Authorization", format!("Bearer {}", self.auth_token))
             .send()
             .await?;
+        // TODO handle errors and update status accordingly
         let _session = response.json::<StatusResponse>().await?;
         self.status = TranscryptorStatus {
             state: TranscryptorState::Online,
@@ -69,10 +70,7 @@ impl TranscryptorClient {
     ) -> Result<(EncryptionContext, SessionKeyShare), reqwest::Error> {
         let response = reqwest::Client::new()
             .get(format!("{}/session/start", self.config.url))
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.config.auth_token),
-            )
+            .header("Authorization", format!("Bearer {}", self.auth_token))
             .send()
             .await?;
         let session = response.json::<StartSessionResponse>().await?;
@@ -100,10 +98,7 @@ impl TranscryptorClient {
         };
         let response = reqwest::Client::new()
             .post(format!("{}/pseudonymize", self.config.url))
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.config.auth_token),
-            )
+            .header("Authorization", format!("Bearer {}", self.auth_token))
             .json(&request)
             .send()
             .await?;
@@ -129,10 +124,7 @@ impl TranscryptorClient {
         };
         let response = reqwest::Client::new()
             .post(format!("{}/pseudonymize_batch", self.config.url))
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.config.auth_token),
-            )
+            .header("Authorization", format!("Bearer {}", self.auth_token))
             .json(&request)
             .send()
             .await?;

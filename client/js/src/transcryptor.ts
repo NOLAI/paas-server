@@ -1,67 +1,90 @@
 import {EncryptedPseudonym, SessionKeyShare} from "@nolai/libpep-wasm";
 import {
     GetSessionResponse,
-    PseudonymizationBatchRequest, PseudonymizationBatchResponse,
-    PseudonymizationRequest, PseudonymizationResponse,
+    PseudonymizationBatchRequest,
+    PseudonymizationBatchResponse,
+    PseudonymizationRequest,
+    PseudonymizationResponse,
     StartSessionResponse,
-    StatusResponse
 } from "./messages.js";
 
+export class TranscryptorConfig {
+    public systemId: string;
+    public url: string;
 
-export class PEPTranscryptor {
-    private url: string;
-    private jwt: string;
-    private status: { state: string; lastChecked: number };
-    private sessionId: string | null;
-    private systemId: string | null;
-
-    public constructor(url: string, jwt: string) {
+    public constructor(systemId: string, url: string) {
+        this.systemId = systemId;
         this.url = url;
-        this.jwt = jwt;
-        this.status = {
-            state: "unknown",
-            lastChecked: Date.now(),
-        };
+    }
+}
+
+export enum TranscryptorState {
+    UNKNOWN = "unknown",
+    ONLINE = "online",
+    OFFLINE = "offline",
+    ERROR = "error",
+}
+
+export class TranscryptorStatus {
+    private state: string;
+    private lastChecked: number;
+
+    public constructor(state: TranscryptorState, lastChecked: number) {
+        this.state = state;
+        this.lastChecked = lastChecked;
+    }
+}
+
+export class Transcryptor {
+    private config: TranscryptorConfig;
+    public authToken: string;
+    private status: TranscryptorStatus;
+    private sessionId: string | null;
+
+    public constructor(config: TranscryptorConfig, authToken: string) {
+        this.config = config;
+        this.authToken = authToken;
+        this.status = new TranscryptorStatus(TranscryptorState.UNKNOWN, Date.now());
         this.sessionId = null;
     }
 
     public async checkStatus() {
-        const response = await fetch(this.url + "/status").catch((err) => {
-            this.status = {
-                state: "error",
-                lastChecked: Date.now(),
-            };
+        const response = await fetch(this.config.url + "/status", {
+            method: "GET",
+            mode: "cors",
+            headers: {
+                Authorization: "Bearer " + this.authToken,
+            },
+        }).catch((err) => {
+            this.status = new TranscryptorStatus(TranscryptorState.ERROR, Date.now());
             return err;
-        });
+        }); // TODO check session id
 
         if (!response.ok) {
-            this.status = {
-                state: response.status === 404 ? "offline" : "error",
-                lastChecked: Date.now(),
-            };
+            this.status = new TranscryptorStatus(
+                response.status === 404
+                    ? TranscryptorState.OFFLINE
+                    : TranscryptorState.ERROR,
+                Date.now(),
+            );
         } else {
-            this.status = {
-                state: "online",
-                lastChecked: Date.now(),
-            };
-            const data: StatusResponse = await response.json();
-            this.systemId = data.system_id;
+            this.status = new TranscryptorStatus(
+                TranscryptorState.ONLINE,
+                Date.now(),
+            );
         }
     }
 
     public async startSession() {
-        const response = await fetch(this.url + "/sessions/start", {
+        const response = await fetch(this.config.url + "/sessions/start", {
             method: "POST",
             mode: "cors",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: "Bearer " + this.jwt,
+                Authorization: "Bearer " + this.authToken,
             },
         }).catch((err) => {
-            this.status = {
-                state: "error",
-                lastChecked: Date.now(),
-            };
+            this.status = new TranscryptorStatus(TranscryptorState.ERROR, Date.now());
             return err;
         });
 
@@ -74,41 +97,40 @@ export class PEPTranscryptor {
                 keyShare: SessionKeyShare.fromHex(data.key_share),
             };
         } else {
-            throw new Error(`Failed to start session with ${this.getUrl()}`);
+            throw new Error(
+                `Failed to start session with ${this.config.systemId} at ${this.config.url}`,
+            );
         }
     }
 
     public async pseudonymize(
         encryptedPseudonym: EncryptedPseudonym,
-        pseudonymContextFrom: string,
-        pseudonymContextTo: string,
-        encContext: string,
-        decContext: string,
+        domainFrom: string,
+        domainTo: string,
+        sessionFrom: string,
+        sessionTo: string,
     ): Promise<EncryptedPseudonym> {
-        const response = await fetch(this.url + "/pseudonymize", {
+        const response = await fetch(this.config.url + "/pseudonymize", {
             method: "POST",
             mode: "cors",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: "Bearer " + this.jwt,
+                Authorization: "Bearer " + this.authToken,
             },
             body: JSON.stringify({
                 // eslint-disable-next-line camelcase
                 encrypted_pseudonym: encryptedPseudonym.asBase64(),
                 // eslint-disable-next-line camelcase
-                pseudonym_context_from: pseudonymContextFrom,
+                domain_from: domainFrom,
                 // eslint-disable-next-line camelcase
-                pseudonym_context_to: pseudonymContextTo,
+                domain_to: domainTo,
                 // eslint-disable-next-line camelcase
-                enc_context: encContext,
+                session_from: sessionFrom,
                 // eslint-disable-next-line camelcase
-                dec_context: decContext,
+                session_to: sessionTo,
             } as PseudonymizationRequest),
         }).catch((err) => {
-            this.status = {
-                state: "error",
-                lastChecked: Date.now(),
-            };
+            this.status = new TranscryptorStatus(TranscryptorState.ERROR, Date.now());
             return err;
         });
 
@@ -119,36 +141,33 @@ export class PEPTranscryptor {
     }
 
     public async pseudonymizeBatch(
-        encryptedPseudonym: EncryptedPseudonym[],
-        pseudonymContextFrom: string,
-        pseudonymContextTo: string,
-        encContext: string,
-        decContext: string,
+        encryptedPseudonyms: EncryptedPseudonym[],
+        domainFrom: string,
+        domainTo: string,
+        sessionFrom: string,
+        sessionTo: string,
     ): Promise<EncryptedPseudonym[]> {
-        const response = await fetch(this.url + "/pseudonymize_batch", {
+        const response = await fetch(this.config.url + "/pseudonymize", {
             method: "POST",
             mode: "cors",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: "Bearer " + this.jwt,
+                Authorization: "Bearer " + this.authToken,
             },
             body: JSON.stringify({
                 // eslint-disable-next-line camelcase
-                encrypted_pseudonyms: encryptedPseudonym.map((p) => p.asBase64()),
+                encrypted_pseudonyms: encryptedPseudonyms.map((p) => p.asBase64()),
                 // eslint-disable-next-line camelcase
-                pseudonym_context_from: pseudonymContextFrom,
+                domain_from: domainFrom,
                 // eslint-disable-next-line camelcase
-                pseudonym_context_to: pseudonymContextTo,
+                domain_to: domainTo,
                 // eslint-disable-next-line camelcase
-                enc_context: encContext,
+                session_from: sessionFrom,
                 // eslint-disable-next-line camelcase
-                dec_context: decContext,
+                session_to: sessionTo,
             } as PseudonymizationBatchRequest),
         }).catch((err) => {
-            this.status = {
-                state: "error",
-                lastChecked: Date.now(),
-            };
+            this.status = new TranscryptorStatus(TranscryptorState.ERROR, Date.now());
             return err;
         });
 
@@ -162,20 +181,17 @@ export class PEPTranscryptor {
 
     public async getSessions(username = null) {
         const response = await fetch(
-            `${this.url}/sessions/get${username ? "/" + username : ""}`,
+            `${this.config.url}/sessions/get${username ? "/" + username : ""}`,
             {
                 method: "GET",
                 mode: "cors",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: "Bearer " + this.jwt,
+                    Authorization: "Bearer " + this.authToken,
                 },
             },
         ).catch((err) => {
-            this.status = {
-                state: "error",
-                lastChecked: Date.now(),
-            };
+            this.status = new TranscryptorStatus(TranscryptorState.ERROR, Date.now());
             return err;
         });
 
@@ -194,10 +210,10 @@ export class PEPTranscryptor {
     }
 
     public getUrl() {
-        return this.url;
+        return this.config.url;
     }
 
     public getSystemId() {
-        return this.systemId;
+        return this.config.systemId;
     }
 }

@@ -18,18 +18,18 @@ export interface PseudonymizationResponse {
 
 export interface PseudonymizationRequest {
     encrypted_pseudonym: string;
-    pseudonym_context_from: string;
-    pseudonym_context_to: string;
-    enc_context: string;
-    dec_context: string;
+    domain_from: string;
+    domain_to: string;
+    session_from: string;
+    session_to: string;
 }
 
 export interface PseudonymizationBatchRequest {
     encrypted_pseudonyms: string[];
-    pseudonym_context_from: string;
-    pseudonym_context_to: string;
-    enc_context: string;
-    dec_context: string;
+    domain_from: string;
+    domain_to: string;
+    session_from: string;
+    session_to: string;
 }
 
 export interface PseudonymizationBatchResponse {

@@ -10,7 +10,6 @@ use paas_server::auth_middleware::*;
 use paas_server::pep_crypto::*;
 use paas_server::session_storage::*;
 use std::env;
-use std::sync::Arc;
 
 const ACCESS_RULES_FILE_PATH: &str = "resources/access_rules.yml";
 const JWT_PUBLIC_KEY_FILE_PATH: &str = "resources/public.pem";
