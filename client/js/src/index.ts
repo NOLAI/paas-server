@@ -1,12 +1,13 @@
 import {
-  BlindedGlobalSecretKey,
-  DataPoint,
-  EncryptedDataPoint,
-  EncryptedPseudonym,
-  GlobalPublicKey,
-  PEPClient,
-  Pseudonym,
+    BlindedGlobalSecretKey,
+    DataPoint,
+    EncryptedDataPoint,
+    EncryptedPseudonym,
+    GlobalPublicKey,
+    PEPClient,
+    Pseudonym,
 } from "@nolai/libpep-wasm";
+import {EncryptionContext, PseudonymizationDomain, SystemId} from "./messages.js";
 import {Transcryptor, TranscryptorConfig,} from "./transcryptor.js";
 
 export interface PseudonymServiceConfig {
@@ -15,6 +16,9 @@ export interface PseudonymServiceConfig {
     transcryptors: TranscryptorConfig[];
 }
 
+export type EncryptionContexts = Map<SystemId, EncryptionContext>;
+export type AuthToken = string;
+
 export class PseudonymService {
     private config: PseudonymServiceConfig;
     private transcryptors: Transcryptor[];
@@ -22,7 +26,7 @@ export class PseudonymService {
 
     public constructor(
         config: PseudonymServiceConfig,
-        authTokens: Map<string, string>,
+        authTokens: Map<SystemId, AuthToken>,
     ) {
         this.config = config;
         this.transcryptors = config.transcryptors.map(
@@ -53,9 +57,9 @@ export class PseudonymService {
 
     public async pseudonymize(
         encryptedPseudonym: EncryptedPseudonym,
-        sessionsFrom: Map<string, string>,
-        domainFrom: string,
-        domainTo: string,
+        sessionsFrom: EncryptionContexts,
+        domainFrom: PseudonymizationDomain,
+        domainTo: PseudonymizationDomain,
         // order?: "random" | number[], //TODO: I don't think default is the right word here
     ) {
         if (!this.pepCryptoClient) {
@@ -81,9 +85,9 @@ export class PseudonymService {
 
     public async pseudonymizeBatch(
         encryptedPseudonyms: EncryptedPseudonym[],
-        sessionsFrom: Map<string, string>,
-        domainFrom: string,
-        domainTo: string,
+        sessionsFrom: EncryptionContexts,
+        domainFrom: PseudonymizationDomain,
+        domainTo: PseudonymizationDomain,
         // order?: "random" | number[], //TODO: I don't think default is the right word here
     ) {
         if (!this.pepCryptoClient) {
@@ -138,7 +142,7 @@ export class PseudonymService {
         return this.pepCryptoClient.decryptData(encryptedData);
     }
 
-    public getCurrentSessions(): Map<string, string> {
+    public getCurrentSessions(): EncryptionContexts {
         return new Map(
             this.transcryptors.map((t) => [t.getSystemId(), t.getSessionId()]),
         );

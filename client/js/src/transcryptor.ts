@@ -1,12 +1,15 @@
 import {EncryptedPseudonym, SessionKeyShare} from "@nolai/libpep-wasm";
 import {
+    EncryptionContext,
     GetSessionResponse,
     PseudonymizationBatchRequest,
     PseudonymizationBatchResponse,
+    PseudonymizationDomain,
     PseudonymizationRequest,
     PseudonymizationResponse,
     StartSessionResponse,
 } from "./messages.js";
+import {AuthToken} from "./index.js";
 
 export class TranscryptorConfig {
     public systemId: string;
@@ -37,11 +40,11 @@ export class TranscryptorStatus {
 
 export class Transcryptor {
     private config: TranscryptorConfig;
-    public authToken: string;
+    public authToken: AuthToken;
     private status: TranscryptorStatus;
     private sessionId: string | null;
 
-    public constructor(config: TranscryptorConfig, authToken: string) {
+    public constructor(config: TranscryptorConfig, authToken: AuthToken) {
         this.config = config;
         this.authToken = authToken;
         this.status = new TranscryptorStatus(TranscryptorState.UNKNOWN, Date.now());
@@ -105,10 +108,10 @@ export class Transcryptor {
 
     public async pseudonymize(
         encryptedPseudonym: EncryptedPseudonym,
-        domainFrom: string,
-        domainTo: string,
-        sessionFrom: string,
-        sessionTo: string,
+        domainFrom: PseudonymizationDomain,
+        domainTo: PseudonymizationDomain,
+        sessionFrom: EncryptionContext,
+        sessionTo: EncryptionContext,
     ): Promise<EncryptedPseudonym> {
         const response = await fetch(this.config.url + "/pseudonymize", {
             method: "POST",
@@ -142,10 +145,10 @@ export class Transcryptor {
 
     public async pseudonymizeBatch(
         encryptedPseudonyms: EncryptedPseudonym[],
-        domainFrom: string,
-        domainTo: string,
-        sessionFrom: string,
-        sessionTo: string,
+        domainFrom: PseudonymizationDomain,
+        domainTo: PseudonymizationDomain,
+        sessionFrom: EncryptionContext,
+        sessionTo: EncryptionContext,
     ): Promise<EncryptedPseudonym[]> {
         const response = await fetch(this.config.url + "/pseudonymize", {
             method: "POST",
