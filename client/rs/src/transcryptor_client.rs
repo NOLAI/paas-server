@@ -1,11 +1,14 @@
 use chrono::{DateTime, Utc};
 use libpep::distributed::key_blinding::SessionKeyShare;
 use libpep::high_level::contexts::{EncryptionContext, PseudonymizationDomain};
-use libpep::high_level::data_types::{EncryptedPseudonym};
+use libpep::high_level::data_types::EncryptedPseudonym;
+use paas_common::sessions::StartSessionResponse;
+use paas_common::status::{StatusResponse, SystemId};
+use paas_common::transcrypt::{
+    PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
+    PseudonymizationResponse,
+};
 use serde::{Deserialize, Serialize};
-use paas_server::application::sessions::StartSessionResponse;
-use paas_server::application::status::{StatusResponse, SystemId};
-use paas_server::application::transcrypt::{PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest, PseudonymizationResponse};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranscryptorConfig {
@@ -23,7 +26,7 @@ pub struct TranscryptorStatus {
     pub last_checked: Option<DateTime<Utc>>,
 }
 /// A client that communicates with a single Transcryptor.
-pub struct TranscryptorClient{
+pub struct TranscryptorClient {
     pub(crate) config: TranscryptorConfig,
     status: TranscryptorStatus,
     session_id: Option<EncryptionContext>,
@@ -46,7 +49,10 @@ impl TranscryptorClient {
     pub async fn check_status(&mut self) -> Result<(), reqwest::Error> {
         let response = reqwest::Client::new()
             .get(format!("{}/status", self.config.url))
-            .header("Authorization", format!("Bearer {}", self.config.auth_token))
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.config.auth_token),
+            )
             .send()
             .await?;
         let _session = response.json::<StatusResponse>().await?;
@@ -58,10 +64,15 @@ impl TranscryptorClient {
     }
 
     /// Start a new session with the transcryptor.
-    pub async fn start_session(&mut self) -> Result<(EncryptionContext, SessionKeyShare), reqwest::Error> {
+    pub async fn start_session(
+        &mut self,
+    ) -> Result<(EncryptionContext, SessionKeyShare), reqwest::Error> {
         let response = reqwest::Client::new()
             .get(format!("{}/session/start", self.config.url))
-            .header("Authorization", format!("Bearer {}", self.config.auth_token))
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.config.auth_token),
+            )
             .send()
             .await?;
         let session = response.json::<StartSessionResponse>().await?;
@@ -72,7 +83,14 @@ impl TranscryptorClient {
     // TODO: end the session
 
     /// Ask the transcryptor pseudonymize an encrypted pseudonym.
-    pub async fn pseudonymize(&self, encrypted_pseudonym: &EncryptedPseudonym, domain_from: &PseudonymizationDomain, domain_to: &PseudonymizationDomain, session_from: &EncryptionContext, session_to: &EncryptionContext) -> Result<EncryptedPseudonym, reqwest::Error> {
+    pub async fn pseudonymize(
+        &self,
+        encrypted_pseudonym: &EncryptedPseudonym,
+        domain_from: &PseudonymizationDomain,
+        domain_to: &PseudonymizationDomain,
+        session_from: &EncryptionContext,
+        session_to: &EncryptionContext,
+    ) -> Result<EncryptedPseudonym, reqwest::Error> {
         let request = PseudonymizationRequest {
             encrypted_pseudonym: *encrypted_pseudonym,
             domain_from: domain_from.clone(),
@@ -82,7 +100,10 @@ impl TranscryptorClient {
         };
         let response = reqwest::Client::new()
             .post(format!("{}/pseudonymize", self.config.url))
-            .header("Authorization", format!("Bearer {}", self.config.auth_token))
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.config.auth_token),
+            )
             .json(&request)
             .send()
             .await?;
@@ -91,7 +112,14 @@ impl TranscryptorClient {
     }
 
     /// Ask the transcryptor to pseudonymize a batch of encrypted pseudonyms.
-    pub async fn pseudonymize_batch(&self, encrypted_pseudonyms: Vec<EncryptedPseudonym>, domain_from: &PseudonymizationDomain, domain_to: &PseudonymizationDomain, session_from: &EncryptionContext, session_to: &EncryptionContext) -> Result<Vec<EncryptedPseudonym>, reqwest::Error> {
+    pub async fn pseudonymize_batch(
+        &self,
+        encrypted_pseudonyms: Vec<EncryptedPseudonym>,
+        domain_from: &PseudonymizationDomain,
+        domain_to: &PseudonymizationDomain,
+        session_from: &EncryptionContext,
+        session_to: &EncryptionContext,
+    ) -> Result<Vec<EncryptedPseudonym>, reqwest::Error> {
         let request = PseudonymizationBatchRequest {
             encrypted_pseudonyms: encrypted_pseudonyms.to_vec(),
             domain_from: domain_from.clone(),
@@ -101,7 +129,10 @@ impl TranscryptorClient {
         };
         let response = reqwest::Client::new()
             .post(format!("{}/pseudonymize_batch", self.config.url))
-            .header("Authorization", format!("Bearer {}", self.config.auth_token))
+            .header(
+                "Authorization",
+                format!("Bearer {}", self.config.auth_token),
+            )
             .json(&request)
             .send()
             .await?;

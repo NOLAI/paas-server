@@ -4,12 +4,14 @@ use actix_web::web::Data;
 use actix_web::{test, web, App, HttpMessage};
 use libpep::distributed::key_blinding::{BlindingFactor, SafeScalar};
 use libpep::distributed::systems::PEPSystem;
-use libpep::high_level::contexts::PseudonymizationContext;
+use libpep::high_level::contexts::PseudonymizationDomain;
 use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
 use libpep::high_level::keys::{EncryptionSecret, PseudonymizationSecret};
+use paas_common::sessions::StartSessionResponse;
+use paas_common::transcrypt::PseudonymizationResponse;
 use paas_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
-use paas_server::application::sessions::{start_session, StartSessionResponse};
-use paas_server::application::transcrypt::{pseudonymize, PseudonymizationResponse};
+use paas_server::application::sessions::start_session;
+use paas_server::application::transcrypt::pseudonymize;
 use paas_server::session_storage::{InMemorySessionStorage, SessionStorage};
 use serde_json::json;
 use std::collections::HashSet;
@@ -31,8 +33,8 @@ async fn test_start_session_and_pseudonymize() {
         usergroups: vec!["group1".to_string()],
         start: Some(chrono::Utc::now() - chrono::Duration::hours(1)),
         end: Some(chrono::Utc::now() + chrono::Duration::hours(1)),
-        from: vec![PseudonymizationContext::from("context1")],
-        to: vec![PseudonymizationContext::from("context2")],
+        from: vec![PseudonymizationDomain::from("domain1")],
+        to: vec![PseudonymizationDomain::from("domain2")],
     };
     let access_rules = AccessRules {
         allow: vec![permission],
@@ -75,10 +77,10 @@ async fn test_start_session_and_pseudonymize() {
         .uri("/pseudonymize")
         .set_json(json!({
         "encrypted_pseudonym": EncryptedPseudonym::from_base64("nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==").unwrap(),
-        "pseudonym_context_from": PseudonymizationContext::from("context1"),
-        "pseudonym_context_to": PseudonymizationContext::from("context2"),
-        "enc_context": start_session_response.session_id,
-        "dec_context": start_session_response.session_id,
+        "domain_from": PseudonymizationDomain::from("domain1"),
+        "domain_to": PseudonymizationDomain::from("domain2"),
+        "session_from": start_session_response.session_id,
+        "session_to": start_session_response.session_id,
     }))
         .to_request();
     req.extensions_mut().insert(auth_user.clone());
@@ -86,5 +88,5 @@ async fn test_start_session_and_pseudonymize() {
     let body = to_bytes(resp.into_body()).await.unwrap();
     let pseudonymization_response: PseudonymizationResponse =
         serde_json::from_slice(&body).unwrap();
-    assert_eq!(pseudonymization_response.encrypted_pseudonym, Encrypted::from_base64("BKuFy_qdWBsB9KO0yz5IJb4IbNIBq0oPOqsW6e2zlDTqCieW-9qweIQx-fal8rsr3Z21MPKzF-ZJLoZ3237XZQ==").unwrap());
+    assert_eq!(pseudonymization_response.encrypted_pseudonym, Encrypted::from_base64("MMAGtJdXoHVPlC_IMPOA7H8sluFIeIRHvTg_pmR3S0tsYjLMnWCOnJ3AjQIjPBcgz3-v7roDOrkxgTNbZv1vKw==").unwrap());
 }

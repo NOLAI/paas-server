@@ -1,19 +1,21 @@
 [package]
-name = "paas_client"
+name = "paas-client"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
 
 [lib]
 name = "paas_client"
 path = "src/lib.rs"
 
 [dependencies]
-libpep = "^0.6.2"
-paas_server = { path = "../../server" } # TODO change to published version
-reqwest = { version = "0.12.9", features = ["json"] }
-serde = { version = "1.0", features = ["derive"] }
-chrono = "0.4.39"
+libpep = {  workspace = true }
+serde = { workspace = true }
+paas-common = { path = "../../common" }
 rand_core = "0.6.4"
+reqwest = { version = "0.12.9", features = ["json"] }
+chrono = "0.4.39"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
