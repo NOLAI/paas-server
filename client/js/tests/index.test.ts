@@ -135,17 +135,16 @@ describe("PaaS js client tests", () => {
                 new TranscryptorConfig("test_system_2", "http://localhost:8081"),
             ],
         };
-
-        const authTokens = new Map<string, string>();
-        authTokens.set("test_system_1", "test_token_1");
-        authTokens.set("test_system_2", "test_token_2");
+        const authTokens = new Map(
+            [["test_system_1", "test_token_1"], ["test_system_2", "test_token_2"],],
+        )
 
         const encryptedPseudonym = EncryptedPseudonym.fromBase64(
             "nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==",
         );
-        const sessions = new Map<string, string>();
-        sessions.set("test_system_1", "session_1");
-        sessions.set("test_system_2", "session_2");
+        const sessions = new Map(
+            [["test_system_1", "session_1"], ["test_system_2", "session_2"],],
+        );
 
         const domainFrom = "domain1";
         const domainTo = "domain2";
@@ -161,5 +160,8 @@ describe("PaaS js client tests", () => {
         expect(result.asBase64()).toEqual(
             "gqmiHiFA8dMdNtbCgsJ-EEfT9fjTV91BrfcHKN57e2vaLR2_UJEVExd6o9tdZg7vKGQklYZwV3REOaOQedKtUA==",
         );
+
+        const pseudonym = await service.decryptPseudonym(result);
+        expect(pseudonym.asHex()).toEqual("40280c88c76aa1ecdd567129d5ea7821a0b79b25bbe5eb2220eedc215feb450b");
     }, 60000);
 });
