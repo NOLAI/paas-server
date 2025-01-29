@@ -5,10 +5,12 @@ allow:
     from:
       - project1:participant-registration
       - domain1
+      - domain2
     to:
       - project1:qualtrics
       - project1:upload
       - domain2
+      - domain1
 
   - name: Research data analysis
     start: 2024-12-10T00:00:00+0000

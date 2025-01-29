@@ -39,7 +39,8 @@ server/resources/server_config.yml
 .aider*
 /Cargo.lock
 /paas-client.js
-/paascli-config.json
-/paascli-tokens.json
+/config.json
+/tokens.json
 /package-lock.json
 /server.log
+/state.json
