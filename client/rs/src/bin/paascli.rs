@@ -1,10 +1,18 @@
 use clap::{Arg, Command};
 use libpep::high_level::contexts::PseudonymizationDomain;
 use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
+use libpep::high_level::keys::{SessionPublicKey, SessionSecretKey};
 use paas_client::auth::AuthTokens;
 use paas_client::pseudonym_service::{PseudonymService, PseudonymServiceConfig};
 use paas_client::sessions::EncryptionContexts;
+use serde::{Deserialize, Serialize};
 use std::fs;
+
+#[derive(Serialize, Deserialize)]
+struct PseudonymServiceDump {
+    sessions: EncryptionContexts,
+    session_keys: (SessionPublicKey, SessionSecretKey),
+}
 
 #[tokio::main]
 async fn main() {
@@ -60,6 +68,13 @@ async fn main() {
                         .help("Only show the transcrypted result without decrypting")
                         .long("no-decrypt")
                         .action(clap::ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("state_path")
+                        .help("Path to restore state from and dump state to")
+                        .long("state")
+                        .short('s')
+                        .value_parser(clap::value_parser!(String)),
                 ),
         )
         .get_matches();
@@ -79,7 +94,19 @@ async fn main() {
         let tokens: AuthTokens =
             serde_json::from_str(&tokens_contents).expect("Failed to parse tokens");
 
-        let mut service = PseudonymService::new(config, tokens);
+        let state_path = matches.get_one::<String>("state_path");
+
+        let mut service = if let Some(path) = state_path {
+            if let Ok(contents) = fs::read_to_string(path) {
+                let dump: PseudonymServiceDump =
+                    serde_json::from_str(&contents).expect("Failed to deserialize service state");
+                PseudonymService::restore(config, tokens, dump.sessions, dump.session_keys)
+            } else {
+                PseudonymService::new(config, tokens)
+            }
+        } else {
+            PseudonymService::new(config, tokens)
+        };
 
         let encrypted_pseudonym_str = matches
             .get_one::<String>("encrypted_pseudonym")
@@ -118,6 +145,17 @@ async fn main() {
             let pseudonym = service.decrypt(&result).await;
             eprint!("Decrypted pseudonym: ");
             println!("{}", &pseudonym.encode_as_hex());
+        }
+
+        if let Some(path) = state_path {
+            let (sessions, session_keys) = service.dump();
+            let dump = PseudonymServiceDump {
+                sessions,
+                session_keys,
+            };
+            let serialized =
+                serde_json::to_string(&dump).expect("Failed to serialize service dump");
+            fs::write(path, serialized).expect("Failed to write state dump to file");
         }
     }
 }

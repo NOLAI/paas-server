@@ -5,7 +5,7 @@ use libpep::distributed::key_blinding::BlindedGlobalSecretKey;
 use libpep::distributed::systems::PEPClient;
 use libpep::high_level::contexts::PseudonymizationDomain;
 use libpep::high_level::data_types::{Encryptable, Encrypted, EncryptedPseudonym};
-use libpep::high_level::keys::GlobalPublicKey;
+use libpep::high_level::keys::{GlobalPublicKey, SessionPublicKey, SessionSecretKey};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 
@@ -44,6 +44,44 @@ impl PseudonymService {
             transcryptors,
             pep_crypto_client: None,
         }
+    }
+
+    /// Restore a [PseudonymService] from a dumped state.
+    pub fn restore(
+        config: PseudonymServiceConfig,
+        auth_tokens: AuthTokens,
+        session_ids: EncryptionContexts,
+        session_keys: (SessionPublicKey, SessionSecretKey),
+    ) -> Self {
+        let transcryptors = config
+            .transcryptors
+            .iter()
+            .map(|c| {
+                TranscryptorClient::restore(
+                    c.clone(),
+                    auth_tokens
+                        .get(&c.system_id)
+                        .expect("No auth token found for system")
+                        .to_string(),
+                    session_ids
+                        .get(&c.system_id)
+                        .expect("No session id found for system")
+                        .clone(),
+                )
+            })
+            .collect();
+        Self {
+            config,
+            transcryptors,
+            pep_crypto_client: Some(PEPClient::restore(session_keys.0, session_keys.1)),
+        }
+    }
+
+    /// Dump the current state of the [PseudonymService].
+    pub fn dump(&self) -> (EncryptionContexts, (SessionPublicKey, SessionSecretKey)) {
+        let session_ids = self.get_current_sessions();
+        let session_keys = self.pep_crypto_client.as_ref().unwrap().dump();
+        (session_ids, session_keys)
     }
 
     /// Start a new session with all configured transcryptors, and initialize a [PEPClient] using the session keys.
