@@ -36,7 +36,7 @@ version-check:
   script:
     - |
       CARGO_VERSION=$(grep -m1 'version = "' client/rs/Cargo.toml | cut -d '"' -f2)
-      NPM_VERSION=$(node -p "require('./client/js/package.json').version")
+      NPM_VERSION=$(grep -m1 '"version":' client/js/package.json | cut -d '"' -f4)
       if [ "$CARGO_VERSION" != "$NPM_VERSION" ]; then
         echo "Version mismatch! Cargo.toml: $CARGO_VERSION, package.json: $NPM_VERSION"
         exit 1
