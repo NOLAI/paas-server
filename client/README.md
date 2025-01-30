@@ -14,6 +14,9 @@ or
 
 ```yarn add @nolai/paas-client @nolai/libpep-wasm```
 
+> [!CAUTION]
+> Make sure to allways have the same `@nolai/libpep-wasm` version as `@nolai/paas-client`. Some bundlers could download the other version and paas-client would be not using the same wasm file that you use in other parts of your project
+
 The Rust client is available [here](https://crates.io/crates/paas-client)
 
 To install it, run:
