@@ -16,6 +16,7 @@ pub struct PseudonymServiceConfig {
     pub transcryptors: Vec<TranscryptorConfig>,
 } // TODO servers should host these configs in a well-known location
 
+#[derive(Clone)]
 pub struct PseudonymService {
     config: PseudonymServiceConfig,
     transcryptors: Vec<TranscryptorClient>,

@@ -15,12 +15,14 @@ pub struct TranscryptorConfig {
     pub system_id: SystemId,
     pub url: String,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TranscryptorState {
     Unknown,
     Online,
     Offline,
     Error,
 }
+#[derive(Debug, Clone)]
 pub struct TranscryptorStatus {
     pub state: TranscryptorState,
     pub last_checked: Option<DateTime<Utc>>,
@@ -28,6 +30,7 @@ pub struct TranscryptorStatus {
 pub type AuthToken = String;
 
 /// A client that communicates with a single Transcryptor.
+#[derive(Clone)]
 pub struct TranscryptorClient {
     pub(crate) config: TranscryptorConfig,
     auth_token: AuthToken,
