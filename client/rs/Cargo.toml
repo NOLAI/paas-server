@@ -4,6 +4,9 @@ version = "0.5.2"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+documentation = "https://docs.rs/paas-client"
+description = "Client for pseudonymization using PAAS servers"
+readme = "../README.md"
 
 [lib]
 name = "paas_client"
