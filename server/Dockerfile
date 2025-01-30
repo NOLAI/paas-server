@@ -22,7 +22,7 @@ RUN cargo fetch
 RUN cargo build --release
 
 # our final base
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 
 EXPOSE 8080
 

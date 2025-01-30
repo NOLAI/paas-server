@@ -38,3 +38,9 @@ server/resources/public.pem
 server/resources/server_config.yml
 .aider*
 /Cargo.lock
+/paas-client.js
+/config.json
+/tokens.json
+/package-lock.json
+/server.log
+/state.json

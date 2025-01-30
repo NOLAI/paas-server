@@ -47,6 +47,28 @@ impl TranscryptorClient {
             session_id: None,
         }
     }
+    pub fn restore(
+        config: TranscryptorConfig,
+        auth_token: AuthToken,
+        session_id: EncryptionContext,
+    ) -> Self {
+        Self {
+            config,
+            auth_token,
+            status: TranscryptorStatus {
+                state: TranscryptorState::Unknown,
+                last_checked: None,
+            },
+            session_id: Some(session_id),
+        }
+    }
+    pub fn dump(&self) -> (TranscryptorConfig, AuthToken, Option<EncryptionContext>) {
+        (
+            self.config.clone(),
+            self.auth_token.clone(),
+            self.session_id.clone(),
+        )
+    }
 
     /// Check the status of the transcryptor.
     pub async fn check_status(&mut self) -> Result<(), reqwest::Error> {

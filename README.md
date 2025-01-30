@@ -73,3 +73,16 @@ const result = await service.pseudonymize(
 const pseudonym = await service.decryptPseudonym(result);
 console.log(pseudonym.asHex()) 
 ```
+
+# `paascli`
+The rust binary `paascli` is available to interact with the PAAS server.
+
+For example run the following command to pseudonymize an encrypted pseudonym from domain1 to domain2:
+```bash
+paascli --config config.json --tokens tokens.json --state state.json pseudonymize CvkMpV4E98A1kWReUi0dE4mGRm1ToAj_D5-FrSi1FBqCrqE6d5HNrV8JW6vsGkwputG2S821sfjzjsyFGUPzAg== eyJQYWFTLWRlbW8tMyI6InVzZXIxXzB4T0VpZXBPTjAiLCJQYWFTLWRlbW8tMSI6InVzZXIxXzhGZmhDQU5WVmIiLCJQYWFTLWRlbW8tMiI6InVzZXIxX2tibk5UUVZpYjkifQ== domain1 domain2
+```
+
+Or during development, you can run:
+```bash
+cargo run --bin paascli -- --config config.json --tokens tokens.json --state state.json pseudonymize CvkMpV4E98A1kWReUi0dE4mGRm1ToAj_D5-FrSi1FBqCrqE6d5HNrV8JW6vsGkwputG2S821sfjzjsyFGUPzAg== eyJQYWFTLWRlbW8tMyI6InVzZXIxXzB4T0VpZXBPTjAiLCJQYWFTLWRlbW8tMSI6InVzZXIxXzhGZmhDQU5WVmIiLCJQYWFTLWRlbW8tMiI6InVzZXIxX2tibk5UUVZpYjkifQ== domain1 domain2
+```

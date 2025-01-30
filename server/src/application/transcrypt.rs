@@ -27,7 +27,7 @@ pub async fn pseudonymize(
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
             "{:?} tried, but was not allowed to pseudonymize from {:?} to {:?}",
-            user.username, request.domain_from, request.domain_to
+            user.username, request.domain_from.0, request.domain_to.0
         );
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
@@ -56,7 +56,7 @@ pub async fn pseudonymize(
 
     info!(
         "{:?} pseudonymized from {:?} to {:?}",
-        user.username, request.domain_from, request.domain_to
+        user.username, request.domain_from.0, request.domain_to.0
     );
 
     HttpResponse::Ok().json(PseudonymizationResponse {
@@ -82,7 +82,7 @@ pub async fn pseudonymize_batch(
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
             "{:?} tried, but was not allowed to pseudonymize from {:?} to {:?}",
-            user.username, request.domain_from, request.domain_to
+            user.username, request.domain_from.0, request.domain_to.0
         );
         return HttpResponse::Forbidden().body("Pseudonymization not allowed");
     }
@@ -117,8 +117,8 @@ pub async fn pseudonymize_batch(
         "{:?} batch-pseudonymized {:?} pseudonyms from {:?} to {:?}",
         user.username,
         request.encrypted_pseudonyms.len(),
-        request.domain_from,
-        request.domain_to
+        request.domain_from.0,
+        request.domain_to.0
     );
 
     HttpResponse::Ok().json(PseudonymizationBatchResponse {
