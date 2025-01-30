@@ -31,3 +31,14 @@ build-transcryptor-image:
         - docker pull $IMAGE_TAG || true
         - docker build -f server/Dockerfile --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from $IMAGE_TAG -t $IMAGE_TAG .
         - docker push $IMAGE_TAG
+
+version-check:
+  script:
+    - |
+      CARGO_VERSION=$(grep -m1 'version = "' client/rs/Cargo.toml | cut -d '"' -f2)
+      NPM_VERSION=$(node -p "require('./client/js/package.json').version")
+      if [ "$CARGO_VERSION" != "$NPM_VERSION" ]; then
+        echo "Version mismatch! Cargo.toml: $CARGO_VERSION, package.json: $NPM_VERSION"
+        exit 1
+      fi
+      echo "Versions match: $CARGO_VERSION"
