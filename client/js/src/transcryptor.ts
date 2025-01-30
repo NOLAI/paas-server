@@ -1,6 +1,5 @@
 import {EncryptedPseudonym, SessionKeyShare} from "@nolai/libpep-wasm";
 import {
-    EncryptionContext,
     GetSessionResponse,
     PseudonymizationBatchRequest,
     PseudonymizationBatchResponse,
@@ -10,6 +9,7 @@ import {
     StartSessionResponse,
 } from "./messages.js";
 import {AuthToken} from "./paas-client.js";
+import {EncryptionContext} from "./sessions.js";
 
 export class TranscryptorConfig {
     public systemId: string;

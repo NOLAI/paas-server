@@ -1,6 +1,4 @@
 export type PseudonymizationDomain = string;
-export type EncryptionContext = string;
-export type SystemId = string;
 
 export interface StatusResponse {
     timestamp: string;

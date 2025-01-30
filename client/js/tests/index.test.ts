@@ -1,4 +1,4 @@
-import {PseudonymService, PseudonymServiceConfig, TranscryptorConfig} from "../dist/paas-client";
+import {PseudonymService, PseudonymServiceConfig, TranscryptorConfig, EncryptionContexts} from "../dist/paas-client";
 // @ts-ignore
 import {BlindedGlobalSecretKey, EncryptedPseudonym, GlobalPublicKey} from "@nolai/libpep-wasm";
 import {setupServer} from "msw/node";
@@ -141,9 +141,9 @@ describe("PaaS js client tests", () => {
         const encryptedPseudonym = EncryptedPseudonym.fromBase64(
             "nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==",
         );
-        const sessions = new Map(
+        const sessions = new EncryptionContexts(new Map(
             [["test_system_1", "session_1"], ["test_system_2", "session_2"],],
-        );
+        ));
 
         const domainFrom = "domain1";
         const domainTo = "domain2";

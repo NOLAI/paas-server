@@ -1,7 +1,6 @@
 export {
     PseudonymService,
     PseudonymServiceConfig,
-    EncryptionContexts,
     AuthToken,
 } from './paas-client.js';
 export {
@@ -9,3 +8,9 @@ export {
     TranscryptorState,
     TranscryptorStatus,
 } from './transcryptor.js';
+export {
+    EncryptionContexts,
+    SystemId,
+    EncryptionContext,
+    type EncryptionContextsEncoded,
+} from './sessions.js';

@@ -28,6 +28,8 @@ We provide a simple example of how to use the client, in typescript.
 The usage is similar in Rust.
 
 ```typescript
+import {EncryptionContexts} from "./sessions";
+
 const config: PseudonymServiceConfig = {
     blindedGlobalPrivateKey: BlindedGlobalSecretKey.fromHex(
         "dacec694506fa1c1ab562059174b022151acab4594723614811eaaa93a9c5908",
@@ -41,16 +43,22 @@ const config: PseudonymServiceConfig = {
     ],
 };
 
-const authTokens = new Map(
+const authTokens = new new Map(
     [["test_system_1", "test_token_1"], ["test_system_2", "test_token_2"],],
 )
 
 const encryptedPseudonym = EncryptedPseudonym.fromBase64(
     "nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==",
 );
-const sessions = new Map(
-    [["test_system_1", "session_1"], ["test_system_2", "session_2"],],
-);
+
+const sessions = new EncryptionContexts( 
+    new Map(
+        [
+            ["test_system_1", "session_1"], 
+            ["test_system_2", "session_2"],
+        ],
+));
+
 const domainFrom = "domain1";
 const domainTo = "domain2";
 

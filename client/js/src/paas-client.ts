@@ -7,8 +7,9 @@ import {
     PEPClient,
     Pseudonym,
 } from "@nolai/libpep-wasm";
-import {EncryptionContext, PseudonymizationDomain, SystemId} from "./messages.js"; // TODO: This should be imported from libpep-wasm
+import {PseudonymizationDomain} from "./messages.js"; // TODO: This should be imported from libpep-wasm
 import {Transcryptor, TranscryptorConfig} from "./transcryptor.js";
+import {EncryptionContexts, SystemId} from "./sessions.js";
 
 export interface PseudonymServiceConfig {
     blindedGlobalPrivateKey: BlindedGlobalSecretKey;
@@ -16,7 +17,6 @@ export interface PseudonymServiceConfig {
     transcryptors: TranscryptorConfig[];
 }
 
-export type EncryptionContexts = Map<SystemId, EncryptionContext>;
 export type AuthToken = string;
 
 export class PseudonymService {
@@ -143,9 +143,9 @@ export class PseudonymService {
     }
 
     public getCurrentSessions(): EncryptionContexts {
-        return new Map(
+        return new EncryptionContexts(new Map(
             this.transcryptors.map((t) => [t.getSystemId(), t.getSessionId()]),
-        );
+        ));
     }
 
     public getTranscryptorStatus() {
