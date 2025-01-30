@@ -4,6 +4,11 @@ version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/paas-common"
+description = "Common code for PAAS client and server"
+readme = "../README.md"
 
 [lib]
 name = "paas_common"
