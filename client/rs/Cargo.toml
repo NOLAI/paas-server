@@ -23,7 +23,7 @@ build-binary = ["clap"]
 [dependencies]
 libpep = {  workspace = true }
 serde = { workspace = true }
-paas-common = { path = "../../common" }
+paas-common = { version = "0.1.0", path = "../../common" }
 rand_core = "0.6.4"
 reqwest = { version = "0.12.9", features = ["json"] }
 chrono = "0.4.39"

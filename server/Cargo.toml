@@ -23,7 +23,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yml = { workspace = true }
 libpep = {  workspace = true }
-paas-common = { path = "../common" }
+paas-common = { version = "0.1.0", path = "../common" }
 futures-util = "0.3.30"
 rand = "^0.8"
 redis = "0.27.0"
