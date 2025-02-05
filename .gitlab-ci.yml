@@ -1,9 +1,9 @@
 publish-all:
-  stage: deploy
+  only:
+    - main
   when: manual
   trigger:
-    include:
-      - local: .gitlab-ci.publish.yml
+    deploy
 
 
 publish_npm:
