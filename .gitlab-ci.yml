@@ -1,8 +1,6 @@
 publish-all:
   stage: deploy
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
+  when: manual
   trigger:
     include:
       - local: .gitlab-ci.publish.yml
