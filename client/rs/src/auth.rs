@@ -12,12 +12,3 @@ impl AuthTokens {
         self.0.get(system_id)
     }
 }
-
-impl FromStr for AuthTokens {
-    type Err = serde_json::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let map: HashMap<SystemId, AuthToken> = serde_json::from_str(s)?;
-        Ok(Self(map))
-    }
-}
