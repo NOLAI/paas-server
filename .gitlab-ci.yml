@@ -1,9 +1,16 @@
-build_and_publish:
-  image: node:lts-slim
+publish-all:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+  trigger:
+    include:
+      - local: .gitlab-ci.publish.yml
 
-  only:
-    - main
-  when: manual
+
+publish_npm:
+  image: node:lts-slim
+  stage: deploy
   script:
     - cd client/js
     - npm install
@@ -11,8 +18,20 @@ build_and_publish:
     - npm run lint
     - npm run build
     - npm config set //registry.npmjs.org/:_authToken ${NPM_PUBLISH_KEY}
-    - npm publish --access public
+    # - npm publish --access public
 
+publish-cargo:
+  image: rust:latest
+  stage: deploy
+  script:
+    - mkdir -p ~/.cargo
+    - echo "[registry]" > ~/.cargo/credentials
+    - echo "token = \"${CRATES_IO_TOKEN}\"" >> ~/.cargo/credentials
+    - chmod 0600 ~/.cargo/credentials
+    - cd client/rs
+    # - cargo publish --no-verify
+  after_script:
+    - rm -f ~/.cargo/credentials
 
 build-transcryptor-image:
     image: docker:27.4.0
