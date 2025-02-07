@@ -12,17 +12,21 @@ pub fn command() -> Command {
     )
 }
 
-pub async fn execute(matches: &clap::ArgMatches, service: &mut PseudonymService) {
+pub async fn execute(
+    matches: &clap::ArgMatches,
+    service: &mut PseudonymService,
+) -> Result<(), Box<dyn std::error::Error>> {
     let pseudonym_string = matches
         .get_one::<String>("pseudonym")
-        .expect("pseudonym is required");
+        .ok_or("pseudonym is required")?;
     let pseudonym =
-        Pseudonym::decode_from_hex(pseudonym_string).expect("Failed to decode pseudonym");
+        Pseudonym::decode_from_hex(pseudonym_string).ok_or("Failed to decode pseudonym")?;
 
     let rng = &mut OsRng;
 
-    let (encrypted, sessions) = service.encrypt(&pseudonym, rng).await;
+    let (encrypted, sessions) = service.encrypt(&pseudonym, rng).await?;
 
     println!("Encrypted pseudonym: {}", encrypted.as_base64());
     println!("Sessions: {}", sessions.encode());
+    Ok(())
 }

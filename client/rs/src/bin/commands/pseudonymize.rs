@@ -46,43 +46,47 @@ pub fn command() -> Command {
         )
 }
 
-pub async fn execute(matches: &clap::ArgMatches, service: &mut PseudonymService) {
+pub async fn execute(
+    matches: &clap::ArgMatches,
+    service: &mut PseudonymService,
+) -> Result<(), Box<dyn std::error::Error>> {
     let encrypted_pseudonym_str = matches
         .get_one::<String>("encrypted_pseudonym")
-        .expect("encrypted_pseudonym is required");
+        .ok_or("encrypted_pseudonym is required")?;
 
     let encrypted_pseudonym = EncryptedPseudonym::from_base64(encrypted_pseudonym_str)
-        .expect("Failed to deserialize encrypted_pseudonym");
+        .ok_or("Failed to deserialize encrypted_pseudonym")?;
 
     let sessions_str = matches
         .get_one::<String>("sessions")
-        .expect("sessions is required");
+        .ok_or("sessions is required")?;
 
     let sessions =
-        EncryptionContexts::decode(sessions_str).expect("Failed to deserialize sessions");
+        EncryptionContexts::decode(sessions_str).ok_or("Failed to deserialize sessions")?;
 
     let domain_from_str = matches
         .get_one::<String>("domain_from")
-        .expect("domain_from is required");
+        .ok_or("domain_from is required")?;
 
     let domain_from = PseudonymizationDomain::from(domain_from_str);
 
     let domain_to_str = matches
         .get_one::<String>("domain_to")
-        .expect("domain_to is required");
+        .ok_or("domain_to is required")?;
 
     let domain_to = PseudonymizationDomain::from(domain_to_str);
 
     let result = service
         .pseudonymize(&encrypted_pseudonym, &sessions, &domain_from, &domain_to)
-        .await;
+        .await?;
 
     if matches.get_flag("no_decrypt") {
         eprint!("Transcryption returned: ");
         println!("{}", &result.as_base64());
     } else {
-        let pseudonym = service.decrypt(&result).await;
+        let pseudonym = service.decrypt(&result).await?;
         eprint!("Decrypted pseudonym: ");
         println!("{}", &pseudonym.encode_as_hex());
     }
+    Ok(())
 }
