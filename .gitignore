@@ -31,3 +31,9 @@ resources/access_rules.yml
 resources/public.pem
 resources/server_config.yml
 .aider*
+
+config.json
+state.json
+tokens.json
+
+server.log
