@@ -84,13 +84,7 @@ where
             .get("Authorization")
             .and_then(|header| header.to_str().ok())
             .map(|hv| &hv[len..])
-            .and_then(|token| {
-                decode::<Claims>(
-                    token,
-                    self.jwt_key.borrow(),
-                    &validation,
-                ).ok()
-            });
+            .and_then(|token| decode::<Claims>(token, self.jwt_key.borrow(), &validation).ok());
 
         if token_data.is_none() {
             return Box::pin(async { Err(ErrorUnauthorized("Invalid JWT")) });
