@@ -4,7 +4,7 @@ use actix_web::web::{Bytes, Data};
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
 use log::{info, warn};
-use paas_common::transcrypt::{
+use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
     PseudonymizationResponse,
 };

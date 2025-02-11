@@ -2,9 +2,9 @@ use chrono::{DateTime, Utc};
 use libpep::distributed::key_blinding::SessionKeyShare;
 use libpep::high_level::contexts::{EncryptionContext, PseudonymizationDomain};
 use libpep::high_level::data_types::EncryptedPseudonym;
-use paas_common::sessions::StartSessionResponse;
-use paas_common::status::{StatusResponse, SystemId};
-use paas_common::transcrypt::{
+use paas_api::sessions::StartSessionResponse;
+use paas_api::status::{StatusResponse, SystemId};
+use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
     PseudonymizationResponse,
 };

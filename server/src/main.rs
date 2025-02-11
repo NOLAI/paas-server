@@ -47,25 +47,40 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Cors::permissive())
             .wrap(Logger::default())
-            .route("/status", web::get().to(status))
             .service(
-                web::scope("")
+                web::scope(paas_api::paths::API_BASE)
+                    .route(paas_api::paths::STATUS, web::get().to(status))
                     .app_data(web::Data::new(access_rules.clone()))
                     .app_data(web::Data::new(session_storage.clone()))
                     .app_data(web::Data::new(pep_system.clone()))
                     .wrap(auth_middleware.clone())
                     .service(
-                        web::scope("sessions")
-                            .route("/get", web::get().to(get_all_sessions))
-                            .route("/get/{username}", web::get().to(get_sessions))
-                            .route("/start", web::post().to(start_session))
-                            .route("/end", web::post().to(end_session)),
+                        web::scope(paas_api::paths::sessions::SCOPE)
+                            .route(
+                                paas_api::paths::sessions::GET_ALL,
+                                web::get().to(get_all_sessions),
+                            )
+                            .route(
+                                paas_api::paths::sessions::GET_USER,
+                                web::get().to(get_sessions),
+                            )
+                            .route(
+                                paas_api::paths::sessions::START,
+                                web::post().to(start_session),
+                            )
+                            .route(paas_api::paths::sessions::END, web::post().to(end_session)),
                     )
                     .service(
                         web::scope("")
-                            .route("/pseudonymize", web::post().to(pseudonymize))
-                            .route("/pseudonymize_batch", web::post().to(pseudonymize_batch))
-                            .route("/rekey", web::post().to(rekey)),
+                            .route(
+                                paas_api::paths::transcrypt::PSEUDONYMIZE,
+                                web::post().to(pseudonymize),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt::PSEUDONYMIZE_BATCH,
+                                web::post().to(pseudonymize_batch),
+                            )
+                            .route(paas_api::paths::transcrypt::REKEY, web::post().to(rekey)),
                     ),
             )
     })

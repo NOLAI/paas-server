@@ -5,7 +5,7 @@ use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::EncryptionContext;
 use log::info;
-use paas_common::sessions::{
+use paas_api::sessions::{
     EndSessionRequest, GetSessionResponse, GetSessionsRequest, StartSessionResponse,
 };
 

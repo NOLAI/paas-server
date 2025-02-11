@@ -1,5 +1,5 @@
 use crate::transcryptor_client::AuthToken;
-use paas_common::status::SystemId;
+use paas_api::status::SystemId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;

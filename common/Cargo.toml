@@ -1,19 +1,24 @@
 [package]
-name = "paas-common"
-version = "0.1.0"
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-homepage.workspace = true
-documentation = "https://docs.rs/paas-common"
-description = "Common code for PAAS client and server"
-readme = "../README.md"
+name = "paas-api"
+version = "0.2.0"
+authors = [
+    "Job Doesburg <job@jobdoesburg.nl>",
+    "Julian van der Horst <julian.vanderhorst@ru.nl"
+]
+edition = "2021"
+license = "Apache-2.0"
+homepage = "https://github.com/NOLAI/paas-api"
+repository = "https://github.com/NOLAI/paas-api"
+documentation = "https://docs.rs/paas-api"
+description = "Common API for PAAS server and client"
+readme = "README.md"
 
 [lib]
-name = "paas_common"
+name = "paas_api"
 path = "src/lib.rs"
 
 [dependencies]
-libpep = {  workspace = true }
-serde = { workspace = true }
+libpep = "^0.6"
+serde = { version = "1.0", features = ["derive"] }
+semver = { version = "1.0", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }

@@ -1,14 +1,17 @@
 [package]
 name = "paas-client"
-version = "0.5.6"
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-homepage.workspace = true
+version = "0.5.7"
+authors = [
+    "Job Doesburg <job@jobdoesburg.nl>",
+    "Julian van der Horst <julian.vanderhorst@ru.nl"
+]
+edition = "2021"
+license = "Apache-2.0"
+homepage = "https://github.com/NOLAI/paas-client-rs"
+repository = "https://github.com/NOLAI/paas-client-rs"
 documentation = "https://docs.rs/paas-client"
-description = "Client for pseudonymization using PAAS servers"
-readme = "../README.md"
+description = "PEP Authorization API Service client"
+readme = "README.md"
 
 [lib]
 name = "paas_client"
@@ -23,14 +26,14 @@ default = ["build-binary"]
 build-binary = ["clap"]
 
 [dependencies]
-libpep = {  workspace = true }
-serde = { workspace = true }
-paas-common = { version = "0.1.0", path = "../../common" }
-rand_core = "0.6.4"
+paas-api = { version = "0.2.0", path = "../../common" }
+libpep = "^0.6.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rand_core = { version = "^0.6", features = ["std"] }
 reqwest = { version = "0.12.9", features = ["json"] }
 chrono = "0.4.39"
 clap = { version = "4.5.27", optional = true }
-serde_json = "1.0.137"
 tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 base64 = "0.22.1"
 

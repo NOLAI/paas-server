@@ -1,7 +1,17 @@
-# PAAS-client Pseudonym Service
-The PAAS client is a library to interact with PAAS servers or transcryptors, wrapping around `libpep` (and `libpep-wasm`).
-It is available in Rust and JS/TS.
-For the Rust client, there is also a `paascli` binary available.
+# PAAS client (JavaScript/TypeScript)
+[![npm](https://img.shields.io/npm/v/@nolai/paas-client.svg)](https://www.npmjs.com/package/@nolai/paas-client)
+[![Downloads](https://img.shields.io/npm/dm/@nolai/paas-client.svg)](https://www.npmjs.com/package/@nolai/paas-client)
+[![License](https://img.shields.io/npm/l/@nolai/paas-client.svg)](https://github.com/NOLAI/paas-client-js/blob/main/LICENSE)
+
+This project contains the JavaScript/TypeScript client implementation for PAAS, the PEP Authorisation API Service (or _Pseudonymization as a Service_).
+It implements interaction with multiple [PAAS servers](https://github.com/NOLAI/paas-server) using the [PAAS API](https://github.com/NOLAI/paas-api).
+
+PAAS forms a REST API around [`libpep`](https://github.com/NOLAI/libpep) for homomorphic pseudonymization.
+Using multiple PAAS transcryptors, it is possible to blindly convert encrypted pseudonyms, encrypted by clients, into different encrypted pseudonyms for different clients, in a distributed manner.
+As long as 1 transcryptor is not compromised, the pseudonymization is secure, meaning that nobody can link pseudonyms of different clients together.
+
+Each transcryptor is able to enforce access control policies, such as only allowing pseudonymization for certain domains or contexts.
+This way, using PAAS, you can enforce central monitoring and control over unlinkable data processing in different domains or contexts.
 
 ## Installation 
 The JS/TS client is available [here](https://www.npmjs.com/package/@nolai/paas-client)
@@ -17,15 +27,9 @@ or
 > [!CAUTION]
 > Make sure to allways have the same `@nolai/libpep-wasm` version as `@nolai/paas-client`. Some bundlers could download the other version and paas-client would be not using the same wasm file that you use in other parts of your project
 
-The Rust client is available [here](https://crates.io/crates/paas-client)
-
-To install it, run:
-
-```cargo install paas-client```
 
 ## Usage
-We provide a simple example of how to use the client, in typescript.
-The usage is similar in Rust.
+We provide a simple example of how to use the client.
 
 ```typescript
 import {EncryptionContexts} from "./sessions";
@@ -72,15 +76,3 @@ const result = await service.pseudonymize(
 const pseudonym = await service.decryptPseudonym(result);
 console.log(pseudonym.asHex()) 
 ```
-
-The rust binary `paascli` is available to interact with the PAAS server.
-For example run the following command to pseudonymize an encrypted pseudonym from domain1 to domain2:
-```bash
-paascli --config config.json --tokens tokens.json --state state.json pseudonymize CvkMpV4E98A1kWReUi0dE4mGRm1ToAj_D5-FrSi1FBqCrqE6d5HNrV8JW6vsGkwputG2S821sfjzjsyFGUPzAg== eyJQYWFTLWRlbW8tMyI6InVzZXIxXzB4T0VpZXBPTjAiLCJQYWFTLWRlbW8tMSI6InVzZXIxXzhGZmhDQU5WVmIiLCJQYWFTLWRlbW8tMiI6InVzZXIxX2tibk5UUVZpYjkifQ== domain1 domain2
-```
-
-Or during development, you can run:
-```bash
-cargo run --bin paascli -- --config config.json --tokens tokens.json --state state.json pseudonymize CvkMpV4E98A1kWReUi0dE4mGRm1ToAj_D5-FrSi1FBqCrqE6d5HNrV8JW6vsGkwputG2S821sfjzjsyFGUPzAg== eyJQYWFTLWRlbW8tMyI6InVzZXIxXzB4T0VpZXBPTjAiLCJQYWFTLWRlbW8tMSI6InVzZXIxXzhGZmhDQU5WVmIiLCJQYWFTLWRlbW8tMiI6InVzZXIxX2tibk5UUVZpYjkifQ== domain1 domain2
-```
-

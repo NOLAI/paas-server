@@ -1,6 +1,14 @@
 # PAAS server
+[![Crates.io](https://img.shields.io/crates/v/paas-server.svg)](https://crates.io/crates/paas-server)
+[![Downloads](https://img.shields.io/crates/d/paas-server.svg)](https://crates.io/crates/paas-server)
+[![License](https://img.shields.io/crates/l/paas-server.svg)](https://crates.io/crates/paas-server)
+[![Documentation](https://docs.rs/paas-server/badge.svg)](https://docs.rs/paas-server)
+[![Dependencies](https://deps.rs/repo/github/NOLAI/paas-server/status.svg)](https://deps.rs/repo/github/NOLAI/paas-server)
+
+This project contains the server implementation for PAAS, the PEP Authorisation API Service (or _Pseudonymization as a Service_).
+
 The PAAS server provides a REST API to transcrypt pseudonyms between different domains.
-It wraps around the `libpep` library, which provides homomorphic pseudonymization.
+It wraps around the [`libpep` library](https://crates.io/crates/libpep), which provides homomorphic pseudonymization.
 Moreover, it performs access control on whether pseudonymization is allowed between certain domains.
 
 The server is built in Rust, using the `actix-web` framework.
@@ -12,9 +20,7 @@ The expected signing key is read from a file.
 
 ## Docker build
 A Dockerfile is provided to build a server image.
-Notice that the server build requires building the whole cargo workspace.
-Therefore, you should build the Docker image from the **root of the repository**, specifying the `-f server/Dockerfile`.
 
 ```bash
-docker build -t paas-server -f server/Dockerfile .
+docker build -t paas-server
 ```

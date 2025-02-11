@@ -1,5 +1,6 @@
 use actix_web::{HttpResponse, Responder};
-use paas_common::status::StatusResponse;
+use chrono::Utc;
+use paas_api::status::{StatusResponse, VersionInfo};
 use std::env;
 
 pub async fn status() -> impl Responder {
@@ -7,6 +8,7 @@ pub async fn status() -> impl Responder {
 
     HttpResponse::Ok().json(StatusResponse {
         system_id,
-        timestamp: chrono::offset::Local::now().to_string(),
+        timestamp: Utc::now(),
+        version_info: VersionInfo::default(),
     })
 }

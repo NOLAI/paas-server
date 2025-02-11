@@ -7,8 +7,8 @@ use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::PseudonymizationDomain;
 use libpep::high_level::data_types::{Encrypted, EncryptedPseudonym};
 use libpep::high_level::keys::{EncryptionSecret, PseudonymizationSecret};
-use paas_common::sessions::StartSessionResponse;
-use paas_common::transcrypt::PseudonymizationResponse;
+use paas_api::sessions::StartSessionResponse;
+use paas_api::transcrypt::PseudonymizationResponse;
 use paas_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
 use paas_server::application::sessions::start_session;
 use paas_server::application::transcrypt::pseudonymize;
@@ -19,12 +19,6 @@ use std::sync::Arc;
 
 #[actix_web::test]
 async fn test_start_session_and_pseudonymize() {
-    // std::env::set_var("RUST_LOG", "debug");
-    // env_logger::builder()
-    //     .is_test(true)
-    //     .try_init()
-    //     .ok();
-
     let auth_user = AuthenticatedUser {
         username: Arc::new("test".to_string()),
         usergroups: Arc::new(HashSet::from(["group1".to_string()])),
