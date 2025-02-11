@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y netcat-openbsd curl
 # copy the build artifact from the build stage
 COPY --from=builder /paas_server/target/release/paas_server .
 
-COPY ./server/resources/entrypoint.sh /
+COPY ./resources/entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
