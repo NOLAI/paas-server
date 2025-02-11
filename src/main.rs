@@ -26,8 +26,10 @@ async fn main() -> std::io::Result<()> {
 
     info!("Loading access rules from {ACCESS_RULES_FILE_PATH}");
     let access_rules = AccessRules::load(ACCESS_RULES_FILE_PATH);
-    info!("Loading JWT authentication middleware using public key from {JWT_PUBLIC_KEY_FILE_PATH}");
-    let auth_middleware = JWTAuthMiddleware::new(JWT_PUBLIC_KEY_FILE_PATH);
+
+    let audience = env::var("JWT_AUDIENCE").expect("JWT_AUDIENCE must be set");
+    info!("Loading JWT authentication middleware using public key from {JWT_PUBLIC_KEY_FILE_PATH} and audience {audience}");
+    let auth_middleware = JWTAuthMiddleware::new(JWT_PUBLIC_KEY_FILE_PATH, audience);
 
     let session_storage: Box<dyn SessionStorage> = if env::var("REDIS_URL").is_err() {
         info!("Using in-memory session storage");
