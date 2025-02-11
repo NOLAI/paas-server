@@ -24,11 +24,11 @@ path = "src/lib.rs"
 [dependencies]
 actix-web = "4.0"
 actix-cors = "0.7.0"
-libpep = "^0.6.4"
+paas-api = "0.2"
+libpep = "^0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yml = "0.0.12"
-paas-api = { version = "0.2.0", path = "../common" }
 futures-util = "0.3.30"
 rand = "^0.8"
 redis = "0.28"
