@@ -24,7 +24,7 @@ path = "src/lib.rs"
 [dependencies]
 actix-web = "4.0"
 actix-cors = "0.7.0"
-paas-api = { path = "../paas-api" }
+paas-api = "0.3.0"
 libpep = "^0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

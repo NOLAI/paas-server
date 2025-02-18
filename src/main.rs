@@ -71,20 +71,20 @@ async fn main() -> std::io::Result<()> {
                             )
                             .route(paas_api::paths::SESSIONS_END, web::post().to(end_session))
                             .route(
-                                paas_api::paths::transcrypt::PSEUDONYMIZE,
+                                paas_api::paths::PSEUDONYMIZE,
                                 web::post().to(pseudonymize),
                             )
                             .route(
-                                paas_api::paths::transcrypt::PSEUDONYMIZE_BATCH,
+                                paas_api::paths::PSEUDONYMIZE_BATCH,
                                 web::post().to(pseudonymize_batch),
                             )
-                            .route(paas_api::paths::transcrypt::REKEY, web::post().to(rekey))
+                            .route(paas_api::paths::REKEY, web::post().to(rekey))
                             .route(
-                                paas_api::paths::transcrypt::REKEY_BATCH,
+                                paas_api::paths::REKEY_BATCH,
                                 web::post().to(rekey_batch),
                             )
                             .route(
-                                paas_api::paths::transcrypt::TRANSCRYPT,
+                                paas_api::paths::TRANSCRYPT,
                                 web::post().to(transcrypt),
                             ),
                     ),
