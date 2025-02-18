@@ -14,6 +14,7 @@ use std::env;
 const ACCESS_RULES_FILE_PATH: &str = "resources/access_rules.yml";
 const JWT_PUBLIC_KEY_FILE_PATH: &str = "resources/public.pem";
 const PEP_CRYPTO_SERVER_CONFIG_FILE_PATH: &str = "resources/server_config.yml";
+const PUBLIC_PAAS_CONFIG_FILE_PATH: &str = "resources/paas_config.json";
 const SERVER_LISTEN_ADDRESS: &str = "0.0.0.0:8080";
 
 #[actix_web::main]
@@ -42,6 +43,10 @@ async fn main() -> std::io::Result<()> {
     info!("Creating PEP crypto system from {PEP_CRYPTO_SERVER_CONFIG_FILE_PATH}");
     let pep_system = create_pep_crypto_system(PEP_CRYPTO_SERVER_CONFIG_FILE_PATH);
 
+    info!("Loading public PAAS config from {PUBLIC_PAAS_CONFIG_FILE_PATH}");
+    let paas_system_id = env::var("PAAS_SYSTEM_ID").unwrap();
+    let paas_config = load_paas_config(PUBLIC_PAAS_CONFIG_FILE_PATH);
+
     info!("Starting PaaS HTTP service on {SERVER_LISTEN_ADDRESS}");
     HttpServer::new(move || {
         App::new()
@@ -53,25 +58,18 @@ async fn main() -> std::io::Result<()> {
                     .app_data(web::Data::new(access_rules.clone()))
                     .app_data(web::Data::new(session_storage.clone()))
                     .app_data(web::Data::new(pep_system.clone()))
+                    .app_data(web::Data::new(paas_system_id.clone()))
+                    .app_data(web::Data::new(paas_config.clone()))
                     .wrap(auth_middleware.clone())
                     .service(
-                        web::scope(paas_api::paths::sessions::SCOPE)
+                        web::scope("")
+                            .route(paas_api::paths::CONFIG, web::get().to(config))
+                            .route(paas_api::paths::SESSIONS_GET, web::get().to(get_sessions))
                             .route(
-                                paas_api::paths::sessions::GET_ALL,
-                                web::get().to(get_all_sessions),
-                            )
-                            .route(
-                                paas_api::paths::sessions::GET_USER,
-                                web::get().to(get_sessions),
-                            )
-                            .route(
-                                paas_api::paths::sessions::START,
+                                paas_api::paths::SESSIONS_START,
                                 web::post().to(start_session),
                             )
-                            .route(paas_api::paths::sessions::END, web::post().to(end_session)),
-                    )
-                    .service(
-                        web::scope("")
+                            .route(paas_api::paths::SESSIONS_END, web::post().to(end_session))
                             .route(
                                 paas_api::paths::transcrypt::PSEUDONYMIZE,
                                 web::post().to(pseudonymize),
@@ -80,7 +78,15 @@ async fn main() -> std::io::Result<()> {
                                 paas_api::paths::transcrypt::PSEUDONYMIZE_BATCH,
                                 web::post().to(pseudonymize_batch),
                             )
-                            .route(paas_api::paths::transcrypt::REKEY, web::post().to(rekey)),
+                            .route(paas_api::paths::transcrypt::REKEY, web::post().to(rekey))
+                            .route(
+                                paas_api::paths::transcrypt::REKEY_BATCH,
+                                web::post().to(rekey_batch),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt::TRANSCRYPT,
+                                web::post().to(transcrypt),
+                            ),
                     ),
             )
     })
