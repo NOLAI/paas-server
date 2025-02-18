@@ -11,6 +11,7 @@ services:
       - ./public.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config1.yml:/resources/server_config.yml:ro
+      - ./paas_config.json:/resources/paas_config.json:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
@@ -33,6 +34,7 @@ services:
       - ./public.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config2.yml:/resources/server_config.yml:ro
+      - ./paas_config.json:/resources/paas_config.json:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
@@ -55,6 +57,7 @@ services:
       - ./public.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config3.yml:/resources/server_config.yml:ro
+      - ./paas_config.json:/resources/paas_config.json:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
