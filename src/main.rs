@@ -56,13 +56,13 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .service(
                 web::scope(paas_api::paths::API_BASE)
+                    .app_data(web::Data::new(paas_system_id.clone()))
                     .route(paas_api::paths::STATUS, web::get().to(status))
                     .service(
                         web::scope("")
                             .app_data(web::Data::new(access_rules.clone()))
                             .app_data(web::Data::new(session_storage.clone()))
                             .app_data(web::Data::new(pep_system.clone()))
-                            .app_data(web::Data::new(paas_system_id.clone()))
                             .app_data(web::Data::new(paas_config.clone()))
                             .wrap(auth_middleware.clone())
                             .route(paas_api::paths::CONFIG, web::get().to(config))
