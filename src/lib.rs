@@ -5,5 +5,6 @@ pub mod application {
 }
 pub mod access_rules;
 pub mod auth_middleware;
+pub mod errors;
 pub mod pep_crypto;
 pub mod session_storage;

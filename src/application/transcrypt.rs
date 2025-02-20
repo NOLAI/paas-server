@@ -1,7 +1,8 @@
 use crate::access_rules::{AccessRules, AuthenticatedUser};
+use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
-use actix_web::web::{Bytes, Data};
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::web::Data;
+use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
 use log::{info, warn};
 use paas_api::transcrypt::{
@@ -11,121 +12,149 @@ use paas_api::transcrypt::{
 
 pub async fn pseudonymize(
     req: HttpRequest,
-    body: Bytes,
+    item: web::Json<PseudonymizationRequest>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
-) -> impl Responder {
+) -> Result<HttpResponse, PAASServerError> {
     let session_storage = session_storage.get_ref();
     let user = req
         .extensions()
         .get::<AuthenticatedUser>()
         .cloned()
-        .unwrap();
-    let request = serde_json::from_slice::<PseudonymizationRequest>(&body).unwrap();
+        .ok_or(PAASServerError::NotAuthenticated)?;
+
+    let request = item.into_inner();
 
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
-            "{:?} tried, but was not allowed to pseudonymize from {:?} to {:?}",
-            user.username, request.domain_from.0, request.domain_to.0
+            "{} tried, but was not allowed to pseudonymize from {:?} to {:?}",
+            user.username, request.domain_from, request.domain_to
         );
-        return HttpResponse::Forbidden().body("Pseudonymization not allowed");
+        return Err(PAASServerError::AccessDenied {
+            from: request.domain_from.0.clone(),
+            to: request.domain_to.0.clone(),
+        });
     }
 
     let sessions = session_storage
         .get_sessions_for_user(user.username.to_string())
-        .expect("Failed to get sessions");
+        .map_err(|e| {
+            warn!(
+                "Failed to retrieve sessions for user {}: {}",
+                user.username, e
+            );
+            PAASServerError::SessionError(Box::new(e))
+        })?;
 
     if !sessions.contains(&request.session_to) {
         warn!(
-            "{:?} tried to pseudonymize to an invalid decryption context",
-            user.username
+            "{} tried to pseudonymize to an invalid decryption context: {:?}",
+            user.username, request.session_to
         );
-        return HttpResponse::Forbidden().body("Decryption context not allowed");
+        return Err(PAASServerError::InvalidSession(
+            "Target session not owned by user".to_string(),
+        ));
     }
 
-    let msg_out = pep_system.pseudonymize(
-        &request.encrypted_pseudonym,
-        &pep_system.pseudonymization_info(
-            &request.domain_from,
-            &request.domain_to,
-            Some(&request.session_from),
-            Some(&request.session_to),
-        ),
+    let pseudonymization_info = pep_system.pseudonymization_info(
+        &request.domain_from,
+        &request.domain_to,
+        Some(&request.session_from),
+        Some(&request.session_to),
     );
+
+    let msg_out = pep_system.pseudonymize(&request.encrypted_pseudonym, &pseudonymization_info);
 
     info!(
         "{:?} pseudonymized from {:?} to {:?}",
         user.username, request.domain_from.0, request.domain_to.0
     );
 
-    HttpResponse::Ok().json(PseudonymizationResponse {
+    Ok(HttpResponse::Ok().json(PseudonymizationResponse {
         encrypted_pseudonym: msg_out,
-    })
+    }))
 }
 
 pub async fn pseudonymize_batch(
     req: HttpRequest,
-    body: Bytes,
+    item: web::Json<PseudonymizationBatchRequest>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
-) -> impl Responder {
+) -> Result<HttpResponse, PAASServerError> {
     let session_storage = session_storage.get_ref();
     let user = req
         .extensions()
         .get::<AuthenticatedUser>()
         .cloned()
-        .unwrap();
-    let request = serde_json::from_slice::<PseudonymizationBatchRequest>(&body).unwrap();
+        .ok_or(PAASServerError::NotAuthenticated)?;
+
+    let request = item.into_inner();
 
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
-            "{:?} tried, but was not allowed to pseudonymize from {:?} to {:?}",
+            "{} tried, but was not allowed to pseudonymize from {} to {}",
             user.username, request.domain_from.0, request.domain_to.0
         );
-        return HttpResponse::Forbidden().body("Pseudonymization not allowed");
+        return Err(PAASServerError::AccessDenied {
+            from: request.domain_from.0.clone(),
+            to: request.domain_to.0.clone(),
+        });
     }
 
     let sessions = session_storage
         .get_sessions_for_user(user.username.to_string())
-        .expect("Failed to get sessions");
+        .map_err(|e| {
+            warn!(
+                "Failed to retrieve sessions for user {}: {}",
+                user.username, e
+            );
+            PAASServerError::SessionError(Box::new(e))
+        })?;
 
     if !sessions.contains(&request.session_to) {
         warn!(
-            "{:?} tried to pseudonymize to an invalid decryption context",
-            user.username
+            "{} tried to pseudonymize to an invalid decryption context: {:?}",
+            user.username, request.session_to
         );
-        return HttpResponse::Forbidden().body("Decryption context not allowed");
+        return Err(PAASServerError::InvalidSession(
+            "Target session not owned by user".to_string(),
+        ));
     }
 
     let mut encrypted_pseudonyms = request.encrypted_pseudonyms.clone();
-
     let mut rng = rand::thread_rng();
-    let msg_out = pep_system.pseudonymize_batch(
-        &mut encrypted_pseudonyms,
-        &pep_system.pseudonymization_info(
-            &request.domain_from,
-            &request.domain_to,
-            Some(&request.session_from),
-            Some(&request.session_to),
-        ),
-        &mut rng,
+
+    let pseudonymization_info = pep_system.pseudonymization_info(
+        &request.domain_from,
+        &request.domain_to,
+        Some(&request.session_from),
+        Some(&request.session_to),
     );
+
+    let msg_out =
+        pep_system.pseudonymize_batch(&mut encrypted_pseudonyms, &pseudonymization_info, &mut rng);
 
     info!(
-        "{:?} batch-pseudonymized {:?} pseudonyms from {:?} to {:?}",
+        "{} batch-pseudonymized {} pseudonyms from {:?} to {:?}",
         user.username,
         request.encrypted_pseudonyms.len(),
-        request.domain_from.0,
-        request.domain_to.0
+        request.domain_from,
+        request.domain_to
     );
 
-    HttpResponse::Ok().json(PseudonymizationBatchResponse {
+    Ok(HttpResponse::Ok().json(PseudonymizationBatchResponse {
         encrypted_pseudonyms: Vec::from(msg_out),
-    })
+    }))
 }
 
 pub async fn rekey() -> impl Responder {
-    HttpResponse::Ok().body("Rekey")
+    HttpResponse::NotImplemented().body("Not implemented")
+}
+pub async fn rekey_batch() -> impl Responder {
+    HttpResponse::NotImplemented().body("Not implemented")
+}
+pub async fn transcrypt() -> impl Responder {
+    HttpResponse::NotImplemented().body("Not implemented")
 }

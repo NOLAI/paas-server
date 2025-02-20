@@ -1,78 +1,106 @@
 use crate::access_rules::AuthenticatedUser;
+use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpMessage, HttpRequest, HttpResponse};
 use libpep::distributed::systems::PEPSystem;
 use libpep::high_level::contexts::EncryptionContext;
-use log::info;
-use paas_api::sessions::{
-    EndSessionRequest, GetSessionResponse, GetSessionsRequest, StartSessionResponse,
-};
+use log::{info, warn};
+use paas_api::sessions::{EndSessionRequest, SessionResponse, StartSessionResponse};
 
 pub async fn start_session(
     req: HttpRequest,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
-) -> impl Responder {
+) -> Result<HttpResponse, PAASServerError> {
     let user = req
         .extensions()
         .get::<AuthenticatedUser>()
         .cloned()
-        .unwrap();
+        .ok_or(PAASServerError::NotAuthenticated)?;
 
     let session_id = session_storage
         .start_session(user.username.to_string())
-        .unwrap();
+        .map_err(|e| {
+            warn!(
+                "Storage error while starting session for user {}: {}",
+                user.username, e
+            );
+            PAASServerError::SessionError(Box::new(e))
+        })?;
 
     let ec_context = EncryptionContext::from(&session_id.clone());
 
-    info!("{:?} started session {:?}", user.username, session_id);
+    info!("{} started session {:?}", user.username, session_id);
 
     let key_share = pep_system.session_key_share(&ec_context.clone());
 
-    HttpResponse::Ok().json(StartSessionResponse {
+    Ok(HttpResponse::Ok().json(StartSessionResponse {
         session_id: ec_context,
         key_share,
-    })
+    }))
 }
 
 pub async fn end_session(
-    item: web::Json<EndSessionRequest>,
     req: HttpRequest,
+    item: web::Json<EndSessionRequest>,
     session_storage: Data<Box<dyn SessionStorage>>,
-) -> impl Responder {
+) -> Result<HttpResponse, PAASServerError> {
     let user = req
         .extensions()
         .get::<AuthenticatedUser>()
         .cloned()
-        .unwrap();
+        .ok_or(PAASServerError::NotAuthenticated)?;
 
     let session_id = item.session_id.clone();
-    let username_in_session = session_id.split('_').next().unwrap();
+
+    let username_in_session = session_id
+        .split('_')
+        .next()
+        .ok_or(PAASServerError::InvalidSessionFormat(session_id.clone().0))?;
+
     if user.username.as_str() != username_in_session {
-        return HttpResponse::Forbidden().body("Session not owned by user");
+        warn!(
+            "Unauthorized session access attempt: User {} tried to end session {:?} owned by {}",
+            user.username, session_id, username_in_session
+        );
+        return Err(PAASServerError::UnauthorizedSession);
     }
 
-    info!("{:?} ended session {:?}", user.username, session_id);
+    info!("{} ended session {:?}", user.username, session_id);
 
     session_storage
         .end_session(user.username.to_string(), session_id.to_string())
-        .unwrap();
+        .map_err(|e| {
+            warn!(
+                "Storage error while ending session {:?} for user {}: {}",
+                session_id, user.username, e
+            );
+            PAASServerError::SessionError(Box::new(e))
+        })?;
 
-    HttpResponse::Ok().json(())
+    Ok(HttpResponse::Ok().json(()))
 }
 
 pub async fn get_sessions(
-    path: web::Path<GetSessionsRequest>,
+    req: HttpRequest,
     session_storage: Data<Box<dyn SessionStorage>>,
-) -> impl Responder {
-    let sessions = session_storage
-        .get_sessions_for_user(path.username.clone().unwrap().to_string())
-        .unwrap();
-    HttpResponse::Ok().json(GetSessionResponse { sessions })
-}
+) -> Result<HttpResponse, PAASServerError> {
+    let user = req
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .cloned()
+        .ok_or(PAASServerError::NotAuthenticated)?;
 
-pub async fn get_all_sessions(session_storage: Data<Box<dyn SessionStorage>>) -> impl Responder {
-    let sessions = session_storage.get_ref().get_all_sessions().unwrap();
-    HttpResponse::Ok().json(GetSessionResponse { sessions })
+    let sessions = session_storage
+        .get_sessions_for_user(user.username.to_string())
+        .map_err(|e| {
+            warn!(
+                "Failed to retrieve sessions for user {}: {}",
+                user.username, e
+            );
+            PAASServerError::SessionError(Box::new(e))
+        })?;
+
+    Ok(HttpResponse::Ok().json(SessionResponse { sessions }))
 }
