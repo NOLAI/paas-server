@@ -55,14 +55,14 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope(paas_api::paths::API_BASE)
                     .route(paas_api::paths::STATUS, web::get().to(status))
-                    .app_data(web::Data::new(access_rules.clone()))
-                    .app_data(web::Data::new(session_storage.clone()))
-                    .app_data(web::Data::new(pep_system.clone()))
-                    .app_data(web::Data::new(paas_system_id.clone()))
-                    .app_data(web::Data::new(paas_config.clone()))
-                    .wrap(auth_middleware.clone())
                     .service(
                         web::scope("")
+                            .app_data(web::Data::new(access_rules.clone()))
+                            .app_data(web::Data::new(session_storage.clone()))
+                            .app_data(web::Data::new(pep_system.clone()))
+                            .app_data(web::Data::new(paas_system_id.clone()))
+                            .app_data(web::Data::new(paas_config.clone()))
+                            .wrap(auth_middleware.clone())
                             .route(paas_api::paths::CONFIG, web::get().to(config))
                             .route(paas_api::paths::SESSIONS_GET, web::get().to(get_sessions))
                             .route(
