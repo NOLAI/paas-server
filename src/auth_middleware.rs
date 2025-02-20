@@ -13,16 +13,18 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct JWTAuthMiddleware {
     jwt_key: Arc<DecodingKey>,
+    audience: String,
 }
 
 impl JWTAuthMiddleware {
-    pub fn new(jwt_key_file: &str) -> Self {
+    pub fn new(jwt_key_file: &str, audience: String) -> Self {
         let jwt_key_file_content =
             fs::read_to_string(jwt_key_file).expect("Failed to read token file");
         let jwt_key = DecodingKey::from_rsa_pem(jwt_key_file_content.as_bytes())
             .expect("Failed to use provided public key for JWTs");
         JWTAuthMiddleware {
             jwt_key: Arc::new(jwt_key),
+            audience,
         }
     }
 }
@@ -43,6 +45,7 @@ where
         ok(JWTAuthMiddlewareService {
             service,
             jwt_key: Arc::clone(&self.jwt_key),
+            audience: self.audience.clone(),
         })
     }
 }
@@ -50,6 +53,7 @@ where
 pub struct JWTAuthMiddlewareService<S> {
     service: S,
     jwt_key: Arc<DecodingKey>,
+    audience: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -71,20 +75,16 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.set_audience(&[self.audience.clone()]);
+
         let len = "bearer ".len();
         let token_data = req
             .headers()
             .get("Authorization")
             .and_then(|header| header.to_str().ok())
             .map(|hv| &hv[len..])
-            .and_then(|token| {
-                decode::<Claims>(
-                    token,
-                    self.jwt_key.borrow(),
-                    &Validation::new(Algorithm::RS256),
-                )
-                .ok()
-            });
+            .and_then(|token| decode::<Claims>(token, self.jwt_key.borrow(), &validation).ok());
 
         if token_data.is_none() {
             return Box::pin(async { Err(ErrorUnauthorized("Invalid JWT")) });
