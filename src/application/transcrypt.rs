@@ -36,18 +36,20 @@ pub async fn pseudonymize(
             to: request.domain_to.0.clone(),
         });
     }
-
-    let sessions = session_storage
-        .get_sessions_for_user(user.username.to_string())
+    let session_valid = session_storage
+        .session_exists(
+            user.username.to_string(),
+            request.session_from.clone().to_string(),
+        )
         .map_err(|e| {
             warn!(
-                "Failed to retrieve sessions for user {}: {}",
+                "Failed to check if session exists for user {}: {}",
                 user.username, e
             );
             PAASServerError::SessionError(Box::new(e))
         })?;
 
-    if !sessions.contains(&request.session_to) {
+    if !session_valid {
         warn!(
             "{} tried to pseudonymize to an invalid decryption context: {:?}",
             user.username, request.session_to
@@ -103,17 +105,20 @@ pub async fn pseudonymize_batch(
         });
     }
 
-    let sessions = session_storage
-        .get_sessions_for_user(user.username.to_string())
+    let session_valid = session_storage
+        .session_exists(
+            user.username.to_string(),
+            request.session_from.clone().to_string(),
+        )
         .map_err(|e| {
             warn!(
-                "Failed to retrieve sessions for user {}: {}",
+                "Failed to check if session exists for user {}: {}",
                 user.username, e
             );
             PAASServerError::SessionError(Box::new(e))
         })?;
 
-    if !sessions.contains(&request.session_to) {
+    if !session_valid {
         warn!(
             "{} tried to pseudonymize to an invalid decryption context: {:?}",
             user.username, request.session_to

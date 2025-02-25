@@ -65,7 +65,6 @@ async fn test_start_session_and_pseudonymize() {
     let resp = app.call(req).await.unwrap();
     let body = to_bytes(resp.into_body()).await.unwrap();
     let start_session_response: StartSessionResponse = serde_json::from_slice(&body).unwrap();
-
     // Test pseudonymization
     let req = test::TestRequest::post()
         .uri("/pseudonymize")
