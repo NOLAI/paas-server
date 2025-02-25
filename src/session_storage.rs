@@ -1,17 +1,21 @@
 use chrono::Utc;
 use libpep::high_level::contexts::EncryptionContext;
+use r2d2::{Pool, PooledConnection};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use redis::{Client, Commands};
-use redis::{Connection, IntoConnectionInfo, RedisError};
+use redis::{IntoConnectionInfo, RedisError};
 use std::fmt::Error;
+use std::io::{Error as ioError, ErrorKind};
 use std::sync::Mutex;
+use std::time::Duration;
 
 pub trait SessionStorage: Send + Sync {
     fn start_session(&self, username: String) -> Result<String, Error>;
     fn end_session(&self, username: String, session_id: String) -> Result<(), Error>;
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error>;
     fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error>;
+    fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error>;
     fn clone_box(&self) -> Box<dyn SessionStorage>;
 }
 impl Clone for Box<dyn SessionStorage> {
@@ -22,16 +26,25 @@ impl Clone for Box<dyn SessionStorage> {
 
 #[derive(Clone)]
 pub struct RedisSessionStorage {
-    client: Client,
+    pool: Pool<Client>,
 }
 
 impl RedisSessionStorage {
     pub fn new<T: IntoConnectionInfo>(connection_info: T) -> Result<Self, RedisError> {
         let client = Client::open(connection_info)?;
-        Ok(Self { client })
+
+        let pool = Pool::builder()
+            .max_size(15) // Max number of connections
+            .min_idle(Some(2)) // Min idle connections
+            .max_lifetime(Some(Duration::from_secs(60 * 5))) // Max connection lifetime: 5 minutes
+            .idle_timeout(Some(Duration::from_secs(60))) // Idle timeout: 1 minute
+            .build(client)
+            .map_err(|e| RedisError::from(ioError::new(ErrorKind::Other, e.to_string())))?;
+
+        Ok(Self { pool })
     }
-    fn get_connection(&self) -> Result<Connection, Error> {
-        self.client.get_connection().map_err(|_| Error)
+    fn get_connection(&self) -> Result<PooledConnection<Client>, Error> {
+        self.pool.get().map_err(|_| Error)
     }
 }
 impl SessionStorage for RedisSessionStorage {
@@ -50,13 +63,11 @@ impl SessionStorage for RedisSessionStorage {
 
         let mut connection = self.get_connection()?;
 
-        let _: () = connection
-            .set(key.clone(), session_time)
-            .expect("Failed to set session data");
-        // Set expiration for 24 hours
-        let _: () = connection
-            .expire(key.clone(), 86400)
-            .expect("Failed to set expiration");
+        let _: () = redis::pipe()
+            .set(&key, &session_time)
+            .expire(&key, 86400) // 24 hours
+            .query(&mut *connection)
+            .map_err(|_| Error)?;
 
         Ok(session_id)
     }
@@ -69,6 +80,7 @@ impl SessionStorage for RedisSessionStorage {
         Ok(())
     }
 
+    // TODO: Might need to be removed
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
         let mut connection = self.get_connection()?;
 
@@ -91,6 +103,14 @@ impl SessionStorage for RedisSessionStorage {
             .map(|session_id| EncryptionContext::from(&session_id))
             .collect();
         Ok(sessions)
+    }
+
+    fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error> {
+        let mut conn = self.pool.get().map_err(|_| Error)?;
+        let key = format!("sessions:{}:{}", username, session_id);
+
+        let exists: bool = conn.exists(&key).map_err(|_| Error)?;
+        Ok(exists)
     }
 
     fn clone_box(&self) -> Box<dyn SessionStorage> {
@@ -156,6 +176,11 @@ impl SessionStorage for InMemorySessionStorage {
             .map(|session_id| EncryptionContext::from(session_id))
             .collect();
         Ok(sessions)
+    }
+
+    fn session_exists(&self, _username: String, session_id: String) -> Result<bool, Error> {
+        let sessions = self.sessions.lock().unwrap();
+        Ok(sessions.contains_key(&session_id))
     }
 
     fn clone_box(&self) -> Box<dyn SessionStorage> {
