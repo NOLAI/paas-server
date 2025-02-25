@@ -1,8 +1,7 @@
-version: '3.8'
 name: paas-demo
 services:
   transcryptor1:
-    image: paas-server
+    image: ghcr.io/nolai/paas-server:latest
     ports:
       - "8080:8080"
     depends_on:
@@ -11,6 +10,7 @@ services:
       - ./public.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config1.yml:/resources/server_config.yml:ro
+      - ./paas-config.json:/resources/paas_config.json:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
@@ -20,11 +20,12 @@ services:
     environment:
       PAAS_SYSTEM_ID: PaaS-demo-1
       REDIS_URL: redis://redis1:6379
+      JWT_AUDIENCE: PxRBbH97GBZzIL2ydSyfbtx90rXiXBpdeQJ1lJ6c
   redis1:
     image: redis:alpine
 
   transcryptor2:
-    image: paas-server
+    image: ghcr.io/nolai/paas-server:latest
     ports:
       - "8081:8080"
     depends_on:
@@ -33,6 +34,7 @@ services:
       - ./public.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config2.yml:/resources/server_config.yml:ro
+      - ./paas-config.json:/resources/paas_config.json:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
@@ -42,11 +44,12 @@ services:
     environment:
       PAAS_SYSTEM_ID: PaaS-demo-2
       REDIS_URL: redis://redis2:6379
+      JWT_AUDIENCE: PxRBbH97GBZzIL2ydSyfbtx90rXiXBpdeQJ1lJ6c
   redis2:
     image: redis:alpine
 
   transcryptor3:
-    image: paas-server
+    image: ghcr.io/nolai/paas-server:latest
     ports:
       - "8082:8080"
     depends_on:
@@ -55,6 +58,7 @@ services:
       - ./public.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config3.yml:/resources/server_config.yml:ro
+      - ./paas-config.json:/resources/paas_config.json:ro
     healthcheck:
       test: curl --fail http://0.0.0.0:8080/status || exit 1
       interval: 40s
@@ -64,6 +68,7 @@ services:
     environment:
       PAAS_SYSTEM_ID: PaaS-demo-3
       REDIS_URL: redis://redis3:6379
+      JWT_AUDIENCE: PxRBbH97GBZzIL2ydSyfbtx90rXiXBpdeQJ1lJ6c
   redis3:
     image: redis:alpine
 
