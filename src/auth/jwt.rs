@@ -1,4 +1,4 @@
-use crate::auth::generic::{AuthInfo, TokenValidator};
+use crate::auth::core::{AuthInfo, TokenValidator};
 use actix_web::error::ErrorUnauthorized;
 use actix_web::Error;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
@@ -8,6 +8,11 @@ use std::future::Future;
 use std::path::Path;
 use std::pin::Pin;
 use std::sync::Arc;
+
+pub struct JWTAuthConfig {
+    pub jwt_key_path: String,
+    pub jwt_audience: String,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {

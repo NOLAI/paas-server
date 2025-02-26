@@ -7,7 +7,7 @@ use redis::{Client, Commands};
 use redis::{IntoConnectionInfo, RedisError};
 use std::fmt::Error;
 use std::io::{Error as ioError, ErrorKind};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 pub trait SessionStorage: Send + Sync {
@@ -18,6 +18,7 @@ pub trait SessionStorage: Send + Sync {
     fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error>;
     fn clone_box(&self) -> Box<dyn SessionStorage>;
 }
+
 impl Clone for Box<dyn SessionStorage> {
     fn clone(&self) -> Self {
         self.clone_box()
@@ -43,10 +44,12 @@ impl RedisSessionStorage {
 
         Ok(Self { pool })
     }
+
     fn get_connection(&self) -> Result<PooledConnection<Client>, Error> {
         self.pool.get().map_err(|_| Error)
     }
 }
+
 impl SessionStorage for RedisSessionStorage {
     fn start_session(&self, username: String) -> Result<String, Error> {
         // Generate a random string for the session ID
@@ -80,7 +83,6 @@ impl SessionStorage for RedisSessionStorage {
         Ok(())
     }
 
-    // TODO: Might need to be removed
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
         let mut connection = self.get_connection()?;
 
@@ -93,6 +95,7 @@ impl SessionStorage for RedisSessionStorage {
             .collect();
         Ok(sessions)
     }
+
     fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
         let mut connection = self.get_connection()?;
 
@@ -107,7 +110,17 @@ impl SessionStorage for RedisSessionStorage {
 
     fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error> {
         let mut conn = self.pool.get().map_err(|_| Error)?;
-        let key = format!("sessions:{}:{}", username, session_id);
+
+        // Check if the session_id already contains the username prefix
+        let actual_session_id = if session_id.starts_with(&format!("{}_", username)) {
+            // If it already has the prefix, use as is
+            session_id
+        } else {
+            // Add the prefix if it doesn't already have it
+            format!("{}_{}", username, session_id)
+        };
+
+        let key = format!("sessions:{}", actual_session_id);
 
         let exists: bool = conn.exists(&key).map_err(|_| Error)?;
         Ok(exists)
@@ -118,9 +131,11 @@ impl SessionStorage for RedisSessionStorage {
     }
 }
 
+#[derive(Clone)]
 pub struct InMemorySessionStorage {
-    sessions: Mutex<std::collections::HashMap<String, String>>,
+    sessions: Arc<Mutex<std::collections::HashMap<String, String>>>,
 }
+
 impl Default for InMemorySessionStorage {
     fn default() -> Self {
         Self::new()
@@ -130,10 +145,11 @@ impl Default for InMemorySessionStorage {
 impl InMemorySessionStorage {
     pub fn new() -> Self {
         Self {
-            sessions: Mutex::new(std::collections::HashMap::new()),
+            sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
         }
     }
 }
+
 impl SessionStorage for InMemorySessionStorage {
     fn start_session(&self, username: String) -> Result<String, Error> {
         let session_postfix: String = rand::thread_rng()
@@ -147,20 +163,20 @@ impl SessionStorage for InMemorySessionStorage {
         let session_id = format!("{}_{}", username, session_postfix);
         self.sessions
             .lock()
-            .unwrap()
+            .map_err(|_| Error)?
             .insert(session_id.clone(), session_time);
         Ok(session_id)
     }
 
     fn end_session(&self, username: String, session_id: String) -> Result<(), Error> {
         let session_id = format!("{}_{}", username, session_id);
-        let mut sessions = self.sessions.lock().unwrap();
+        let mut sessions = self.sessions.lock().map_err(|_| Error)?;
         sessions.remove(&session_id);
         Ok(())
     }
 
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
-        let sessions = self.sessions.lock().unwrap();
+        let sessions = self.sessions.lock().map_err(|_| Error)?;
         let sessions: Vec<EncryptionContext> = sessions
             .iter()
             .filter(|(session_id, _)| session_id.starts_with(&username))
@@ -170,7 +186,7 @@ impl SessionStorage for InMemorySessionStorage {
     }
 
     fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
-        let sessions = self.sessions.lock().unwrap();
+        let sessions = self.sessions.lock().map_err(|_| Error)?;
         let sessions: Vec<EncryptionContext> = sessions
             .keys()
             .map(|session_id| EncryptionContext::from(session_id))
@@ -178,14 +194,20 @@ impl SessionStorage for InMemorySessionStorage {
         Ok(sessions)
     }
 
-    fn session_exists(&self, _username: String, session_id: String) -> Result<bool, Error> {
-        let sessions = self.sessions.lock().unwrap();
-        Ok(sessions.contains_key(&session_id))
+    fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error> {
+        // Check if the session_id already contains the username prefix
+        let key = if session_id.starts_with(&format!("{}_", username)) {
+            session_id
+        } else {
+            // Add the prefix if it doesn't already have it
+            format!("{}_{}", username, session_id)
+        };
+
+        let sessions = self.sessions.lock().map_err(|_| Error)?;
+        Ok(sessions.contains_key(&key))
     }
 
     fn clone_box(&self) -> Box<dyn SessionStorage> {
-        Box::new(Self {
-            sessions: Mutex::new(self.sessions.lock().unwrap().clone()),
-        })
+        Box::new(self.clone())
     }
 }

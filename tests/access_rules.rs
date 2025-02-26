@@ -1,7 +1,7 @@
 use chrono::Utc;
 use libpep::high_level::contexts::PseudonymizationDomain;
 use paas_server::access_rules::{AccessRules, Permission};
-use paas_server::auth::generic::AuthInfo;
+use paas_server::auth::core::AuthInfo;
 
 #[test]
 fn test_access_rules_integration() {

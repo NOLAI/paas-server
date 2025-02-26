@@ -1,4 +1,4 @@
-use crate::auth::generic::{AuthInfo, TokenValidator};
+use crate::auth::core::{AuthInfo, TokenValidator};
 use actix_web::error::ErrorUnauthorized;
 use actix_web::Error;
 use serde::{Deserialize, Serialize};
@@ -6,6 +6,10 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+
+pub struct SimpleTokenAuthConfig {
+    pub token_users_path: String,
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct User {

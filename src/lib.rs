@@ -4,12 +4,8 @@ pub mod application {
     pub mod transcrypt;
 }
 pub mod access_rules;
-pub mod auth {
-    pub mod generic;
-    pub mod jwt;
-    pub mod oidc;
-    pub mod token;
-}
+pub mod auth;
+pub mod config;
 pub mod errors;
 pub mod pep_crypto;
 pub mod session_storage;

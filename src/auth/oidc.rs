@@ -1,14 +1,21 @@
-use crate::auth::generic::{AuthInfo, TokenValidator};
+use crate::auth::core::{AuthInfo, TokenValidator};
 use crate::auth::jwt::Claims;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::Error;
 use jwks_client_rs::{source::WebSource, JwksClient, JwksClientError};
+use log::info;
 use reqwest::Url;
 use serde_json::Value;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
+
+pub struct OIDCAuthConfig {
+    pub provider_url: String,
+    pub audiences: Vec<String>,
+    pub discovery_timeout: Duration,
+}
 
 #[derive(Clone)]
 pub struct OIDCValidator {
@@ -23,7 +30,6 @@ pub struct OIDCValidatorBuilder {
     issuer_url: Option<String>,
     audiences: Vec<String>,
     timeout: Duration,
-    auto_discover_audiences: bool,
     preferred_algorithms: Option<Vec<String>>,
 }
 
@@ -40,7 +46,6 @@ impl OIDCValidatorBuilder {
             issuer_url: None,
             audiences: Vec::new(),
             timeout: Duration::from_secs(10),
-            auto_discover_audiences: false,
             preferred_algorithms: None,
         }
     }
@@ -64,12 +69,6 @@ impl OIDCValidatorBuilder {
     ) -> Self {
         self.audiences
             .extend(audiences.into_iter().map(|a| a.into()));
-        self
-    }
-
-    /// Set whether to automatically discover audiences from the OIDC provider
-    pub fn with_auto_discover_audiences(mut self, discover: bool) -> Self {
-        self.auto_discover_audiences = discover;
         self
     }
 
@@ -148,7 +147,7 @@ impl OIDCValidatorBuilder {
         };
 
         // Log the algorithms being used
-        println!(
+        info!(
             "Using OIDC token signing algorithms: {:?}",
             final_algorithms
         );
@@ -165,60 +164,12 @@ impl OIDCValidatorBuilder {
         // it will accept keys for various algorithms from the JWKS endpoint
         let jwks_client = JwksClient::builder().build(source);
 
-        // Collect audiences (manually specified + auto-discovered if enabled)
-        let mut audiences = self.audiences;
-
-        // Auto-discover audiences if enabled
-        if self.auto_discover_audiences {
-            // Look for client_id, client_id_issued_at, and registered client entries
-            // This is based on the OAuth 2.0 Dynamic Client Registration protocol
-
-            // Try to get client IDs from registered clients
-            if let Some(clients) = metadata.get("registered_clients").and_then(Value::as_array) {
-                for client in clients {
-                    if let Some(client_id) = client.get("client_id").and_then(Value::as_str) {
-                        audiences.push(client_id.to_string());
-                    }
-                }
-            }
-
-            // Check for client ID in the metadata itself (some providers include it)
-            if let Some(client_id) = metadata.get("client_id").and_then(Value::as_str) {
-                audiences.push(client_id.to_string());
-            }
-
-            // Some providers list client IDs in an array
-            if let Some(client_ids) = metadata.get("client_ids").and_then(Value::as_array) {
-                for client_id in client_ids {
-                    if let Some(id) = client_id.as_str() {
-                        audiences.push(id.to_string());
-                    }
-                }
-            }
-
-            // If we didn't find any audiences and auto-discovery is enabled, try to use the issuer as a fallback
-            if audiences.is_empty() {
-                // Get the issuer from the metadata
-                if let Some(metadata_issuer) = metadata.get("issuer").and_then(Value::as_str) {
-                    audiences.push(metadata_issuer.to_string());
-                } else {
-                    // Use the provided issuer URL as a last resort
-                    audiences.push(issuer_url.clone());
-                }
-            }
-        }
-
-        // If no audiences were found or provided, add a warning log
-        if audiences.is_empty() {
-            eprintln!("Warning: No audiences specified or discovered for OIDC validator. This may cause validation failures.");
-        }
-
         // Get userinfo endpoint for additional user info if needed
         let userinfo_endpoint = metadata["userinfo_endpoint"].as_str().map(String::from);
 
         Ok(OIDCValidator {
             jwks_client: Arc::new(jwks_client),
-            audiences,
+            audiences: self.audiences,
             issuer: issuer_url,
             supported_algorithms: final_algorithms,
             userinfo_endpoint,
@@ -249,12 +200,11 @@ impl OIDCValidator {
         builder.build().await
     }
 
-    /// Create an OIDC validator with auto-discovered audiences
+    /// Create an OIDC validator that accepts the specified issuer
     pub async fn new_with_discovery(issuer_url: &str, timeout: Duration) -> Result<Self, Error> {
         Self::builder()
             .with_issuer(issuer_url)
             .with_timeout(timeout)
-            .with_auto_discover_audiences(true)
             .build()
             .await
     }

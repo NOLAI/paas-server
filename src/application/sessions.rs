@@ -1,4 +1,4 @@
-use crate::auth::generic::AuthInfo;
+use crate::auth::core::AuthInfo;
 use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;

@@ -12,7 +12,7 @@ use paas_api::transcrypt::PseudonymizationResponse;
 use paas_server::access_rules::{AccessRules, Permission};
 use paas_server::application::sessions::start_session;
 use paas_server::application::transcrypt::pseudonymize;
-use paas_server::auth::generic::AuthInfo;
+use paas_server::auth::core::AuthInfo;
 use paas_server::session_storage::{InMemorySessionStorage, SessionStorage};
 use serde_json::json;
 
