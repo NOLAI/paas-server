@@ -72,17 +72,17 @@ impl TokenValidator for SimpleTokenValidator {
                 // Verify user exists
                 if let Some(user) = users.get(username) {
                     // Return user information
-                    return Ok(AuthInfo {
+                    Ok(AuthInfo {
                         username: user.username.clone(),
                         groups: user.groups.clone(),
-                    });
+                    })
                 } else {
                     // Token mapped to non-existent user
-                    return Err(ErrorUnauthorized("Invalid user"));
+                    Err(ErrorUnauthorized("Invalid user"))
                 }
             } else {
                 // Token not found
-                return Err(ErrorUnauthorized("Invalid token"));
+                Err(ErrorUnauthorized("Invalid token"))
             }
         })
     }

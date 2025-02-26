@@ -27,6 +27,12 @@ pub struct OIDCValidatorBuilder {
     preferred_algorithms: Option<Vec<String>>,
 }
 
+impl Default for OIDCValidatorBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OIDCValidatorBuilder {
     /// Create a new OIDC validator builder with default values
     pub fn new() -> Self {

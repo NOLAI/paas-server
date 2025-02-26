@@ -37,7 +37,7 @@ impl<V: TokenValidator> Authentication<V> {
     }
 }
 
-impl<V: TokenValidator + ?Sized> Authentication<Box<V>> {
+impl<V: TokenValidator> Authentication<Box<V>> {
     pub fn new_boxed(validator: Box<V>) -> Self {
         Self { validator }
     }

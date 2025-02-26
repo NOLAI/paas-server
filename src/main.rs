@@ -17,6 +17,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
 
+#[allow(clippy::upper_case_acronyms)]
 enum AuthType {
     SimpleToken,
     JWT,
@@ -199,11 +200,11 @@ async fn build_auth(server_config: &ServerConfig) -> Authentication<ValidatorEnu
                 .oidc_provider_url
                 .as_deref()
                 .expect("OIDC_PROVIDER_URL must be set when AUTH_TYPE=oidc");
-            let audiences = server_config
+            let audiences: Vec<_> = server_config
                 .oidc_audiences
                 .as_ref()
                 .map(|a| a.iter().map(|s| s.as_str()).collect())
-                .unwrap_or_else(Vec::new);
+                .unwrap_or_default();
 
             info!(
                 "Using OIDC authentication with provider {} and audiences {:?}",
