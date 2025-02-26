@@ -19,7 +19,7 @@ pub enum PAASServerError {
     #[error("Unauthorized session access")]
     UnauthorizedSession,
 
-    #[error("Access denied: not allowed transcrypt from {from} to {to}")]
+    #[error("Access denied: not allowed to transcrypt from {from} to {to}")]
     AccessDenied { from: String, to: String },
 }
 

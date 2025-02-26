@@ -1,0 +1,21 @@
+users:
+  - username: johndoe
+    groups:
+      - admin
+      - developers
+    tokens:
+      - abc123token
+      - def456secret
+
+  - username: janedoe
+    groups:
+      - users
+      - marketing
+    tokens:
+      - xyz789access
+
+  - username: systemuser
+    groups:
+      - system
+    tokens:
+      - system_maintenance_token

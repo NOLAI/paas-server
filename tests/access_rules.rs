@@ -1,14 +1,13 @@
 use chrono::Utc;
 use libpep::high_level::contexts::PseudonymizationDomain;
-use paas_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
-use std::collections::HashSet;
-use std::sync::Arc;
+use paas_server::access_rules::{AccessRules, Permission};
+use paas_server::auth::core::AuthInfo;
 
 #[test]
 fn test_access_rules_integration() {
-    let user = AuthenticatedUser {
-        username: Arc::new("test_user".to_string()),
-        usergroups: Arc::new(HashSet::from(["group1".to_string()])),
+    let user = AuthInfo {
+        username: "test_user".to_string(),
+        groups: vec!["group1".to_string()],
     };
 
     let permission = Permission {
@@ -32,14 +31,14 @@ fn test_access_rules_integration() {
 
 #[test]
 fn test_access_rules_edge_cases() {
-    let user_with_valid_group = AuthenticatedUser {
-        username: Arc::new("valid_user".to_string()),
-        usergroups: Arc::new(HashSet::from(["group1".to_string()])),
+    let user_with_valid_group = AuthInfo {
+        username: "valid_user".to_string(),
+        groups: vec!["group1".to_string()],
     };
 
-    let user_with_invalid_group = AuthenticatedUser {
-        username: Arc::new("invalid_user".to_string()),
-        usergroups: Arc::new(HashSet::from(["group2".to_string()])),
+    let user_with_invalid_group = AuthInfo {
+        username: "invalid_user".to_string(),
+        groups: vec!["group2".to_string()],
     };
 
     let permission = Permission {
