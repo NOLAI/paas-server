@@ -45,6 +45,7 @@ struct ServerConfig {
     pep_crypto_server_config_path: String,
     public_paas_config_path: String,
     server_listen_address: String,
+    request_timeout: Duration,
 }
 
 impl Default for ServerConfig {
@@ -70,6 +71,7 @@ impl Default for ServerConfig {
             pep_crypto_server_config_path: "resources/server_config.yml".to_string(),
             public_paas_config_path: "resources/paas_config.json".to_string(),
             server_listen_address: "0.0.0.0:8080".to_string(),
+            request_timeout: Duration::from_secs(60),
         }
     }
 }
@@ -116,6 +118,11 @@ impl ServerConfig {
                 .unwrap_or_else(|_| Self::default().public_paas_config_path),
             server_listen_address: env::var("SERVER_LISTEN_ADDRESS")
                 .unwrap_or_else(|_| Self::default().server_listen_address),
+            
+            request_timeout: parse_duration(
+                env::var("REQUEST_TIMEOUT").ok(),
+                Self::default().request_timeout,
+            )
         }
     }
 }
@@ -314,6 +321,7 @@ async fn main() -> std::io::Result<()> {
                     ),
             )
     })
+    .client_request_timeout(server_config.request_timeout)
     .bind(&server_config.server_listen_address)?
     .run()
     .await
