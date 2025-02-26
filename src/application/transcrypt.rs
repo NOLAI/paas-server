@@ -39,7 +39,7 @@ pub async fn pseudonymize(
     let session_valid = session_storage
         .session_exists(
             user.username.to_string(),
-            request.session_from.clone().to_string(),
+            request.session_to.clone().to_string(),
         )
         .map_err(|e| {
             warn!(
@@ -108,7 +108,7 @@ pub async fn pseudonymize_batch(
     let session_valid = session_storage
         .session_exists(
             user.username.to_string(),
-            request.session_from.clone().to_string(),
+            request.session_to.clone().to_string(),
         )
         .map_err(|e| {
             warn!(
