@@ -23,7 +23,11 @@ path = "src/lib.rs"
 
 [dependencies]
 actix-web = "4.0"
+actix-web-httpauth = "0.8"
 actix-cors = "0.7.0"
+jsonwebtoken = {features = ["use_pem"], version = "9.3.0" }
+jwks_client_rs = "0.5.1"
+reqwest = { version = "0.12", features = ["json"] }
 paas-api = "0.3"
 libpep = "^0.6"
 serde = { version = "1.0", features = ["derive"] }
@@ -32,7 +36,7 @@ serde_yml = "0.0.12"
 rand = "^0.8"
 redis = "0.28"
 chrono = { version = "0.4.39", features = ["serde"] }
-jsonwebtoken = {features = ["use_pem"], version = "9.3.0" }
 log = "^0.4"
 env_logger = "^0.11"
 thiserror = "2.0.11"
+futures = "0.3.31"

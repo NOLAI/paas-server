@@ -7,7 +7,7 @@ services:
     depends_on:
       - redis1
     volumes:
-      - ./public.pem:/resources/public.pem:ro
+      - ./authentik.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config1.yml:/resources/server_config.yml:ro
       - ./paas-config.json:/resources/paas_config.json:ro
@@ -31,7 +31,7 @@ services:
     depends_on:
       - redis2
     volumes:
-      - ./public.pem:/resources/public.pem:ro
+      - ./authentik.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config2.yml:/resources/server_config.yml:ro
       - ./paas-config.json:/resources/paas_config.json:ro
@@ -55,7 +55,7 @@ services:
     depends_on:
       - redis3
     volumes:
-      - ./public.pem:/resources/public.pem:ro
+      - ./authentik.pem:/resources/public.pem:ro
       - ./access_rules.yml:/resources/access_rules.yml:ro
       - ./server_config3.yml:/resources/server_config.yml:ro
       - ./paas-config.json:/resources/paas_config.json:ro

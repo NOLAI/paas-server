@@ -1,8 +1,9 @@
-use crate::access_rules::{AccessRules, AuthenticatedUser};
+use crate::access_rules::AccessRules;
+use crate::auth::generic::AuthInfo;
 use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
 use log::{info, warn};
 use paas_api::transcrypt::{
@@ -11,19 +12,13 @@ use paas_api::transcrypt::{
 };
 
 pub async fn pseudonymize(
-    req: HttpRequest,
     item: web::Json<PseudonymizationRequest>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
+    user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_storage = session_storage.get_ref();
-    let user = req
-        .extensions()
-        .get::<AuthenticatedUser>()
-        .cloned()
-        .ok_or(PAASServerError::NotAuthenticated)?;
-
     let request = item.into_inner();
 
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
@@ -77,18 +72,13 @@ pub async fn pseudonymize(
 }
 
 pub async fn pseudonymize_batch(
-    req: HttpRequest,
     item: web::Json<PseudonymizationBatchRequest>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
+    user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_storage = session_storage.get_ref();
-    let user = req
-        .extensions()
-        .get::<AuthenticatedUser>()
-        .cloned()
-        .ok_or(PAASServerError::NotAuthenticated)?;
 
     let request = item.into_inner();
 
