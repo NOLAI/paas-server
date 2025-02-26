@@ -118,11 +118,11 @@ impl ServerConfig {
                 .unwrap_or_else(|_| Self::default().public_paas_config_path),
             server_listen_address: env::var("SERVER_LISTEN_ADDRESS")
                 .unwrap_or_else(|_| Self::default().server_listen_address),
-            
+
             request_timeout: parse_duration(
                 env::var("REQUEST_TIMEOUT").ok(),
                 Self::default().request_timeout,
-            )
+            ),
         }
     }
 }
