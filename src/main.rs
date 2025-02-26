@@ -55,7 +55,7 @@ impl Default for ServerConfig {
             auth_type: AuthType::SimpleToken,
 
             // Simple token config
-            token_users_path: Some("resources/users.json".to_string()),
+            token_users_path: Some("resources/token_users.yml".to_string()),
 
             // JWT config
             jwt_key_path: Some("resources/public.pem".to_string()),
