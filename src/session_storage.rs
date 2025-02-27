@@ -65,7 +65,7 @@ impl SessionStorage for RedisSessionStorage {
 
         let _: () = redis::pipe()
             .set(&key, &session_time)
-            .expire(&key, 86400) // 24 hours
+            .expire(&key, 3600) // 24 hours
             .query(&mut *connection)
             .map_err(|_| Error)?;
 
@@ -135,6 +135,7 @@ impl InMemorySessionStorage {
     }
 }
 impl SessionStorage for InMemorySessionStorage {
+    // TODO: Automatic session expiration
     fn start_session(&self, username: String) -> Result<String, Error> {
         let session_postfix: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
@@ -178,7 +179,11 @@ impl SessionStorage for InMemorySessionStorage {
         Ok(sessions)
     }
 
-    fn session_exists(&self, _username: String, session_id: String) -> Result<bool, Error> {
+    fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error> {
+        if !session_id.starts_with(&username) {
+            return Ok(false);
+        }
+
         let sessions = self.sessions.lock().unwrap();
         Ok(sessions.contains_key(&session_id))
     }
