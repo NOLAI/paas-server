@@ -1,21 +1,12 @@
+use crate::auth::core::AuthInfo;
 use chrono::{DateTime, Utc};
 use libpep::high_level::contexts::PseudonymizationDomain;
 use serde::Deserialize;
 use serde::Serialize;
-use std::collections::HashSet;
-use std::sync::Arc;
-
-pub type Usergroup = String;
-
-#[derive(Clone, Debug)]
-pub struct AuthenticatedUser {
-    pub username: Arc<String>,
-    pub usergroups: Arc<HashSet<Usergroup>>,
-}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Permission {
-    pub usergroups: Vec<Usergroup>,
+    pub usergroups: Vec<String>,
     pub start: Option<DateTime<Utc>>,
     pub end: Option<DateTime<Utc>>,
     pub from: Vec<PseudonymizationDomain>,
@@ -50,7 +41,7 @@ impl AccessRules {
     }
     pub fn has_access(
         &self,
-        authentication_info: &AuthenticatedUser,
+        authentication_info: &AuthInfo,
         from: &PseudonymizationDomain,
         to: &PseudonymizationDomain,
     ) -> bool {
@@ -58,7 +49,7 @@ impl AccessRules {
             if permission
                 .usergroups
                 .iter()
-                .any(|group| authentication_info.usergroups.contains(group))
+                .any(|group| authentication_info.groups.contains(group))
                 && permission.from.iter().any(|context| context == from)
                 && permission.to.iter().any(|context| context == to)
             {

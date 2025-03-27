@@ -11,24 +11,23 @@ use libpep::high_level::data_types::{
 use libpep::high_level::keys::{
     EncryptionSecret, PseudonymizationSecret, PublicKey, SessionPublicKey, SessionSecretKey,
 };
-use paas_api::sessions::StartSessionResponse;
-use paas_api::transcrypt::{PseudonymizationResponse, TranscryptionResponse};
-use paas_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
-use paas_server::application::sessions::start_session;
-use paas_server::application::transcrypt::{pseudonymize, transcrypt};
-
 use libpep::high_level::ops::{decrypt, encrypt, EncryptedEntityData};
 use libpep::internal::arithmetic::ScalarNonZero;
+use paas_api::sessions::StartSessionResponse;
+use paas_api::transcrypt::{PseudonymizationResponse, TranscryptionResponse};
+use paas_server::access_rules::{AccessRules, Permission};
+use paas_server::application::sessions::start_session;
+use paas_server::application::transcrypt::{pseudonymize, transcrypt};
+use paas_server::auth::core::AuthInfo;
 use paas_server::session_storage::{InMemorySessionStorage, SessionStorage};
 use serde_json::json;
 use std::collections::HashSet;
-use std::sync::Arc;
 
 #[actix_web::test]
 async fn test_start_session_and_pseudonymize() {
-    let auth_user = AuthenticatedUser {
-        username: Arc::new("test".to_string()),
-        usergroups: Arc::new(HashSet::from(["group1".to_string()])),
+    let auth_user = AuthInfo {
+        username: "test".to_string(),
+        groups: vec!["group1".to_string()],
     };
     let permission = Permission {
         usergroups: vec!["group1".to_string()],
