@@ -114,7 +114,7 @@ async fn test_start_session_and_pseudonymize() {
     // In a real scenario, this would be properly encrypted data from a client
     let test_data: Vec<EncryptedEntityData> = vec![
         (
-            Pseudonym::from_string_padded("Testing psuedonym 1")
+            Pseudonym::from_string_padded("Testing pseudonym 1")
                 .iter()
                 .map(|p| encrypt(p, &psk, &mut rng))
                 .collect::<Vec<EncryptedPseudonym>>(),
@@ -124,7 +124,7 @@ async fn test_start_session_and_pseudonymize() {
                 .collect::<Vec<EncryptedDataPoint>>(),
         ),
         (
-            Pseudonym::from_string_padded("Testing psuedonym 2")
+            Pseudonym::from_string_padded("Testing pseudonym 2")
                 .iter()
                 .map(|p| encrypt(p, &psk, &mut rng))
                 .collect::<Vec<EncryptedPseudonym>>(),
@@ -180,11 +180,11 @@ async fn test_start_session_and_pseudonymize() {
 
     let expected_data = vec![
         (
-            "b2a3959bb6fbd230832f060194026613ed251fadac48893b931a9f9f4c00ff75ac55624f61ba08645b9f232877dcaade532242d950ed021e92dbaa5d40a5d91a".to_string(),
+            "8e54ac16e300c590dc56fdf3de24fc8883a3939241137857d4a273b9884a7c0fac55624f61ba08645b9f232877dcaade532242d950ed021e92dbaa5d40a5d91a".to_string(),
             "Really long datapoint, could be json".to_string()
         ),
         (
-            "b2a3959bb6fbd230832f060194026613ed251fadac48893b931a9f9f4c00ff757e8c90902e9b9b23aa469455b30a73e29739ea4204ce7c5227e15ba64b01c047".to_string(),
+            "8e54ac16e300c590dc56fdf3de24fc8883a3939241137857d4a273b9884a7c0f7e8c90902e9b9b23aa469455b30a73e29739ea4204ce7c5227e15ba64b01c047".to_string(),
             "Also a really long datapoint, could be json".to_string()
         )
     ];
