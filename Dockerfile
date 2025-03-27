@@ -1,4 +1,4 @@
-FROM rust:slim-buster AS chef
+FROM rust:slim-bookworm AS chef
 LABEL authors=["Julian van der Horst"]
 RUN cargo install cargo-chef
 WORKDIR /paas_server

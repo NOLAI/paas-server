@@ -1,6 +1,6 @@
 [package]
 name = "paas-server"
-version = "0.6.0"
+version = "0.7.0"
 authors = [
     "Job Doesburg <job@jobdoesburg.nl>",
     "Julian van der Horst <julian.vanderhorst@ru.nl"
@@ -29,7 +29,7 @@ jsonwebtoken = {features = ["use_pem"], version = "9.3.0" }
 jwks_client_rs = "0.5.1"
 reqwest = { version = "0.12", features = ["json"] }
 paas-api = "0.3"
-libpep = "^0.6.6"
+libpep = "^0.6.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yml = "0.0.12"

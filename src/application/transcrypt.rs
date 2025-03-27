@@ -8,7 +8,7 @@ use libpep::distributed::systems::PEPSystem;
 use log::{info, warn};
 use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
-    PseudonymizationResponse,
+    PseudonymizationResponse, TranscryptionRequest, TranscryptionResponse,
 };
 
 pub async fn pseudonymize(
@@ -150,6 +150,75 @@ pub async fn rekey() -> impl Responder {
 pub async fn rekey_batch() -> impl Responder {
     HttpResponse::NotImplemented().body("Not implemented")
 }
-pub async fn transcrypt() -> impl Responder {
-    HttpResponse::NotImplemented().body("Not implemented")
+pub async fn transcrypt(
+    req: HttpRequest,
+    item: web::Json<TranscryptionRequest>,
+    access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<PEPSystem>,
+) -> Result<HttpResponse, PAASServerError> {
+    let session_storage = session_storage.get_ref();
+    let user = req
+        .extensions()
+        .get::<AuthenticatedUser>()
+        .cloned()
+        .ok_or(PAASServerError::NotAuthenticated)?;
+
+    let request = item.into_inner();
+
+    if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
+        warn!(
+            "{} tried, but was not allowed to transcrypt from {:?} to {:?}",
+            user.username, request.domain_from, request.domain_to
+        );
+        return Err(PAASServerError::AccessDenied {
+            from: request.domain_from.0.clone(),
+            to: request.domain_to.0.clone(),
+        });
+    }
+    let session_valid = session_storage
+        .session_exists(
+            user.username.to_string(),
+            request.session_to.clone().to_string(),
+        )
+        .map_err(|e| {
+            warn!(
+                "Failed to check if session exists for user {}: {}",
+                user.username, e
+            );
+            PAASServerError::SessionError(Box::new(e))
+        })?;
+
+    if !session_valid {
+        warn!(
+            "{} tried to transcrypt to an invalid decryption context: {:?}",
+            user.username, request.session_to
+        );
+        return Err(PAASServerError::InvalidSession(
+            "Target session not owned by user".to_string(),
+        ));
+    }
+
+    let pseudonymization_info = pep_system.pseudonymization_info(
+        &request.domain_from,
+        &request.domain_to,
+        Some(&request.session_from),
+        Some(&request.session_to),
+    );
+
+    let mut rng = rand::thread_rng();
+    let msg_out = pep_system.transcrypt_batch(
+        &mut request.encrypted.into_boxed_slice(),
+        &pseudonymization_info,
+        &mut rng,
+    );
+
+    info!(
+        "{:?} transcrypted from {:?} to {:?}",
+        user.username, request.domain_from.0, request.domain_to.0
+    );
+
+    Ok(HttpResponse::Ok().json(TranscryptionResponse {
+        encrypted: Vec::from(msg_out),
+    }))
 }
