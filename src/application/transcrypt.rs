@@ -160,7 +160,7 @@ pub async fn rekey() -> impl Responder {
 pub async fn rekey_batch() -> impl Responder {
     HttpResponse::NotImplemented().body("Not implemented")
 }
-pub async fn transcrypt_batch(
+pub async fn transcrypt(
     req: HttpRequest,
     item: web::Json<TranscryptionRequest>,
     access_rules: Data<AccessRules>,

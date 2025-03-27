@@ -15,7 +15,7 @@ use paas_api::sessions::StartSessionResponse;
 use paas_api::transcrypt::{PseudonymizationResponse, TranscryptionResponse};
 use paas_server::access_rules::{AccessRules, AuthenticatedUser, Permission};
 use paas_server::application::sessions::start_session;
-use paas_server::application::transcrypt::{pseudonymize, transcrypt_batch};
+use paas_server::application::transcrypt::{pseudonymize, transcrypt};
 
 use libpep::high_level::ops::{decrypt, encrypt, EncryptedEntityData};
 use libpep::internal::arithmetic::ScalarNonZero;
@@ -60,7 +60,7 @@ async fn test_start_session_and_pseudonymize() {
                 web::scope("")
                     .service(web::scope("sessions").route("/start", web::post().to(start_session)))
                     .route("/pseudonymize", web::post().to(pseudonymize))
-                    .route("/transcrypt", web::post().to(transcrypt_batch)),
+                    .route("/transcrypt", web::post().to(transcrypt)),
             ),
     )
     .await;
@@ -135,7 +135,7 @@ async fn test_start_session_and_pseudonymize() {
         ),
     ];
 
-    // Test transcrypt_batch
+    // Test transcrypt
     let req = test::TestRequest::post()
         .uri("/transcrypt")
         .set_json(json!({
