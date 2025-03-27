@@ -151,18 +151,13 @@ pub async fn rekey_batch() -> impl Responder {
     HttpResponse::NotImplemented().body("Not implemented")
 }
 pub async fn transcrypt(
-    req: HttpRequest,
     item: web::Json<TranscryptionRequest>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
+    user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_storage = session_storage.get_ref();
-    let user = req
-        .extensions()
-        .get::<AuthenticatedUser>()
-        .cloned()
-        .ok_or(PAASServerError::NotAuthenticated)?;
 
     let request = item.into_inner();
 
