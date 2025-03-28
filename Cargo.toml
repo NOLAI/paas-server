@@ -1,6 +1,6 @@
 [package]
 name = "paas-server"
-version = "0.8.0"
+version = "0.8.1"
 authors = [
     "Job Doesburg <job@jobdoesburg.nl>",
     "Julian van der Horst <julian.vanderhorst@ru.nl"

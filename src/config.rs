@@ -46,7 +46,12 @@ impl Default for ServerConfig {
             server_listen_address: "0.0.0.0:8080".to_string(),
             request_timeout: Duration::from_secs(60),
             redis_url: None,
-            redis_options: None,
+            redis_options: Some(RedisOptions {
+                max_pool_size: 10,
+                min_pool_size: None,
+                max_lifetime: None,
+                connection_timeout: None,
+            }),
             pep_session_lifetime: Duration::from_secs(3600),
             pep_session_length: 10,
             workers: None,
@@ -79,7 +84,7 @@ impl ServerConfig {
         let jwt_config = match auth_type {
             AuthTypeConfig::JWT => Some(JWTAuthConfig {
                 jwt_key_path: env::var("JWT_KEY_PATH")
-                    .expect("JWT_KEY_PATH must be set when AUTH_TYPE=jwt"),
+                    .unwrap_or_else(|_| "resources/public.pem".to_string()),
                 jwt_audience: env::var("JWT_AUDIENCE")
                     .expect("JWT_AUDIENCE must be set when AUTH_TYPE=jwt"),
             }),
@@ -108,6 +113,29 @@ impl ServerConfig {
             }
             _ => None,
         };
+        let redis_options = match env::var("REDIS_URL").is_ok() {
+            true => Some(RedisOptions {
+                max_pool_size: env::var("REDIS_MAX_POOL_SIZE")
+                    .ok()
+                    .and_then(|v| v.parse::<u32>().ok())
+                    .unwrap_or_else(|| RedisOptions::default().max_pool_size),
+                min_pool_size: env::var("REDIS_MIN_POOL_SIZE")
+                    .ok()
+                    .and_then(|v| v.parse::<u32>().ok())
+                    .or_else(|| RedisOptions::default().min_pool_size),
+                max_lifetime: env::var("REDIS_MAX_LIFETIME")
+                    .ok()
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .map(Duration::from_secs)
+                    .or_else(|| RedisOptions::default().max_lifetime),
+                connection_timeout: env::var("REDIS_CONNECTION_TIMEOUT")
+                    .ok()
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .map(Duration::from_secs)
+                    .or_else(|| RedisOptions::default().connection_timeout),
+            }),
+            false => None,
+        };
 
         Self {
             access_rules_path: env::var("ACCESS_RULES_PATH")
@@ -127,9 +155,15 @@ impl ServerConfig {
                 Duration::from_secs(60),
             ),
             redis_url: env::var("REDIS_URL").ok(),
-            redis_options: None,
-            pep_session_lifetime: Duration::from_secs(3600),
-            pep_session_length: 10,
+            redis_options,
+            pep_session_lifetime: parse_duration(
+                env::var("PEP_SESSION_LIFETIME").ok(),
+                Duration::from_secs(3600),
+            ),
+            pep_session_length: env::var("PEP_SESSION_LENGTH")
+                .ok()
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(10),
             workers: env::var("WORKERS")
                 .ok()
                 .and_then(|w| w.parse::<usize>().ok()),
