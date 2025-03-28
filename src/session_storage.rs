@@ -97,7 +97,7 @@ impl SessionStorage for RedisSessionStorage {
         let mut connection = self.get_connection()?;
 
         let _: () = redis::pipe()
-            .set(&key, &session_time)
+            .set(&key, session_time)
             .expire(&key, self.session_expiry.as_secs() as i64) // 1 hour
             .query(&mut *connection)
             .map_err(|_| Error)?;

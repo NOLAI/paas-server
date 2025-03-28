@@ -40,7 +40,8 @@ async fn test_start_session_and_pseudonymize() {
     let access_rules = AccessRules {
         allow: vec![permission],
     };
-    let session_storage: Box<dyn SessionStorage> = Box::new(InMemorySessionStorage::new(Duration::from_secs(10), 10));
+    let session_storage: Box<dyn SessionStorage> =
+        Box::new(InMemorySessionStorage::new(Duration::from_secs(10), 10));
     let pep_system = PEPSystem::new(
         PseudonymizationSecret::from("pseudonymization_secret".as_bytes().to_vec()),
         EncryptionSecret::from("encryption_secret".as_bytes().to_vec()),

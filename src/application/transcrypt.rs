@@ -181,11 +181,9 @@ pub async fn rekey(
         ));
     }
 
-    let mut encrypted_data = request.encrypted_data.clone();
-
     let rekey_info = pep_system.rekey_info(Some(&request.session_from), Some(&request.session_to));
 
-    let msg_out = pep_system.rekey(&mut encrypted_data, &rekey_info);
+    let msg_out = pep_system.rekey(&request.encrypted_data, &rekey_info);
 
     info!("{} rekeyed data", user.username,);
 
