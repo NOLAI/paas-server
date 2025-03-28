@@ -47,10 +47,10 @@ impl Default for ServerConfig {
             request_timeout: Duration::from_secs(60),
             redis_url: None,
             redis_options: Some(RedisOptions {
-                max_pool_size: 10,
-                min_pool_size: None,
-                max_lifetime: None,
-                connection_timeout: None,
+                max_pool_size: 15,
+                min_idle: Some(2),
+                max_lifetime: Some(Duration::from_secs(300)),
+                connection_timeout: Some(Duration::from_secs(60)),
             }),
             pep_session_lifetime: Duration::from_secs(3600),
             pep_session_length: 10,
@@ -119,10 +119,10 @@ impl ServerConfig {
                     .ok()
                     .and_then(|v| v.parse::<u32>().ok())
                     .unwrap_or_else(|| RedisOptions::default().max_pool_size),
-                min_pool_size: env::var("REDIS_MIN_POOL_SIZE")
+                min_idle: env::var("REDIS_MIN_IDLE")
                     .ok()
                     .and_then(|v| v.parse::<u32>().ok())
-                    .or_else(|| RedisOptions::default().min_pool_size),
+                    .or_else(|| RedisOptions::default().min_idle),
                 max_lifetime: env::var("REDIS_MAX_LIFETIME")
                     .ok()
                     .and_then(|v| v.parse::<u64>().ok())
