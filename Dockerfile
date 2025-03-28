@@ -35,4 +35,5 @@ RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-
+HEALTHCHECK --start-period=30s \
+  CMD curl -f http://0.0.0.0:8080/status || exit 1
