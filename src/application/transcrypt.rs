@@ -147,7 +147,7 @@ pub async fn pseudonymize_batch(
 
 pub async fn rekey(
     item: web::Json<RekeyRequest>,
-    access_rules: Data<AccessRules>,
+    _access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
     pep_system: Data<PEPSystem>,
     user: web::ReqData<AuthInfo>,
