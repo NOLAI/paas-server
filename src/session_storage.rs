@@ -28,7 +28,7 @@ impl Clone for Box<dyn SessionStorage> {
 #[derive(Clone)]
 pub struct RedisOptions {
     pub max_pool_size: u32,
-    pub min_pool_size: Option<u32>,
+    pub min_idle: Option<u32>,
     pub max_lifetime: Option<Duration>,
     pub connection_timeout: Option<Duration>,
 }
@@ -36,8 +36,8 @@ pub struct RedisOptions {
 impl Default for RedisOptions {
     fn default() -> Self {
         Self {
-            max_pool_size: 2,
-            min_pool_size: Some(15),
+            max_pool_size: 15,
+            min_idle: Some(2),
             max_lifetime: Some(Duration::from_secs(300)),
             connection_timeout: Some(Duration::from_secs(60)),
         }
@@ -62,7 +62,7 @@ impl RedisSessionStorage {
 
         let pool = Pool::builder()
             .max_size(options.max_pool_size)
-            .min_idle(options.min_pool_size)
+            .min_idle(options.min_idle)
             .max_lifetime(options.max_lifetime)
             .idle_timeout(options.connection_timeout)
             .build(client)
@@ -150,7 +150,7 @@ impl SessionStorage for RedisSessionStorage {
             format!("{}_{}", username, session_id)
         };
 
-        let key = format!("sessions:{}", actual_session_id);
+        let key = format!("sessions:{}:{}", username, actual_session_id);
 
         let exists: bool = conn.exists(&key).map_err(|_| Error)?;
         Ok(exists)
