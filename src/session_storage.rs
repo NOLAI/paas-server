@@ -150,7 +150,7 @@ impl SessionStorage for RedisSessionStorage {
             format!("{}_{}", username, session_id)
         };
 
-        let key = format!("sessions:{}", actual_session_id);
+        let key = format!("sessions:{}:{}", username, actual_session_id);
 
         let exists: bool = conn.exists(&key).map_err(|_| Error)?;
         Ok(exists)
