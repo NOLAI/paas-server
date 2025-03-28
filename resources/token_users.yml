@@ -1,21 +1,24 @@
-users:
-  - username: johndoe
-    groups:
-      - admin
-      - developers
-    tokens:
-      - abc123token
-      - def456secret
+- username: user1
+  groups:
+    - demo
+  tokens:
+    - token_user_1
 
-  - username: janedoe
-    groups:
-      - users
-      - marketing
-    tokens:
-      - xyz789access
+- username: user2
+  groups:
+    - demo
+  tokens:
+    - token_user_2
 
-  - username: systemuser
-    groups:
-      - system
-    tokens:
-      - system_maintenance_token
+- username: user3
+  groups:
+    - demo
+  tokens:
+    - token_user_3
+
+- username: storage_server
+  groups:
+    - demo
+  tokens:
+    - token_user_server
+

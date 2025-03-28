@@ -1,24 +1,14 @@
 allow:
-  - name: Initialize forms
+  - name: Demo
     usergroups:
-      - project1-coordinator
+      - demo
     from:
-      - project1:participant-registration
-      - domain1
-      - domain2
+      - domain_user1
+      - domain_user2
+      - domain_user3
+      - domain_server
     to:
-      - project1:qualtrics
-      - project1:upload
-      - domain2
-      - domain1
-
-  - name: Research data analysis
-    start: 2024-12-10T00:00:00+0000
-    end: 2024-12-12T15:30:00+0000
-    usergroups:
-      - project1-analyst
-    from:
-      - project1:qualtrics
-      - project1:upload
-    to:
-      - project1:study2
+      - domain_user1
+      - domain_user2
+      - domain_user3
+      - domain_server

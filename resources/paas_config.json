@@ -1,18 +1,14 @@
 {
-  "blinded_global_secret_key": "8ba9a314c217c1b0939d2de0d30fb75b8f8dd3e31653d14894ef166834892705",
-  "global_public_key": "8a8b97e6afa6d3e05cb97b81325210e0e40e379ba2e3becffa9c4c5f171ce926",
+  "blinded_global_secret_key": "99203efc6f390def9870a69b115262124cade282a04ea39baf3a4f0f11059a03",
+  "global_public_key": "1a89998c3aa4a143a91f6ccf1ae0d2633c1e88b85e5a5f7e871080c88794e41a",
   "transcryptors": [
     {
-      "system_id": "PaaS-demo-1",
+      "system_id": "ts-1",
       "url": "http://localhost:8080"
     },
     {
-      "system_id": "PaaS-demo-2",
+      "system_id": "ts-2",
       "url": "http://localhost:8081"
-    },
-    {
-      "system_id": "PaaS-demo-3",
-      "url": "http://localhost:8082"
     }
   ]
 }
