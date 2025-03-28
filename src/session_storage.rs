@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{TimeZone, Utc};
 use libpep::high_level::contexts::EncryptionContext;
 use r2d2::{Pool, PooledConnection};
 use rand::distributions::Alphanumeric;
@@ -26,23 +26,53 @@ impl Clone for Box<dyn SessionStorage> {
 }
 
 #[derive(Clone)]
+pub struct RedisOptions {
+    pub max_pool_size: u32,
+    pub min_pool_size: Option<u32>,
+    pub max_lifetime: Option<Duration>,
+    pub connection_timeout: Option<Duration>,
+}
+
+impl Default for RedisOptions {
+    fn default() -> Self {
+        Self {
+            max_pool_size: 2,
+            min_pool_size: Some(15),
+            max_lifetime: Some(Duration::from_secs(300)),
+            connection_timeout: Some(Duration::from_secs(60)),
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct RedisSessionStorage {
     pool: Pool<Client>,
+    session_expiry: Duration,
+    new_session_length: usize,
 }
 
 impl RedisSessionStorage {
-    pub fn new<T: IntoConnectionInfo>(connection_info: T) -> Result<Self, RedisError> {
+    pub fn new<T: IntoConnectionInfo>(
+        connection_info: T,
+        session_expiry: Duration,
+        new_session_length: usize,
+        options: RedisOptions,
+    ) -> Result<Self, RedisError> {
         let client = Client::open(connection_info)?;
 
         let pool = Pool::builder()
-            .max_size(15) // Max number of connections
-            .min_idle(Some(2)) // Min idle connections
-            .max_lifetime(Some(Duration::from_secs(60 * 5))) // Max connection lifetime: 5 minutes
-            .idle_timeout(Some(Duration::from_secs(60))) // Idle timeout: 1 minute
+            .max_size(options.max_pool_size)
+            .min_idle(options.min_pool_size)
+            .max_lifetime(options.max_lifetime)
+            .idle_timeout(options.connection_timeout)
             .build(client)
             .map_err(|e| RedisError::from(ioError::new(ErrorKind::Other, e.to_string())))?;
 
-        Ok(Self { pool })
+        Ok(Self {
+            pool,
+            session_expiry,
+            new_session_length,
+        })
     }
 
     fn get_connection(&self) -> Result<PooledConnection<Client>, Error> {
@@ -55,11 +85,11 @@ impl SessionStorage for RedisSessionStorage {
         // Generate a random string for the session ID
         let session_postfix: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
-            .take(10) // Random string length
+            .take(self.new_session_length) // Random string length
             .map(char::from)
             .collect();
 
-        let session_time = Utc::now().format("%Y%m%d_%H").to_string();
+        let session_time = Utc::now().timestamp();
 
         let session_id = format!("{}_{}", username, session_postfix);
         let key = format!("sessions:{}:{}", username, session_id);
@@ -68,7 +98,7 @@ impl SessionStorage for RedisSessionStorage {
 
         let _: () = redis::pipe()
             .set(&key, &session_time)
-            .expire(&key, 3600) // 24 hours
+            .expire(&key, self.session_expiry.as_secs() as i64) // 1 hour
             .query(&mut *connection)
             .map_err(|_| Error)?;
 
@@ -134,38 +164,60 @@ impl SessionStorage for RedisSessionStorage {
 #[derive(Clone)]
 pub struct InMemorySessionStorage {
     sessions: Arc<Mutex<std::collections::HashMap<String, String>>>,
-}
-
-impl Default for InMemorySessionStorage {
-    fn default() -> Self {
-        Self::new()
-    }
+    session_expiry: Duration,
+    new_session_length: usize,
 }
 
 impl InMemorySessionStorage {
-    pub fn new() -> Self {
+    pub fn new(session_expiry: Duration, new_session_length: usize) -> Self {
         Self {
             sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            session_expiry,
+            new_session_length,
         }
+    }
+    fn is_session_expired(&self, timestamp_str: &str) -> Result<bool, Error> {
+        let timestamp = timestamp_str.parse::<i64>().map_err(|_| Error)?;
+        let session_time = Utc.timestamp_opt(timestamp, 0).single().ok_or(Error)?;
+
+        let now = Utc::now();
+        let expiry_time = session_time + self.session_expiry;
+
+        Ok(now > expiry_time)
+    }
+
+    fn clean_expired_sessions(&self) -> Result<(), Error> {
+        let mut sessions = self.sessions.lock().map_err(|_| Error)?;
+        let mut expired_keys = Vec::new();
+
+        for (key, time_str) in sessions.iter() {
+            if self.is_session_expired(time_str)? {
+                expired_keys.push(key.clone());
+            }
+        }
+
+        for key in expired_keys {
+            sessions.remove(&key);
+        }
+        Ok(())
     }
 }
 
 impl SessionStorage for InMemorySessionStorage {
-    // TODO: Automatic session expiration
     fn start_session(&self, username: String) -> Result<String, Error> {
         let session_postfix: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
-            .take(10) // Random string length
+            .take(self.new_session_length) // Random string length
             .map(char::from)
             .collect();
 
-        let session_time = Utc::now().format("%Y%m%d_%H").to_string();
-
         let session_id = format!("{}_{}", username, session_postfix);
+
+        let session_time = Utc::now().timestamp();
         self.sessions
             .lock()
             .map_err(|_| Error)?
-            .insert(session_id.clone(), session_time);
+            .insert(session_id.clone(), session_time.to_string());
         Ok(session_id)
     }
 
@@ -177,6 +229,8 @@ impl SessionStorage for InMemorySessionStorage {
     }
 
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
+        self.clean_expired_sessions()?;
+
         let sessions = self.sessions.lock().map_err(|_| Error)?;
         let sessions: Vec<EncryptionContext> = sessions
             .iter()
@@ -187,6 +241,8 @@ impl SessionStorage for InMemorySessionStorage {
     }
 
     fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
+        self.clean_expired_sessions()?;
+
         let sessions = self.sessions.lock().map_err(|_| Error)?;
         let sessions: Vec<EncryptionContext> = sessions
             .keys()
@@ -196,6 +252,8 @@ impl SessionStorage for InMemorySessionStorage {
     }
 
     fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error> {
+        self.clean_expired_sessions()?;
+
         // Check if the session_id already contains the username prefix
         let key = if session_id.starts_with(&format!("{}_", username)) {
             session_id

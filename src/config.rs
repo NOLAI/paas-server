@@ -1,6 +1,7 @@
 use crate::auth::jwt::JWTAuthConfig;
 use crate::auth::oidc::OIDCAuthConfig;
 use crate::auth::token::SimpleTokenAuthConfig;
+use crate::session_storage::RedisOptions;
 use std::env;
 use std::time::Duration;
 
@@ -21,6 +22,9 @@ pub struct ServerConfig {
     pub server_listen_address: String,
     pub request_timeout: Duration,
     pub redis_url: Option<String>,
+    pub redis_options: Option<RedisOptions>,
+    pub pep_session_lifetime: Duration,
+    pub pep_session_length: usize,
     pub workers: Option<usize>,
 }
 
@@ -42,6 +46,9 @@ impl Default for ServerConfig {
             server_listen_address: "0.0.0.0:8080".to_string(),
             request_timeout: Duration::from_secs(60),
             redis_url: None,
+            redis_options: None,
+            pep_session_lifetime: Duration::from_secs(3600),
+            pep_session_length: 10,
             workers: None,
         }
     }
@@ -120,6 +127,9 @@ impl ServerConfig {
                 Duration::from_secs(60),
             ),
             redis_url: env::var("REDIS_URL").ok(),
+            redis_options: None,
+            pep_session_lifetime: Duration::from_secs(3600),
+            pep_session_length: 10,
             workers: env::var("WORKERS")
                 .ok()
                 .and_then(|w| w.parse::<usize>().ok()),

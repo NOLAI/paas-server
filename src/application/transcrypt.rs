@@ -8,7 +8,8 @@ use libpep::distributed::systems::PEPSystem;
 use log::{info, warn};
 use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
-    PseudonymizationResponse, TranscryptionRequest, TranscryptionResponse,
+    PseudonymizationResponse, RekeyRequest, RekeyResponse, TranscryptionRequest,
+    TranscryptionResponse,
 };
 
 pub async fn pseudonymize(
@@ -144,8 +145,53 @@ pub async fn pseudonymize_batch(
     }))
 }
 
-pub async fn rekey() -> impl Responder {
-    HttpResponse::NotImplemented().body("Not implemented")
+pub async fn rekey(
+    item: web::Json<RekeyRequest>,
+    access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<PEPSystem>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError> {
+    let session_storage = session_storage.get_ref();
+
+    let request = item.into_inner();
+
+    // TODO: check access rules!
+
+    let session_valid = session_storage
+        .session_exists(
+            user.username.to_string(),
+            request.session_to.clone().to_string(),
+        )
+        .map_err(|e| {
+            warn!(
+                "Failed to check if session exists for user {}: {}",
+                user.username, e
+            );
+            PAASServerError::SessionError(Box::new(e))
+        })?;
+
+    if !session_valid {
+        warn!(
+            "{} tried to rekey to an invalid decryption context: {:?}",
+            user.username, request.session_to
+        );
+        return Err(PAASServerError::InvalidSession(
+            "Target session not owned by user".to_string(),
+        ));
+    }
+
+    let mut encrypted_data = request.encrypted_data.clone();
+
+    let rekey_info = pep_system.rekey_info(Some(&request.session_from), Some(&request.session_to));
+
+    let msg_out = pep_system.rekey(&mut encrypted_data, &rekey_info);
+
+    info!("{} rekeyed data", user.username,);
+
+    Ok(HttpResponse::Ok().json(RekeyResponse {
+        encrypted_data: msg_out,
+    }))
 }
 pub async fn rekey_batch() -> impl Responder {
     HttpResponse::NotImplemented().body("Not implemented")

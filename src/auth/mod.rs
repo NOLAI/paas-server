@@ -19,8 +19,8 @@ pub use core::{AuthInfo, Authentication};
 #[derive(Clone)]
 pub enum AuthType {
     SimpleToken(SimpleTokenValidator),
-    JWT(JWTValidator),
-    OIDC(OIDCValidator),
+    Jwt(JWTValidator),
+    Oidc(OIDCValidator),
 }
 
 impl TokenValidator for AuthType {
@@ -30,8 +30,8 @@ impl TokenValidator for AuthType {
     ) -> Pin<Box<dyn Future<Output = Result<AuthInfo, Error>> + Send + 'a>> {
         match self {
             Self::SimpleToken(v) => v.validate_token(token),
-            Self::JWT(v) => v.validate_token(token),
-            Self::OIDC(v) => v.validate_token(token),
+            Self::Jwt(v) => v.validate_token(token),
+            Self::Oidc(v) => v.validate_token(token),
         }
     }
 }

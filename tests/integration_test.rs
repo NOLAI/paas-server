@@ -22,6 +22,7 @@ use paas_server::auth::core::AuthInfo;
 use paas_server::session_storage::{InMemorySessionStorage, SessionStorage};
 use serde_json::json;
 use std::collections::HashSet;
+use std::time::Duration;
 
 #[actix_web::test]
 async fn test_start_session_and_pseudonymize() {
@@ -39,7 +40,7 @@ async fn test_start_session_and_pseudonymize() {
     let access_rules = AccessRules {
         allow: vec![permission],
     };
-    let session_storage: Box<dyn SessionStorage> = Box::new(InMemorySessionStorage::new());
+    let session_storage: Box<dyn SessionStorage> = Box::new(InMemorySessionStorage::new(Duration::from_secs(10), 10));
     let pep_system = PEPSystem::new(
         PseudonymizationSecret::from("pseudonymization_secret".as_bytes().to_vec()),
         EncryptionSecret::from("encryption_secret".as_bytes().to_vec()),

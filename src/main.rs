@@ -44,7 +44,7 @@ async fn build_auth(server_config: &ServerConfig) -> Authentication<AuthType> {
             let jwt_validator = JWTValidator::new(&config.jwt_key_path, &config.jwt_audience)
                 .expect("Failed to create JWT validator");
 
-            Authentication::new(AuthType::JWT(jwt_validator))
+            Authentication::new(AuthType::Jwt(jwt_validator))
         }
         AuthTypeConfig::OIDC => {
             let config = server_config
@@ -65,7 +65,7 @@ async fn build_auth(server_config: &ServerConfig) -> Authentication<AuthType> {
                     .await
                     .expect("Failed to create OIDC validator");
 
-            Authentication::new(AuthType::OIDC(oidc_validator))
+            Authentication::new(AuthType::Oidc(oidc_validator))
         }
     }
 }
@@ -89,18 +89,32 @@ async fn main() -> std::io::Result<()> {
 
     let session_storage: Box<dyn SessionStorage> = if let Some(redis_url) = &server_config.redis_url
     {
+        let options = server_config
+            .redis_options
+            .expect("RedisOptions should be present when using Redis session storage");
         info!(
             "Connecting to Redis session storage using Redis URL: {}",
             redis_url
         );
-        Box::new(RedisSessionStorage::new(redis_url.as_str()).expect("Failed to connect to Redis"))
+        Box::new(
+            RedisSessionStorage::new(
+                redis_url.as_str(),
+                server_config.pep_session_lifetime,
+                server_config.pep_session_length,
+                options,
+            )
+            .expect("Failed to connect to Redis"),
+        )
     } else {
         if server_config.workers.unwrap_or(1) > 1 {
             info!("Using in-memory session storage with shared state for multiple workers");
         } else {
             info!("Using in-memory session storage");
         }
-        Box::new(InMemorySessionStorage::new())
+        Box::new(InMemorySessionStorage::new(
+            server_config.pep_session_lifetime,
+            server_config.pep_session_length,
+        ))
     };
 
     info!(
@@ -136,6 +150,7 @@ async fn main() -> std::io::Result<()> {
                             .app_data(web::Data::new(pep_system.clone()))
                             .app_data(web::Data::new(paas_config.clone()))
                             .wrap(auth.clone())
+                            .wrap(Cors::permissive())
                             .route(paas_api::paths::CONFIG, web::get().to(config))
                             .route(paas_api::paths::SESSIONS_GET, web::get().to(get_sessions))
                             .route(
