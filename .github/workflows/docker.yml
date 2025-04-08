@@ -7,7 +7,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 jobs:
-  build-and-push:
+  build-and-push-by-digest:
     strategy:
       matrix:
         include:
@@ -38,24 +38,39 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
+      - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}-${{ matrix.arch }}
           platforms: ${{ matrix.platform }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
           build-args: |
             RUSTFLAGS=${{ matrix.rustflags }}
             CARGO_INCREMENTAL=0
-          
+          push: true
+          # Push by digest only (no tag)
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+      
+      # Export digest to a file for use in the manifest job
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+      
+      # Upload digest as an artifact
+      - name: Upload digest
+        uses: actions/upload-artifact@v3
+        with:
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+  
   create-manifest:
-    needs: build-and-push
+    needs: build-and-push-by-digest
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -76,6 +91,14 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
       
+      # Download all digest artifacts
+      - name: Download digests
+        uses: actions/download-artifact@v3
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+      
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -88,12 +111,15 @@ jobs:
         with:
           install: true
           use: true
-          driver-opts: image=moby/buildkit:latest
-          
-      - name: Create and push manifest
+      
+      # Create and push manifest with all tags
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
         run: |
-          docker manifest create ${{ steps.meta.outputs.tags }} \
-            ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}-amd64 \
-            ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}-arm64
-          
-          docker manifest push ${{ steps.meta.outputs.tags }}
+          docker buildx imagetools create $(echo "${{ steps.meta.outputs.tags }}" | sed 's/,/ -t /g' | sed 's/^/-t /') \
+            $(printf '${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}@sha256:%s ' *)
+      
+      # Optional: Inspect the manifest to verify
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
