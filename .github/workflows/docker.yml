@@ -83,15 +83,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Create and push manifest
-        uses: docker/build-push-action@v5
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
         with:
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          provenance: false
-          load: false
-          inputs: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}-amd64,platform=linux/amd64
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}-arm64,platform=linux/arm64
+          install: true
+          use: true
+          driver-opts: image=moby/buildkit:latest
+          
+      - name: Create and push manifest
+        run: |
+          docker manifest create ${{ steps.meta.outputs.tags }} \
+            ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}-amd64 \
+            ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ github.sha }}-arm64
+          
+          docker manifest push ${{ steps.meta.outputs.tags }}
