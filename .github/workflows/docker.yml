@@ -50,17 +50,14 @@ jobs:
             RUSTFLAGS=${{ matrix.rustflags }}
             CARGO_INCREMENTAL=0
           push: true
-          # Push by digest only (no tag)
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
       
-      # Export digest to a file for use in the manifest job
       - name: Export digest
         run: |
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
       
-      # Upload digest as an artifact
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
@@ -84,14 +81,13 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}
           tags: |
-            type=sha
+            type=sha,prefix=
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
       
-      # Download all digest artifacts
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -112,14 +108,12 @@ jobs:
           install: true
           use: true
       
-      # Create and push manifest with all tags
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(echo "${{ steps.meta.outputs.tags }}" | sed 's/,/ -t /g' | sed 's/^/-t /') \
             $(printf '${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}@sha256:%s ' *)
       
-      # Optional: Inspect the manifest to verify
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
