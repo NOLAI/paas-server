@@ -1,5 +1,4 @@
 name: Build and Push Docker Image
-
 on:
   release:
     types: [created]
@@ -8,7 +7,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DOCKER_BUILDKIT: 1 
 
 jobs:
   build-and-push:
@@ -17,30 +15,23 @@ jobs:
         include:
           - platform: linux/amd64
             runner: ubuntu-latest
+            arch: amd64
             rustflags: "-C target-cpu=native"
           - platform: linux/arm64
             runner: ubuntu-22.04-arm
+            arch: arm64
             rustflags: "-C codegen-units=1"
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
-
+    outputs:
+      digest-${{ matrix.arch }}: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      - name: Cache cargo registry and index
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -53,21 +44,21 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           platforms: ${{ matrix.platform }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
           build-args: |
-            BUILDKIT_INLINE_CACHE=1
-            CARGO_INCREMENTAL=0
             RUSTFLAGS=${{ matrix.rustflags }}
-            
+            CARGO_INCREMENTAL=0
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          
   create-manifest:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -81,7 +72,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=
+            type=sha
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -104,7 +95,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           load: false
-          pull: true
           inputs: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-amd64,platform=linux/amd64
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-arm64,platform=linux/arm64
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.digest-amd64 }},platform=linux/amd64
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.build-and-push.outputs.digest-arm64 }},platform=linux/arm64
