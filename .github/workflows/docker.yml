@@ -12,7 +12,16 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            rustflags: "-C target-cpu=native"
+          - platform: linux/arm64
+            runner: ubuntu-22.04-arm
+            rustflags: "-C codegen-units=1"
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
@@ -61,7 +70,7 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -71,4 +80,4 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             CARGO_INCREMENTAL=0
-            RUSTFLAGS=${{ matrix.platform == 'linux/amd64' && '"-C target-cpu=native"' || '"-C codegen-units=1"' }}
+            RUSTFLAGS=${{ matrix.rustflags }}
