@@ -8,6 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1 
 
 jobs:
   build-and-push:
@@ -19,6 +20,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Cache cargo registry and index
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -42,7 +55,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
-
+      
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -55,3 +68,7 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            CARGO_INCREMENTAL=0
+            RUSTFLAGS=${{ matrix.platform == 'linux/amd64' && '"-C target-cpu=native"' || '"-C codegen-units=1"' }}
