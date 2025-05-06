@@ -9,3 +9,4 @@ pub mod config;
 pub mod errors;
 pub mod pep_crypto;
 pub mod session_storage;
+pub mod telemetry;

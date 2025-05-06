@@ -37,7 +37,15 @@ rand = "^0.8"
 redis = { version = "0.29.2", features = ["r2d2"] }
 r2d2 = "0.8.10"
 chrono = { version = "0.4.40", features = ["serde"] }
-log = "^0.4"
-env_logger = "^0.11"
 thiserror = "2.0.12"
 futures = "0.3.31"
+log = "^0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "registry"] }
+tracing-log = "0.2"
+tracing-opentelemetry = "0.30.0"
+opentelemetry = { version = "0.29.1" }
+opentelemetry_sdk = { version = "0.29.0" }
+opentelemetry-otlp = { version = "0.29.0", features = ["tonic", "grpc-tonic"] }
+opentelemetry-semantic-conventions = "0.29.0"
+tracing-actix-web = "0.7.18"
