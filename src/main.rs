@@ -1,6 +1,7 @@
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
+use log::info;
 use paas_server::access_rules::*;
 use paas_server::application::sessions::*;
 use paas_server::application::status::*;
@@ -13,7 +14,6 @@ use paas_server::auth::AuthType;
 use paas_server::config::{AuthTypeConfig, ServerConfig};
 use paas_server::pep_crypto::*;
 use paas_server::session_storage::*;
-use log::info;
 use std::env;
 
 async fn build_auth(server_config: &ServerConfig) -> Authentication<AuthType> {

@@ -6,7 +6,7 @@ use rand::Rng;
 use redis::{Client, Commands};
 use redis::{IntoConnectionInfo, RedisError};
 use std::fmt::Error;
-use std::io::{Error as ioError, ErrorKind};
+use std::io::Error as ioError;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -66,7 +66,7 @@ impl RedisSessionStorage {
             .max_lifetime(options.max_lifetime)
             .idle_timeout(options.connection_timeout)
             .build(client)
-            .map_err(|e| RedisError::from(ioError::new(ErrorKind::Other, e.to_string())))?;
+            .map_err(|e| RedisError::from(ioError::other(e.to_string())))?;
 
         Ok(Self {
             pool,

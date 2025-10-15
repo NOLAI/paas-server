@@ -42,36 +42,50 @@ impl ResponseError for PAASServerError {
 
         match self {
             Self::NotAuthenticated => {
-                warn!("Authentication failure: status_code={}, error={}", status.as_u16(), error_message);
+                warn!(
+                    "Authentication failure: status_code={}, error={}",
+                    status.as_u16(),
+                    error_message
+                );
             }
             Self::SessionError(source) => {
                 error!(
                     "Session operation error: status_code={}, error={}, source={:?}",
-                    status.as_u16(), error_message, source
+                    status.as_u16(),
+                    error_message,
+                    source
                 );
             }
             Self::InvalidSessionFormat(format) => {
                 warn!(
                     "Invalid session format: status_code={}, error={}, format={}",
-                    status.as_u16(), error_message, format
+                    status.as_u16(),
+                    error_message,
+                    format
                 );
             }
             Self::InvalidSession(session) => {
                 warn!(
                     "Invalid session: status_code={}, error={}, session={}",
-                    status.as_u16(), error_message, session
+                    status.as_u16(),
+                    error_message,
+                    session
                 );
             }
             Self::UnauthorizedSession => {
                 warn!(
                     "Unauthorized session access: status_code={}, error={}",
-                    status.as_u16(), error_message
+                    status.as_u16(),
+                    error_message
                 );
             }
             Self::AccessDenied { from, to } => {
                 warn!(
                     "Access denied for transcryption: status_code={}, error={}, from={}, to={}",
-                    status.as_u16(), error_message, from, to
+                    status.as_u16(),
+                    error_message,
+                    from,
+                    to
                 );
             }
         }
@@ -95,7 +109,10 @@ impl ResponseError for PAASServerError {
 
 impl From<Box<dyn std::error::Error + Send + Sync>> for PAASServerError {
     fn from(source: Box<dyn std::error::Error + Send + Sync>) -> Self {
-        error!("Converting generic error to PAASServerError: error={:?}", source);
+        error!(
+            "Converting generic error to PAASServerError: error={:?}",
+            source
+        );
         PAASServerError::SessionError(source)
     }
 }

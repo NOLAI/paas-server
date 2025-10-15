@@ -5,12 +5,12 @@ use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse, Responder};
 use libpep::distributed::systems::PEPSystem;
+use log::{debug, error, info, warn};
 use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
     PseudonymizationResponse, RekeyRequest, RekeyResponse, TranscryptionRequest,
     TranscryptionResponse,
 };
-use log::{debug, error, info, warn};
 
 pub async fn pseudonymize(
     item: web::Json<PseudonymizationRequest>,
