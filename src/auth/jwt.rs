@@ -209,8 +209,15 @@ impl TokenValidator for JWTValidator {
             match decode::<Claims>(token, &self.jwt_key, &self.validation) {
                 Ok(token_data) => {
                     // Convert claims to AuthInfo
+                    // Use name if available, otherwise use sub
+                    let name = token_data
+                        .claims
+                        .name
+                        .clone()
+                        .unwrap_or_else(|| token_data.claims.sub.clone());
                     Ok(AuthInfo {
-                        username: token_data.claims.sub,
+                        name,
+                        sub: token_data.claims.sub,
                         groups: token_data.claims.groups,
                     })
                 }

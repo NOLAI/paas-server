@@ -1,2 +1,10 @@
 ../client/src
 server/example/*
+target/
+.git/
+.gitignore
+*.md
+.env
+.vscode/
+.idea/
+*.log

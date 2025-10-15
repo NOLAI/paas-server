@@ -6,7 +6,8 @@ use paas_server::auth::core::AuthInfo;
 #[test]
 fn test_access_rules_integration() {
     let user = AuthInfo {
-        username: "test_user".to_string(),
+        name: "test_user".to_string(),
+        sub: "test_user_sub".to_string(),
         groups: vec!["group1".to_string()],
     };
 
@@ -32,12 +33,14 @@ fn test_access_rules_integration() {
 #[test]
 fn test_access_rules_edge_cases() {
     let user_with_valid_group = AuthInfo {
-        username: "valid_user".to_string(),
+        name: "valid_user".to_string(),
+        sub: "valid_user_sub".to_string(),
         groups: vec!["group1".to_string()],
     };
 
     let user_with_invalid_group = AuthInfo {
-        username: "invalid_user".to_string(),
+        name: "invalid_user".to_string(),
+        sub: "invalid_user_sub".to_string(),
         groups: vec!["group2".to_string()],
     };
 

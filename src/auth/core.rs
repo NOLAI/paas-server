@@ -22,8 +22,25 @@ pub trait TokenValidator: Clone + Send + Sync + 'static {
 // Auth info returned by validators
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthInfo {
-    pub username: String,
+    pub name: String,
+    pub sub: String,
     pub groups: Vec<String>,
+}
+
+impl std::fmt::Display for AuthInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "user.name={} user.sub={} user.groups=[{}]",
+            self.name,
+            self.sub,
+            if self.groups.is_empty() {
+                String::from("(none)")
+            } else {
+                self.groups.join(", ")
+            }
+        )
+    }
 }
 
 // Generic authentication middleware

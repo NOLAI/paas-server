@@ -14,18 +14,18 @@ pub async fn start_session(
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_id = session_storage
-        .start_session(user.username.to_string())
+        .start_session(user.sub.to_string())
         .map_err(|e| {
             warn!(
-                "Storage error while starting session for user {}: {}",
-                user.username, e
+                "Storage error while starting session: {} error={}",
+                *user, e
             );
             PAASServerError::SessionError(Box::new(e))
         })?;
 
     let ec_context = EncryptionContext::from(&session_id.clone());
 
-    info!("{} started session {:?}", user.username, session_id);
+    info!("Started session: session={:?} {}", session_id, *user);
 
     let session_key_shares = pep_system.session_key_shares(&ec_context.clone());
 
@@ -42,27 +42,27 @@ pub async fn end_session(
 ) -> Result<HttpResponse, PAASServerError> {
     let session_id = item.session_id.clone();
 
-    let username_in_session = session_id
+    let sub_in_session = session_id
         .split('_')
         .next()
         .ok_or(PAASServerError::InvalidSessionFormat(session_id.clone().0))?;
 
-    if user.username.as_str() != username_in_session {
+    if user.sub.as_str() != sub_in_session {
         warn!(
-            "Unauthorized session access attempt: User {} tried to end session {:?} owned by {}",
-            user.username, session_id, username_in_session
+            "Unauthorized session access attempt: session={:?} {} owner={}",
+            session_id, *user, sub_in_session
         );
         return Err(PAASServerError::UnauthorizedSession);
     }
 
-    info!("{} ended session {:?}", user.username, session_id);
+    info!("Ended session: session={:?} {}", session_id, *user);
 
     session_storage
-        .end_session(user.username.to_string(), session_id.to_string())
+        .end_session(user.sub.to_string(), session_id.to_string())
         .map_err(|e| {
             warn!(
-                "Storage error while ending session {:?} for user {}: {}",
-                session_id, user.username, e
+                "Storage error while ending session: session={:?} {} error={}",
+                session_id, *user, e
             );
             PAASServerError::SessionError(Box::new(e))
         })?;
@@ -75,12 +75,9 @@ pub async fn get_sessions(
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let sessions = session_storage
-        .get_sessions_for_user(user.username.to_string())
+        .get_sessions_for_user(user.sub.to_string())
         .map_err(|e| {
-            warn!(
-                "Failed to retrieve sessions for user {}: {}",
-                user.username, e
-            );
+            warn!("Failed to retrieve sessions: {} error={}", *user, e);
             PAASServerError::SessionError(Box::new(e))
         })?;
 

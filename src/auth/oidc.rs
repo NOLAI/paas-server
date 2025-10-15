@@ -282,8 +282,11 @@ impl TokenValidator for OIDCValidator {
             match token_data {
                 Ok(claims) => {
                     // Convert claims to AuthInfo
+                    // Use name if available, otherwise use sub
+                    let name = claims.name.clone().unwrap_or_else(|| claims.sub.clone());
                     Ok(AuthInfo {
-                        username: claims.sub,
+                        name,
+                        sub: claims.sub,
                         groups: claims.groups,
                     })
                 }

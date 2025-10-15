@@ -4,7 +4,7 @@ use actix_web::{web, App, HttpServer};
 use log::info;
 use paas_server::access_rules::*;
 use paas_server::application::sessions::*;
-use paas_server::application::status::*;
+use paas_server::application::status::{config, health, load_paas_config, status};
 use paas_server::application::transcrypt::*;
 use paas_server::auth::core::Authentication;
 use paas_server::auth::jwt::JWTValidator;
@@ -127,6 +127,17 @@ async fn main() -> std::io::Result<()> {
     let paas_system_id = env::var("PAAS_SYSTEM_ID").unwrap();
     let paas_config = load_paas_config(&server_config.public_paas_config_path);
 
+    // Validate all transcryptor URLs use HTTPS
+    for transcryptor in &paas_config.transcryptors {
+        if transcryptor.url.scheme() != "https" {
+            panic!(
+                "Transcryptor {} URL must use HTTPS protocol, got: {}",
+                transcryptor.system_id,
+                transcryptor.url.scheme()
+            );
+        }
+    }
+
     info!(
         "Starting PaaS HTTP service on {}",
         server_config.server_listen_address
@@ -139,11 +150,12 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope(paas_api::paths::API_BASE)
                     .app_data(web::Data::new(paas_system_id.clone()))
+                    .app_data(web::Data::new(session_storage.clone()))
+                    .route("/health", web::get().to(health))
                     .route(paas_api::paths::STATUS, web::get().to(status))
                     .service(
                         web::scope("")
                             .app_data(web::Data::new(access_rules.clone()))
-                            .app_data(web::Data::new(session_storage.clone()))
                             .app_data(web::Data::new(pep_system.clone()))
                             .app_data(web::Data::new(paas_config.clone()))
                             .wrap(auth.clone())

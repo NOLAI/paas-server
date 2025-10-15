@@ -77,7 +77,8 @@ impl TokenValidator for SimpleTokenValidator {
                 if let Some(user) = users.get(username) {
                     // Return user information
                     Ok(AuthInfo {
-                        username: user.username.clone(),
+                        name: user.username.clone(),
+                        sub: user.username.clone(),
                         groups: user.groups.clone(),
                     })
                 } else {

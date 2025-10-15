@@ -51,6 +51,8 @@ jobs:
             CARGO_INCREMENTAL=0
           push: true
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
       
       - name: Export digest
         run: |

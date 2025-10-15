@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "Starting PaaS server"
+echo "Starting PAAS server"
 
 ./paas_server
 

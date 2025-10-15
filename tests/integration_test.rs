@@ -29,7 +29,8 @@ use std::time::Duration;
 #[actix_web::test]
 async fn test_start_session_and_pseudonymize() {
     let auth_user = AuthInfo {
-        username: "test".to_string(),
+        name: "test".to_string(),
+        sub: "test_sub".to_string(),
         groups: vec!["group1".to_string()],
     };
     let permission = Permission {
