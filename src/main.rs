@@ -1,7 +1,6 @@
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
-use log::info;
 use paas_server::access_rules::*;
 use paas_server::application::sessions::*;
 use paas_server::application::status::*;
@@ -14,7 +13,11 @@ use paas_server::auth::AuthType;
 use paas_server::config::{AuthTypeConfig, ServerConfig};
 use paas_server::pep_crypto::*;
 use paas_server::session_storage::*;
+use paas_server::telemetry;
 use std::env;
+use tracing::info;
+use tracing::info_span;
+use tracing_actix_web::TracingLogger;
 
 async fn build_auth(server_config: &ServerConfig) -> Authentication<AuthType> {
     match server_config.auth_type {
@@ -72,10 +75,22 @@ async fn build_auth(server_config: &ServerConfig) -> Authentication<AuthType> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("info,actix_web=warn,actix_server=warn"),
-    )
-    .init();
+    // Get configuration from environment
+    let service_name = env::var("SERVICE_NAME").unwrap_or_else(|_| "paas-server".to_string());
+    let service_version =
+        env::var("SERVICE_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
+    let otlp_endpoint = env::var("OTLP_ENDPOINT").ok();
+
+    // Initialize telemetry
+    let tracer_provider = telemetry::init_telemetry(&service_name, &service_version, otlp_endpoint)
+        .map_err(|e| {
+            eprintln!("Failed to initialize telemetry: {}", e);
+            std::io::Error::new(std::io::ErrorKind::Other, "Telemetry initialization failed")
+        })?;
+
+    // Create a span for the main function
+    let main_span = info_span!("startup", service=%service_name, version=%service_version);
+    let _guard = main_span.enter();
 
     let server_config = ServerConfig::from_env();
 
@@ -137,6 +152,7 @@ async fn main() -> std::io::Result<()> {
 
     let mut server = HttpServer::new(move || {
         App::new()
+            .wrap(TracingLogger::default()) // Add this before your other middleware
             .wrap(Cors::permissive())
             .wrap(Logger::default())
             .service(
@@ -176,8 +192,12 @@ async fn main() -> std::io::Result<()> {
         server = server.workers(workers);
     }
 
-    server
+    let result = server
         .bind(&server_config.server_listen_address)?
         .run()
-        .await
+        .await;
+
+    telemetry::shutdown_tracer_provider(tracer_provider);
+
+    result
 }

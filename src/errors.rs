@@ -1,6 +1,7 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde_json::json;
 use thiserror::Error;
+use tracing::{error, warn};
 
 #[derive(Error, Debug)]
 pub enum PAASServerError {
@@ -39,6 +40,52 @@ impl ResponseError for PAASServerError {
         let status = self.status_code();
         let error_message = self.to_string();
 
+        match self {
+            Self::NotAuthenticated => {
+                warn!(status_code = %status.as_u16(), error = %error_message, "Authentication failure");
+            }
+            Self::SessionError(source) => {
+                error!(
+                    status_code = %status.as_u16(),
+                    error = %error_message,
+                    source = %format!("{:?}", source),
+                    "Session operation error"
+                );
+            }
+            Self::InvalidSessionFormat(format) => {
+                warn!(
+                    status_code = %status.as_u16(),
+                    error = %error_message,
+                    format = %format,
+                    "Invalid session format"
+                );
+            }
+            Self::InvalidSession(session) => {
+                warn!(
+                    status_code = %status.as_u16(),
+                    error = %error_message,
+                    session = %session,
+                    "Invalid session"
+                );
+            }
+            Self::UnauthorizedSession => {
+                warn!(
+                    status_code = %status.as_u16(),
+                    error = %error_message,
+                    "Unauthorized session access"
+                );
+            }
+            Self::AccessDenied { from, to } => {
+                warn!(
+                    status_code = %status.as_u16(),
+                    error = %error_message,
+                    from = %from,
+                    to = %to,
+                    "Access denied for transcryption"
+                );
+            }
+        }
+
         // For security, don't expose internal error details in production
         let response_body = if status == StatusCode::INTERNAL_SERVER_ERROR {
             json!({
@@ -53,5 +100,12 @@ impl ResponseError for PAASServerError {
         HttpResponse::build(status)
             .content_type("application/json")
             .json(response_body)
+    }
+}
+
+impl From<Box<dyn std::error::Error + Send + Sync>> for PAASServerError {
+    fn from(source: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        error!(error = %format!("{:?}", source), "Converting generic error to PAASServerError");
+        PAASServerError::SessionError(source)
     }
 }

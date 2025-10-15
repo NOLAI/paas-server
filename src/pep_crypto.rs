@@ -1,6 +1,6 @@
 use libpep::distributed::key_blinding::{BlindingFactor, SafeScalar};
 use libpep::distributed::systems::PEPSystem;
-use libpep::high_level::keys::{EncryptionSecret, PseudonymizationSecret};
+use libpep::high_level::secrets::{EncryptionSecret, PseudonymizationSecret};
 use serde::Deserialize;
 use std::fs;
 

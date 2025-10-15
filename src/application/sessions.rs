@@ -27,11 +27,11 @@ pub async fn start_session(
 
     info!("{} started session {:?}", user.username, session_id);
 
-    let key_share = pep_system.session_key_share(&ec_context.clone());
+    let session_key_shares = pep_system.session_key_shares(&ec_context.clone());
 
     Ok(HttpResponse::Ok().json(StartSessionResponse {
         session_id: ec_context,
-        key_share,
+        session_key_shares,
     }))
 }
 
