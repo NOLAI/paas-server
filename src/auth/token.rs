@@ -6,7 +6,6 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use tracing::instrument;
 
 pub struct SimpleTokenAuthConfig {
     pub token_users_path: String,
@@ -63,7 +62,6 @@ impl SimpleTokenValidator {
 }
 
 impl TokenValidator for SimpleTokenValidator {
-    #[instrument(name = "validate_token", skip(self, token))]
     fn validate_token<'a>(
         &'a self,
         token: &'a str,

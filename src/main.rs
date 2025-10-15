@@ -13,11 +13,8 @@ use paas_server::auth::AuthType;
 use paas_server::config::{AuthTypeConfig, ServerConfig};
 use paas_server::pep_crypto::*;
 use paas_server::session_storage::*;
-use paas_server::telemetry;
+use log::info;
 use std::env;
-use tracing::info;
-use tracing::info_span;
-use tracing_actix_web::TracingLogger;
 
 async fn build_auth(server_config: &ServerConfig) -> Authentication<AuthType> {
     match server_config.auth_type {
@@ -75,22 +72,7 @@ async fn build_auth(server_config: &ServerConfig) -> Authentication<AuthType> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Get configuration from environment
-    let service_name = env::var("SERVICE_NAME").unwrap_or_else(|_| "paas-server".to_string());
-    let service_version =
-        env::var("SERVICE_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string());
-    let otlp_endpoint = env::var("OTLP_ENDPOINT").ok();
-
-    // Initialize telemetry
-    let tracer_provider = telemetry::init_telemetry(&service_name, &service_version, otlp_endpoint)
-        .map_err(|e| {
-            eprintln!("Failed to initialize telemetry: {}", e);
-            std::io::Error::new(std::io::ErrorKind::Other, "Telemetry initialization failed")
-        })?;
-
-    // Create a span for the main function
-    let main_span = info_span!("startup", service=%service_name, version=%service_version);
-    let _guard = main_span.enter();
+    env_logger::init();
 
     let server_config = ServerConfig::from_env();
 
@@ -152,7 +134,6 @@ async fn main() -> std::io::Result<()> {
 
     let mut server = HttpServer::new(move || {
         App::new()
-            .wrap(TracingLogger::default()) // Add this before your other middleware
             .wrap(Cors::permissive())
             .wrap(Logger::default())
             .service(
@@ -192,12 +173,8 @@ async fn main() -> std::io::Result<()> {
         server = server.workers(workers);
     }
 
-    let result = server
+    server
         .bind(&server_config.server_listen_address)?
         .run()
-        .await;
-
-    telemetry::shutdown_tracer_provider(tracer_provider);
-
-    result
+        .await
 }

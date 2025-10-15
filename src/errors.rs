@@ -1,7 +1,7 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use log::{error, warn};
 use serde_json::json;
 use thiserror::Error;
-use tracing::{error, warn};
 
 #[derive(Error, Debug)]
 pub enum PAASServerError {
@@ -42,46 +42,36 @@ impl ResponseError for PAASServerError {
 
         match self {
             Self::NotAuthenticated => {
-                warn!(status_code = %status.as_u16(), error = %error_message, "Authentication failure");
+                warn!("Authentication failure: status_code={}, error={}", status.as_u16(), error_message);
             }
             Self::SessionError(source) => {
                 error!(
-                    status_code = %status.as_u16(),
-                    error = %error_message,
-                    source = %format!("{:?}", source),
-                    "Session operation error"
+                    "Session operation error: status_code={}, error={}, source={:?}",
+                    status.as_u16(), error_message, source
                 );
             }
             Self::InvalidSessionFormat(format) => {
                 warn!(
-                    status_code = %status.as_u16(),
-                    error = %error_message,
-                    format = %format,
-                    "Invalid session format"
+                    "Invalid session format: status_code={}, error={}, format={}",
+                    status.as_u16(), error_message, format
                 );
             }
             Self::InvalidSession(session) => {
                 warn!(
-                    status_code = %status.as_u16(),
-                    error = %error_message,
-                    session = %session,
-                    "Invalid session"
+                    "Invalid session: status_code={}, error={}, session={}",
+                    status.as_u16(), error_message, session
                 );
             }
             Self::UnauthorizedSession => {
                 warn!(
-                    status_code = %status.as_u16(),
-                    error = %error_message,
-                    "Unauthorized session access"
+                    "Unauthorized session access: status_code={}, error={}",
+                    status.as_u16(), error_message
                 );
             }
             Self::AccessDenied { from, to } => {
                 warn!(
-                    status_code = %status.as_u16(),
-                    error = %error_message,
-                    from = %from,
-                    to = %to,
-                    "Access denied for transcryption"
+                    "Access denied for transcryption: status_code={}, error={}, from={}, to={}",
+                    status.as_u16(), error_message, from, to
                 );
             }
         }
@@ -105,7 +95,7 @@ impl ResponseError for PAASServerError {
 
 impl From<Box<dyn std::error::Error + Send + Sync>> for PAASServerError {
     fn from(source: Box<dyn std::error::Error + Send + Sync>) -> Self {
-        error!(error = %format!("{:?}", source), "Converting generic error to PAASServerError");
+        error!("Converting generic error to PAASServerError: error={:?}", source);
         PAASServerError::SessionError(source)
     }
 }

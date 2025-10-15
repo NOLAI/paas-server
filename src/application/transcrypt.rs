@@ -10,18 +10,8 @@ use paas_api::transcrypt::{
     PseudonymizationResponse, RekeyRequest, RekeyResponse, TranscryptionRequest,
     TranscryptionResponse,
 };
-use tracing::{debug, error, info, instrument, warn};
+use log::{debug, error, info, warn};
 
-#[instrument(
-    skip(access_rules, session_storage, pep_system),
-    fields(
-        user = %user.username,
-        domain_from = %item.domain_from.0,
-        domain_to = %item.domain_to.0,
-        session_from = %item.session_from.0,
-        session_to = %item.session_to.0
-    )
-)]
 pub async fn pseudonymize(
     item: web::Json<PseudonymizationRequest>,
     access_rules: Data<AccessRules>,
@@ -51,15 +41,15 @@ pub async fn pseudonymize(
     ) {
         Ok(valid) => valid,
         Err(e) => {
-            error!(error = %format!("{:?}", e), "Failed to check if session exists");
+            error!("Failed to check if session exists: error={:?}", e);
             return Err(PAASServerError::SessionError(Box::new(e)));
         }
     };
 
     if !session_valid {
         warn!(
-            session = %request.session_to.0,
-            "Attempted to use invalid decryption context"
+            "Attempted to use invalid decryption context: session={}",
+            request.session_to.0
         );
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
@@ -84,17 +74,6 @@ pub async fn pseudonymize(
     }))
 }
 
-#[instrument(
-    skip(item, access_rules, session_storage, pep_system),
-    fields(
-        user = %user.username,
-        domain_from = %item.domain_from.0,
-        domain_to = %item.domain_to.0,
-        session_from = %item.session_from.0,
-        session_to = %item.session_to.0,
-        batch_size = item.encrypted_pseudonyms.len()
-    )
-)]
 pub async fn pseudonymize_batch(
     item: web::Json<PseudonymizationBatchRequest>,
     access_rules: Data<AccessRules>,
@@ -125,15 +104,15 @@ pub async fn pseudonymize_batch(
     ) {
         Ok(valid) => valid,
         Err(e) => {
-            error!(error = %format!("{:?}", e), "Failed to check if session exists");
+            error!("Failed to check if session exists: error={:?}", e);
             return Err(PAASServerError::SessionError(Box::new(e)));
         }
     };
 
     if !session_valid {
         warn!(
-            session = %request.session_to.0,
-            "Attempted to use invalid decryption context"
+            "Attempted to use invalid decryption context: session={}",
+            request.session_to.0
         );
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
@@ -156,8 +135,8 @@ pub async fn pseudonymize_batch(
         pep_system.pseudonymize_batch(&mut encrypted_pseudonyms, &pseudonymization_info, &mut rng);
 
     info!(
-        count = request.encrypted_pseudonyms.len(),
-        "Batch pseudonymization successful"
+        "Batch pseudonymization successful: count={}",
+        request.encrypted_pseudonyms.len()
     );
 
     Ok(HttpResponse::Ok().json(PseudonymizationBatchResponse {
@@ -165,14 +144,6 @@ pub async fn pseudonymize_batch(
     }))
 }
 
-#[instrument(
-    skip(item, _access_rules, session_storage, pep_system),
-    fields(
-        user = %user.username,
-        session_from = %item.session_from.0,
-        session_to = %item.session_to.0
-    )
-)]
 pub async fn rekey(
     item: web::Json<RekeyRequest>,
     _access_rules: Data<AccessRules>,
@@ -193,15 +164,15 @@ pub async fn rekey(
     ) {
         Ok(valid) => valid,
         Err(e) => {
-            error!(error = %format!("{:?}", e), "Failed to check if session exists");
+            error!("Failed to check if session exists: error={:?}", e);
             return Err(PAASServerError::SessionError(Box::new(e)));
         }
     };
 
     if !session_valid {
         warn!(
-            session = %request.session_to.0,
-            "Attempted to rekey to an invalid session"
+            "Attempted to rekey to an invalid session: session={}",
+            request.session_to.0
         );
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
@@ -226,17 +197,6 @@ pub async fn rekey_batch() -> impl Responder {
     HttpResponse::NotImplemented().body("Not implemented")
 }
 
-#[instrument(
-    skip(item, access_rules, session_storage, pep_system),
-    fields(
-        user = %user.username,
-        domain_from = %item.domain_from.0,
-        domain_to = %item.domain_to.0,
-        session_from = %item.session_from.0,
-        session_to = %item.session_to.0,
-        entity_count = item.encrypted.len()
-    )
-)]
 pub async fn transcrypt(
     item: web::Json<TranscryptionRequest>,
     access_rules: Data<AccessRules>,
@@ -266,15 +226,15 @@ pub async fn transcrypt(
     ) {
         Ok(valid) => valid,
         Err(e) => {
-            error!(error = %format!("{:?}", e), "Failed to check if session exists");
+            error!("Failed to check if session exists: error={:?}", e);
             return Err(PAASServerError::SessionError(Box::new(e)));
         }
     };
 
     if !session_valid {
         warn!(
-            session = %request.session_to.0,
-            "Attempted to transcrypt with invalid session"
+            "Attempted to transcrypt with invalid session: session={}",
+            request.session_to.0
         );
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
@@ -299,7 +259,7 @@ pub async fn transcrypt(
         &mut rng,
     );
 
-    info!(entity_count = batch_size, "Transcryption successful");
+    info!("Transcryption successful: entity_count={}", batch_size);
 
     Ok(HttpResponse::Ok().json(TranscryptionResponse {
         encrypted: Vec::from(msg_out),
