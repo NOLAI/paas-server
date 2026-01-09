@@ -2,17 +2,16 @@ use actix_web::body::to_bytes;
 use actix_web::dev::Service;
 use actix_web::web::Data;
 use actix_web::{test, web, App, HttpMessage};
-use libpep::distributed::key_blinding::{BlindingFactor, SafeScalar};
-use libpep::distributed::systems::PEPSystem;
-use libpep::high_level::contexts::PseudonymizationDomain;
-use libpep::high_level::data_types::{
-    DataPoint, Encryptable, Encrypted, EncryptedDataPoint, EncryptedPseudonym, Pseudonym,
+use libpep::arithmetic::scalars::ScalarNonZero;
+use libpep::base::elgamal::{decrypt, encrypt};
+use libpep::core::data::{Attribute, Encrypted, EncryptedPseudonym, Pseudonym};
+use libpep::core::keys::{AttributeSessionPublicKey, AttributeSessionSecretKey, PseudonymSessionPublicKey, PseudonymSessionSecretKey, PublicKey};
+use libpep::core::padding::Padded;
+use libpep::core::transcryption::{
+    EncryptionSecret, PseudonymizationDomain, PseudonymizationSecret,
 };
-use libpep::high_level::keys::{
-    EncryptionSecret, PseudonymizationSecret, PublicKey, SessionPublicKey, SessionSecretKey,
-};
-use libpep::high_level::ops::{decrypt, encrypt, EncryptedEntityData};
-use libpep::internal::arithmetic::ScalarNonZero;
+use libpep::distributed::server::setup::BlindingFactor;
+use libpep::distributed::server::transcryptor::PEPSystem;
 use paas_api::sessions::StartSessionResponse;
 use paas_api::transcrypt::{PseudonymizationResponse, TranscryptionResponse};
 use paas_server::access_rules::{AccessRules, Permission};
@@ -23,6 +22,8 @@ use paas_server::session_storage::{InMemorySessionStorage, SessionStorage};
 use serde_json::json;
 use std::collections::HashSet;
 use std::time::Duration;
+use libpep::core::long::batch::LongEncryptedData;
+use libpep::core::long::data::{LongAttribute, LongPseudonym, encrypt_long_pseudonym, encrypt_long_attribute};
 
 #[actix_web::test]
 async fn test_start_session_and_pseudonymize() {
@@ -45,7 +46,7 @@ async fn test_start_session_and_pseudonymize() {
     let pep_system = PEPSystem::new(
         PseudonymizationSecret::from("pseudonymization_secret".as_bytes().to_vec()),
         EncryptionSecret::from("encryption_secret".as_bytes().to_vec()),
-        BlindingFactor::decode_from_hex(
+        BlindingFactor::from_hex(
             "5f5289d6909083257b9372c362a1905a0f0370181c5b75af812815513edcda0a",
         )
         .unwrap(),
@@ -90,52 +91,49 @@ async fn test_start_session_and_pseudonymize() {
     let body = to_bytes(resp.into_body()).await.unwrap();
     let pseudonymization_response: PseudonymizationResponse =
         serde_json::from_slice(&body).unwrap();
-    assert_eq!(pseudonymization_response.encrypted_pseudonym, Encrypted::from_base64("MMAGtJdXoHVPlC_IMPOA7H8sluFIeIRHvTg_pmR3S0tsYjLMnWCOnJ3AjQIjPBcgz3-v7roDOrkxgTNbZv1vKw==").unwrap());
+    println!("{}", pseudonymization_response.encrypted_pseudonym.to_base64());
+    assert_eq!(pseudonymization_response.encrypted_pseudonym, Encrypted::from_base64("CNDEJ5Sy_dyMwJNAuTzWG5aipMKQrqHRhiF1VOpdaTNAwa4azSivSuVhIqYwkvApJZJcIOmD3J9WmtvLc2ekfw==").unwrap());
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // TODO: We should use these keys in the above test cases too
     // Generated with peppy using: generate-session-keys 40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a encryption_secret session_context
-    // Public global key: ae3bfc06e29d54875a5ed21fc95dd5717d49d16d89e26351289a2e30f06a0270
-    // Secret global key: 40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a
-    // Public session key: 1e98811ec579ac7f4e860547010e3df3ddda945016cd70334fc2611521d5732a
-    // Secret session key: b2250470169b81abf9247d19d699d17bc506b0eab1e1ab9341449d43f1521601
-    let psk = SessionPublicKey::from_hex(
-        "1e98811ec579ac7f4e860547010e3df3ddda945016cd70334fc2611521d5732a",
+    // Public pseudonym global key: ae3bfc06e29d54875a5ed21fc95dd5717d49d16d89e26351289a2e30f06a0270
+    // Secret pseudonym global key: 40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a
+    // Same keys for now
+    // Public attribute session key: ae3bfc06e29d54875a5ed21fc95dd5717d49d16d89e26351289a2e30f06a0270
+    // Secret attribute session key: 40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a
+    let psk_p = PseudonymSessionPublicKey::from_hex(
+        "8a80494c8fb18a09abbd356ed6b32c050036234bb618f71ceb3ea84e3fd55751",
     )
     .unwrap();
-    let ssk = SessionSecretKey::from(
-        ScalarNonZero::decode_from_hex(
-            "b2250470169b81abf9247d19d699d17bc506b0eab1e1ab9341449d43f1521601",
-        )
-        .unwrap(),
+    let ssk_p = PseudonymSessionSecretKey::from(
+        ScalarNonZero::from_hex("40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a")
+            .unwrap(),
+    );
+    let psk_a = AttributeSessionPublicKey::from_hex(
+        "8a80494c8fb18a09abbd356ed6b32c050036234bb618f71ceb3ea84e3fd55751",
+    )
+    .unwrap();
+    let ssk_a = AttributeSessionSecretKey::from(
+        ScalarNonZero::from_hex("40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a")
+            .unwrap(),
     );
 
     // Create some encrypted test data (simulated from client)
     // In a real scenario, this would be properly encrypted data from a client
-    let test_data: Vec<EncryptedEntityData> = vec![
+    let test_data: Vec<LongEncryptedData> = vec![
         (
-            Pseudonym::from_string_padded("Testing pseudonym 1")
-                .iter()
-                .map(|p| encrypt(p, &psk, &mut rng))
-                .collect::<Vec<EncryptedPseudonym>>(),
-            DataPoint::from_string_padded("Really long datapoint, could be json")
-                .iter()
-                .map(|d| encrypt(d, &psk, &mut rng))
-                .collect::<Vec<EncryptedDataPoint>>(),
+            vec![encrypt_long_pseudonym(&LongPseudonym::from_string_padded("Testing pseudonym 1"), &psk_p, &mut rng)],
+            vec![encrypt_long_attribute(&LongAttribute::from_string_padded("Really long Attribute, could be json"), &psk_a, &mut rng)],
         ),
         (
-            Pseudonym::from_string_padded("Testing pseudonym 2")
-                .iter()
-                .map(|p| encrypt(p, &psk, &mut rng))
-                .collect::<Vec<EncryptedPseudonym>>(),
-            DataPoint::from_string_padded("Also a really long datapoint, could be json")
-                .iter()
-                .map(|d| encrypt(d, &psk, &mut rng))
-                .collect::<Vec<EncryptedDataPoint>>(),
+            vec![encrypt_long_pseudonym(&LongPseudonym::from_string_padded("Testing pseudonym 2"), &psk_p, &mut rng)],
+            vec![encrypt_long_attribute(&LongAttribute::from_string_padded("Also a really long Attribute, could be json"), &psk_a, &mut rng)],
         ),
     ];
 
+    println!("{:?}", test_data);
     // Test transcrypt
     let req = test::TestRequest::post()
         .uri("/transcrypt")
@@ -151,30 +149,46 @@ async fn test_start_session_and_pseudonymize() {
     req.extensions_mut().insert(auth_user.clone());
     let resp = app.call(req).await.unwrap();
     // Verify the response
-    assert_eq!(resp.status(), 200);
+    let status = resp.status();
     let body = to_bytes(resp.into_body()).await.unwrap();
+    if status != 200 {
+        println!("Error response ({}): {}", status, String::from_utf8_lossy(&body));
+    }
+    assert_eq!(status, 200);
     let transcryption_response: TranscryptionResponse = serde_json::from_slice(&body).unwrap();
 
     // Verify we got back the expected number of encrypted items
     assert_eq!(transcryption_response.encrypted.len(), 2);
+    println!("{:?}", transcryption_response.encrypted);
+
+    for (psue, attri) in &transcryption_response.encrypted {
+        for p in psue {
+            println!("Psuedonym {:?}", Pseudonym { value: decrypt(p, &ssk_p) }.to_hex());
+        }
+        for a in attri {
+            println!("Attribute {:?}", Attribute { value: decrypt(a, &ssk_a) }.to_string_padded().unwrap());
+        }
+    }
 
     let decrypted = transcryption_response
         .encrypted
         .iter()
-        .map(|(psue, datap)| {
+        .map(|(psue, attri)| {
             (
                 psue.iter()
-                    .map(|p| decrypt(p, &ssk).encode_as_hex())
+                    .map(|p| Pseudonym { value: decrypt(p, &ssk_p) }.to_hex())
                     .collect::<Vec<String>>()
                     .join(""),
-                DataPoint::to_string_padded(
-                    datap
+                {
+                    attri
                         .iter()
-                        .map(|d| decrypt(d, &ssk))
-                        .collect::<Vec<DataPoint>>()
-                        .as_slice(),
-                )
-                .unwrap(),
+                        .map(|d| {
+                            let attr = Attribute { value: decrypt(d, &ssk_a) };
+                            attr.to_string_padded().unwrap()
+                        })
+                        .collect::<Vec<String>>()
+                        .concat()
+                },
             )
         })
         .collect::<Vec<(String, String)>>();
@@ -182,11 +196,11 @@ async fn test_start_session_and_pseudonymize() {
     let expected_data = vec![
         (
             "8e54ac16e300c590dc56fdf3de24fc8883a3939241137857d4a273b9884a7c0fac55624f61ba08645b9f232877dcaade532242d950ed021e92dbaa5d40a5d91a".to_string(),
-            "Really long datapoint, could be json".to_string()
+            "Really long Attribute, could be json".to_string()
         ),
         (
             "8e54ac16e300c590dc56fdf3de24fc8883a3939241137857d4a273b9884a7c0f7e8c90902e9b9b23aa469455b30a73e29739ea4204ce7c5227e15ba64b01c047".to_string(),
-            "Also a really long datapoint, could be json".to_string()
+            "Also a really long Attribute, could be json".to_string()
         )
     ];
 

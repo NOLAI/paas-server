@@ -4,7 +4,8 @@ use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse, Responder};
-use libpep::distributed::systems::PEPSystem;
+use libpep::core::transcryption::EncryptionContext;
+use libpep::distributed::server::transcryptor::PEPSystem;
 use log::{info, warn};
 use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
@@ -28,14 +29,17 @@ pub async fn pseudonymize(
             user.username, request.domain_from, request.domain_to
         );
         return Err(PAASServerError::AccessDenied {
-            from: request.domain_from.0.clone(),
-            to: request.domain_to.0.clone(),
+            from: request.domain_from,
+            to: request.domain_to,
         });
     }
+    let EncryptionContext::Specific(session_to_str) = &request.session_to else {
+        return Err(PAASServerError::InvalidSession("Expected Specific context".to_string()));
+    };
     let session_valid = session_storage
         .session_exists(
             user.username.to_string(),
-            request.session_to.clone().to_string(),
+            session_to_str.clone(),
         )
         .map_err(|e| {
             warn!(
@@ -58,15 +62,15 @@ pub async fn pseudonymize(
     let pseudonymization_info = pep_system.pseudonymization_info(
         &request.domain_from,
         &request.domain_to,
-        Some(&request.session_from),
-        Some(&request.session_to),
+        &request.session_from,
+        &request.session_to,
     );
 
     let msg_out = pep_system.pseudonymize(&request.encrypted_pseudonym, &pseudonymization_info);
 
     info!(
         "{:?} pseudonymized from {:?} to {:?}",
-        user.username, request.domain_from.0, request.domain_to.0
+        user.username, request.domain_from, request.domain_to
     );
 
     Ok(HttpResponse::Ok().json(PseudonymizationResponse {
@@ -87,19 +91,22 @@ pub async fn pseudonymize_batch(
 
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
-            "{} tried, but was not allowed to pseudonymize from {} to {}",
-            user.username, request.domain_from.0, request.domain_to.0
+            "{} tried, but was not allowed to pseudonymize from {:?} to {:?}",
+            user.username, request.domain_from, request.domain_to
         );
         return Err(PAASServerError::AccessDenied {
-            from: request.domain_from.0.clone(),
-            to: request.domain_to.0.clone(),
+            from: request.domain_from.clone(),
+            to: request.domain_to.clone(),
         });
     }
 
+    let EncryptionContext::Specific(session_to_str) = &request.session_to else {
+        return Err(PAASServerError::InvalidSession("Expected Specific context".to_string()));
+    };
     let session_valid = session_storage
         .session_exists(
             user.username.to_string(),
-            request.session_to.clone().to_string(),
+            session_to_str.clone(),
         )
         .map_err(|e| {
             warn!(
@@ -120,13 +127,13 @@ pub async fn pseudonymize_batch(
     }
 
     let mut encrypted_pseudonyms = request.encrypted_pseudonyms.clone();
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let pseudonymization_info = pep_system.pseudonymization_info(
         &request.domain_from,
         &request.domain_to,
-        Some(&request.session_from),
-        Some(&request.session_to),
+        &request.session_from,
+        &request.session_to,
     );
 
     let msg_out =
@@ -158,10 +165,13 @@ pub async fn rekey(
 
     // TODO: check access rules!
 
+    let EncryptionContext::Specific(session_to_str) = &request.session_to else {
+        return Err(PAASServerError::InvalidSession("Expected Specific context".to_string()));
+    };
     let session_valid = session_storage
         .session_exists(
             user.username.to_string(),
-            request.session_to.clone().to_string(),
+            session_to_str.clone(),
         )
         .map_err(|e| {
             warn!(
@@ -181,14 +191,14 @@ pub async fn rekey(
         ));
     }
 
-    let rekey_info = pep_system.rekey_info(Some(&request.session_from), Some(&request.session_to));
+    let psuedonym_rekey_info =
+        pep_system.attribute_rekey_info(&request.session_from, &request.session_to);
+    let msg_out = pep_system.rekey(&request.encrypted_attribute, &psuedonym_rekey_info);
 
-    let msg_out = pep_system.rekey(&request.encrypted_data, &rekey_info);
-
-    info!("{} rekeyed data", user.username,);
+    info!("{} rekeyed data", user.username);
 
     Ok(HttpResponse::Ok().json(RekeyResponse {
-        encrypted_data: msg_out,
+        encrypted_attribute: msg_out,
     }))
 }
 pub async fn rekey_batch() -> impl Responder {
@@ -211,14 +221,17 @@ pub async fn transcrypt(
             user.username, request.domain_from, request.domain_to
         );
         return Err(PAASServerError::AccessDenied {
-            from: request.domain_from.0.clone(),
-            to: request.domain_to.0.clone(),
+            from: request.domain_from.clone(),
+            to: request.domain_to.clone(),
         });
     }
+    let EncryptionContext::Specific(session_to_str) = &request.session_to else {
+        return Err(PAASServerError::InvalidSession("Expected Specific context".to_string()));
+    };
     let session_valid = session_storage
         .session_exists(
             user.username.to_string(),
-            request.session_to.clone().to_string(),
+            session_to_str.clone(),
         )
         .map_err(|e| {
             warn!(
@@ -238,26 +251,26 @@ pub async fn transcrypt(
         ));
     }
 
-    let pseudonymization_info = pep_system.pseudonymization_info(
+    let pseudonymization_info = pep_system.transcryption_info(
         &request.domain_from,
         &request.domain_to,
-        Some(&request.session_from),
-        Some(&request.session_to),
+        &request.session_from,
+        &request.session_to,
     );
 
-    let mut rng = rand::thread_rng();
-    let msg_out = pep_system.transcrypt_batch(
-        &mut request.encrypted.into_boxed_slice(),
-        &pseudonymization_info,
-        &mut rng,
-    );
+    let mut rng = rand::rng();
+    let msg_out = pep_system.transcrypt_batch(request.encrypted, &pseudonymization_info, &mut rng)
+        .map_err(|e| {
+            warn!("Transcryption failed for user {}: {}", user.username, e);
+            PAASServerError::InvalidSession(e)
+        })?;
 
     info!(
         "{:?} transcrypted from {:?} to {:?}",
-        user.username, request.domain_from.0, request.domain_to.0
+        user.username, request.domain_from, request.domain_to
     );
 
     Ok(HttpResponse::Ok().json(TranscryptionResponse {
-        encrypted: Vec::from(msg_out),
+        encrypted: msg_out,
     }))
 }

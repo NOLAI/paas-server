@@ -3,8 +3,8 @@ use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
-use libpep::distributed::systems::PEPSystem;
-use libpep::high_level::contexts::EncryptionContext;
+use libpep::core::transcryption::{EncryptionContext};
+use libpep::distributed::server::transcryptor::PEPSystem;
 use log::{info, warn};
 use paas_api::sessions::{EndSessionRequest, SessionResponse, StartSessionResponse};
 
@@ -25,13 +25,11 @@ pub async fn start_session(
 
     let ec_context = EncryptionContext::from(&session_id.clone());
 
-    info!("{} started session {:?}", user.username, session_id);
-
-    let key_share = pep_system.session_key_share(&ec_context.clone());
+    let session_key_shares = pep_system.session_key_shares(&ec_context);
 
     Ok(HttpResponse::Ok().json(StartSessionResponse {
         session_id: ec_context,
-        key_share,
+        session_key_shares,
     }))
 }
 
@@ -41,11 +39,16 @@ pub async fn end_session(
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_id = item.session_id.clone();
-
-    let username_in_session = session_id
-        .split('_')
-        .next()
-        .ok_or(PAASServerError::InvalidSessionFormat(session_id.clone().0))?;
+    let EncryptionContext::Specific(session_id_str) = &item.session_id else {
+        return Err(PAASServerError::InvalidSessionFormat("Expected Specific context".to_string()));
+    };
+    let username_in_session =
+        session_id_str
+            .split('_')
+            .next()
+            .ok_or(PAASServerError::InvalidSessionFormat(
+                session_id_str.clone(),
+            ))?;
 
     if user.username.as_str() != username_in_session {
         warn!(
@@ -58,7 +61,7 @@ pub async fn end_session(
     info!("{} ended session {:?}", user.username, session_id);
 
     session_storage
-        .end_session(user.username.to_string(), session_id.to_string())
+        .end_session(user.username.to_string(), session_id_str.clone())
         .map_err(|e| {
             warn!(
                 "Storage error while ending session {:?} for user {}: {}",

@@ -1,12 +1,12 @@
 use chrono::{TimeZone, Utc};
-use libpep::high_level::contexts::EncryptionContext;
+use libpep::core::transcryption::EncryptionContext;
 use r2d2::{Pool, PooledConnection};
-use rand::distributions::Alphanumeric;
+use rand::distr::Alphanumeric;
 use rand::Rng;
 use redis::{Client, Commands};
 use redis::{IntoConnectionInfo, RedisError};
 use std::fmt::Error;
-use std::io::{Error as ioError, ErrorKind};
+use std::io::Error as ioError;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -66,7 +66,7 @@ impl RedisSessionStorage {
             .max_lifetime(options.max_lifetime)
             .idle_timeout(options.connection_timeout)
             .build(client)
-            .map_err(|e| RedisError::from(ioError::new(ErrorKind::Other, e.to_string())))?;
+            .map_err(|e| RedisError::from(ioError::other(e.to_string())))?;
 
         Ok(Self {
             pool,
@@ -83,7 +83,7 @@ impl RedisSessionStorage {
 impl SessionStorage for RedisSessionStorage {
     fn start_session(&self, username: String) -> Result<String, Error> {
         // Generate a random string for the session ID
-        let session_postfix: String = rand::thread_rng()
+        let session_postfix: String = rand::rng()
             .sample_iter(&Alphanumeric)
             .take(self.new_session_length) // Random string length
             .map(char::from)
@@ -205,7 +205,7 @@ impl InMemorySessionStorage {
 
 impl SessionStorage for InMemorySessionStorage {
     fn start_session(&self, username: String) -> Result<String, Error> {
-        let session_postfix: String = rand::thread_rng()
+        let session_postfix: String = rand::rng()
             .sample_iter(&Alphanumeric)
             .take(self.new_session_length) // Random string length
             .map(char::from)

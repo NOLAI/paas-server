@@ -1,6 +1,6 @@
-use libpep::distributed::key_blinding::{BlindingFactor, SafeScalar};
-use libpep::distributed::systems::PEPSystem;
-use libpep::high_level::keys::{EncryptionSecret, PseudonymizationSecret};
+use libpep::core::transcryption::{EncryptionSecret, PseudonymizationSecret};
+use libpep::distributed::server::setup::BlindingFactor;
+use libpep::distributed::server::transcryptor::PEPSystem;
 use serde::Deserialize;
 use std::fs;
 
@@ -17,9 +17,8 @@ pub fn create_pep_crypto_system(system_config_file: &str) -> PEPSystem {
     let pep_system_config: PEPSystemConfig =
         serde_yml::from_str(&file_content).expect("Failed to PEP system config file");
 
-    let blinding_factor =
-        BlindingFactor::decode_from_hex(pep_system_config.blinding_factor.as_str())
-            .expect("Failed to decode blinding factor");
+    let blinding_factor = BlindingFactor::from_hex(pep_system_config.blinding_factor.as_str())
+        .expect("Failed to decode blinding factor");
 
     PEPSystem::new(
         PseudonymizationSecret::from(pep_system_config.pseudonymization_secret.into_bytes()),

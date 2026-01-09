@@ -1,4 +1,5 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use libpep::core::transcryption::PseudonymizationDomain;
 use serde_json::json;
 use thiserror::Error;
 
@@ -19,8 +20,11 @@ pub enum PAASServerError {
     #[error("Unauthorized session access")]
     UnauthorizedSession,
 
-    #[error("Access denied: not allowed to transcrypt from {from} to {to}")]
-    AccessDenied { from: String, to: String },
+    #[error("Access denied: not allowed to transcrypt from {from:?} to {to:?}")]
+    AccessDenied {
+        from: PseudonymizationDomain,
+        to: PseudonymizationDomain,
+    },
 }
 
 impl ResponseError for PAASServerError {
