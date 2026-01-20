@@ -165,7 +165,11 @@ async fn main() -> std::io::Result<()> {
                             )
                             .route(paas_api::paths::REKEY, web::post().to(rekey))
                             .route(paas_api::paths::REKEY_BATCH, web::post().to(rekey_batch))
-                            .route(paas_api::paths::TRANSCRYPT, web::post().to(transcrypt)),
+                            .route(paas_api::paths::TRANSCRYPT, web::post().to(transcrypt))
+                            .route(
+                                paas_api::paths::TRANSCRYPT_BATCH,
+                                web::post().to(transcrypt_batch),
+                            ),
                     ),
             )
     })

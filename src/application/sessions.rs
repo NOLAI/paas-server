@@ -3,7 +3,7 @@ use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
-use libpep::core::transcryption::{EncryptionContext};
+use libpep::core::transcryption::EncryptionContext;
 use libpep::distributed::server::transcryptor::PEPSystem;
 use log::{info, warn};
 use paas_api::sessions::{EndSessionRequest, SessionResponse, StartSessionResponse};
@@ -40,7 +40,9 @@ pub async fn end_session(
 ) -> Result<HttpResponse, PAASServerError> {
     let session_id = item.session_id.clone();
     let EncryptionContext::Specific(session_id_str) = &item.session_id else {
-        return Err(PAASServerError::InvalidSessionFormat("Expected Specific context".to_string()));
+        return Err(PAASServerError::InvalidSessionFormat(
+            "Expected Specific context".to_string(),
+        ));
     };
     let username_in_session =
         session_id_str

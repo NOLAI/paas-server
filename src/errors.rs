@@ -25,6 +25,9 @@ pub enum PAASServerError {
         from: PseudonymizationDomain,
         to: PseudonymizationDomain,
     },
+
+    #[error("Transcryption error")]
+    TranscryptionError { error: String },
 }
 
 impl ResponseError for PAASServerError {
@@ -36,6 +39,7 @@ impl ResponseError for PAASServerError {
             Self::InvalidSession(_) => StatusCode::NOT_FOUND,
             Self::UnauthorizedSession => StatusCode::FORBIDDEN,
             Self::AccessDenied { .. } => StatusCode::FORBIDDEN,
+            Self::TranscryptionError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
