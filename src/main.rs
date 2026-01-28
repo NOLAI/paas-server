@@ -1,6 +1,11 @@
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
+use libpep::client::prelude::EncryptedPseudonym;
+use libpep::data::json::EncryptedPEPJSONValue;
+use libpep::data::long::{LongEncryptedAttribute, LongEncryptedPseudonym};
+use libpep::data::records::{EncryptedRecord, LongEncryptedRecord};
+use libpep::data::simple::EncryptedAttribute;
 use log::info;
 use paas_server::access_rules::*;
 use paas_server::application::sessions::*;
@@ -158,17 +163,132 @@ async fn main() -> std::io::Result<()> {
                                 web::post().to(start_session),
                             )
                             .route(paas_api::paths::SESSIONS_END, web::post().to(end_session))
-                            .route(paas_api::paths::PSEUDONYMIZE, web::post().to(pseudonymize))
+                            // Pseudonymization routes
                             .route(
-                                paas_api::paths::PSEUDONYMIZE_BATCH,
-                                web::post().to(pseudonymize_batch),
+                                paas_api::paths::pseudonymize_path::<EncryptedPseudonym>().as_str(),
+                                web::post().to(pseudonymize::<EncryptedPseudonym>),
                             )
-                            .route(paas_api::paths::REKEY, web::post().to(rekey))
-                            .route(paas_api::paths::REKEY_BATCH, web::post().to(rekey_batch))
-                            .route(paas_api::paths::TRANSCRYPT, web::post().to(transcrypt))
                             .route(
-                                paas_api::paths::TRANSCRYPT_BATCH,
-                                web::post().to(transcrypt_batch),
+                                paas_api::paths::pseudonymize_path::<LongEncryptedPseudonym>()
+                                    .as_str(),
+                                web::post().to(pseudonymize::<LongEncryptedPseudonym>),
+                            )
+                            // Batch pseudonymization routes
+                            .route(
+                                paas_api::paths::pseudonymize_batch_path::<EncryptedPseudonym>()
+                                    .as_str(),
+                                web::post().to(pseudonymize_batch::<EncryptedPseudonym>),
+                            )
+                            .route(
+                                paas_api::paths::pseudonymize_batch_path::<LongEncryptedPseudonym>(
+                                )
+                                .as_str(),
+                                web::post().to(pseudonymize_batch::<LongEncryptedPseudonym>),
+                            )
+                            // Rekeying routes
+                            .route(
+                                paas_api::paths::rekey_path::<EncryptedAttribute>().as_str(),
+                                web::post().to(rekey_attribute::<EncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::rekey_path::<LongEncryptedAttribute>().as_str(),
+                                web::post().to(rekey_attribute::<LongEncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::rekey_path::<EncryptedPseudonym>().as_str(),
+                                web::post().to(rekey_psuedonym::<EncryptedPseudonym>),
+                            )
+                            .route(
+                                paas_api::paths::rekey_path::<LongEncryptedPseudonym>().as_str(),
+                                web::post().to(rekey_psuedonym::<LongEncryptedPseudonym>),
+                            )
+                            // Batch rekeying routes
+                            .route(
+                                paas_api::paths::rekey_batch_path::<EncryptedAttribute>().as_str(),
+                                web::post().to(rekey_batch_attribute::<EncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::rekey_batch_path::<LongEncryptedAttribute>()
+                                    .as_str(),
+                                web::post().to(rekey_batch_attribute::<LongEncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::rekey_batch_path::<EncryptedPseudonym>().as_str(),
+                                web::post().to(rekey_batch_psuedonym::<EncryptedPseudonym>),
+                            )
+                            .route(
+                                paas_api::paths::rekey_batch_path::<LongEncryptedPseudonym>()
+                                    .as_str(),
+                                web::post().to(rekey_batch_psuedonym::<LongEncryptedPseudonym>),
+                            )
+                            // Transcryption routes
+                            .route(
+                                paas_api::paths::transcrypt_path::<EncryptedPseudonym>().as_str(),
+                                web::post().to(transcrypt::<EncryptedPseudonym>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_path::<LongEncryptedPseudonym>()
+                                    .as_str(),
+                                web::post().to(transcrypt::<LongEncryptedPseudonym>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_path::<LongEncryptedAttribute>()
+                                    .as_str(),
+                                web::post().to(transcrypt::<LongEncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_path::<LongEncryptedAttribute>()
+                                    .as_str(),
+                                web::post().to(transcrypt::<LongEncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_path::<EncryptedRecord>().as_str(),
+                                web::post().to(transcrypt::<EncryptedRecord>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_path::<LongEncryptedRecord>().as_str(),
+                                web::post().to(transcrypt::<LongEncryptedRecord>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_path::<EncryptedPEPJSONValue>()
+                                    .as_str(),
+                                web::post().to(transcrypt::<EncryptedPEPJSONValue>),
+                            )
+                            // Batch transcryption routes
+                            .route(
+                                paas_api::paths::transcrypt_batch_path::<EncryptedPseudonym>()
+                                    .as_str(),
+                                web::post().to(transcrypt_batch::<EncryptedPseudonym>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_batch_path::<LongEncryptedPseudonym>()
+                                    .as_str(),
+                                web::post().to(transcrypt_batch::<LongEncryptedPseudonym>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_batch_path::<EncryptedAttribute>()
+                                    .as_str(),
+                                web::post().to(transcrypt_batch::<EncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_batch_path::<LongEncryptedAttribute>()
+                                    .as_str(),
+                                web::post().to(transcrypt_batch::<LongEncryptedAttribute>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_batch_path::<EncryptedRecord>()
+                                    .as_str(),
+                                web::post().to(transcrypt_batch::<EncryptedRecord>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_batch_path::<LongEncryptedRecord>()
+                                    .as_str(),
+                                web::post().to(transcrypt_batch::<LongEncryptedRecord>),
+                            )
+                            .route(
+                                paas_api::paths::transcrypt_batch_path::<EncryptedPEPJSONValue>()
+                                    .as_str(),
+                                web::post().to(transcrypt_batch::<EncryptedPEPJSONValue>),
                             ),
                     ),
             )

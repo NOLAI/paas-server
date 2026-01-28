@@ -1,6 +1,6 @@
-use libpep::core::transcryption::{EncryptionSecret, PseudonymizationSecret};
-use libpep::distributed::server::setup::BlindingFactor;
-use libpep::distributed::server::transcryptor::PEPSystem;
+use libpep::factors::{EncryptionSecret, PseudonymizationSecret};
+use libpep::keys::distribution::BlindingFactor;
+use libpep::transcryptor::DistributedTranscryptor;
 use serde::Deserialize;
 use std::fs;
 
@@ -11,7 +11,7 @@ pub struct PEPSystemConfig {
     blinding_factor: String,
 }
 
-pub fn create_pep_crypto_system(system_config_file: &str) -> PEPSystem {
+pub fn create_pep_crypto_system(system_config_file: &str) -> DistributedTranscryptor {
     let file_content =
         fs::read_to_string(system_config_file).expect("Failed to read PEP system config file");
     let pep_system_config: PEPSystemConfig =
@@ -20,7 +20,7 @@ pub fn create_pep_crypto_system(system_config_file: &str) -> PEPSystem {
     let blinding_factor = BlindingFactor::from_hex(pep_system_config.blinding_factor.as_str())
         .expect("Failed to decode blinding factor");
 
-    PEPSystem::new(
+    DistributedTranscryptor::new(
         PseudonymizationSecret::from(pep_system_config.pseudonymization_secret.into_bytes()),
         EncryptionSecret::from(pep_system_config.rekeying_secret.into_bytes()),
         blinding_factor,

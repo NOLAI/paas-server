@@ -1,5 +1,6 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
-use libpep::core::transcryption::PseudonymizationDomain;
+use libpep::factors::PseudonymizationDomain;
+use libpep::transcryptor::BatchError;
 use serde_json::json;
 use thiserror::Error;
 
@@ -28,6 +29,9 @@ pub enum PAASServerError {
 
     #[error("Transcryption error")]
     TranscryptionError { error: String },
+
+    #[error(transparent)]
+    BatchError(#[from] BatchError),
 }
 
 impl ResponseError for PAASServerError {
@@ -40,6 +44,7 @@ impl ResponseError for PAASServerError {
             Self::UnauthorizedSession => StatusCode::FORBIDDEN,
             Self::AccessDenied { .. } => StatusCode::FORBIDDEN,
             Self::TranscryptionError { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::BatchError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 

@@ -3,14 +3,14 @@ use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
-use libpep::core::transcryption::EncryptionContext;
-use libpep::distributed::server::transcryptor::PEPSystem;
+use libpep::factors::EncryptionContext;
+use libpep::transcryptor::DistributedTranscryptor;
 use log::{info, warn};
 use paas_api::sessions::{EndSessionRequest, SessionResponse, StartSessionResponse};
 
 pub async fn start_session(
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_id = session_storage

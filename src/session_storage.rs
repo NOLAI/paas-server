@@ -1,5 +1,5 @@
 use chrono::{TimeZone, Utc};
-use libpep::core::transcryption::EncryptionContext;
+use libpep::factors::EncryptionContext;
 use r2d2::{Pool, PooledConnection};
 use rand::distr::Alphanumeric;
 use rand::Rng;

@@ -4,8 +4,9 @@ use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
-use libpep::core::transcryption::EncryptionContext;
-use libpep::distributed::server::transcryptor::PEPSystem;
+use libpep::data::traits::{HasStructure, Pseudonymizable, Rekeyable, Transcryptable};
+use libpep::factors::{AttributeRekeyInfo, EncryptionContext, PseudonymRekeyInfo};
+use libpep::transcryptor::DistributedTranscryptor;
 use log::{info, warn};
 use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
@@ -13,14 +14,18 @@ use paas_api::transcrypt::{
     TranscryptionBatchRequest, TranscryptionBatchResponse, TranscryptionRequest,
     TranscryptionResponse,
 };
+use serde::Serialize;
 
-pub async fn pseudonymize(
-    item: web::Json<PseudonymizationRequest>,
+pub async fn pseudonymize<T>(
+    item: web::Json<PseudonymizationRequest<T>>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Pseudonymizable + Serialize,
+{
     let session_storage = session_storage.get_ref();
     let request = item.into_inner();
 
@@ -66,25 +71,26 @@ pub async fn pseudonymize(
         &request.session_to,
     );
 
-    let result = pep_system.pseudonymize(&request.encrypted_pseudonym, &pseudonymization_info);
+    let result = pep_system.pseudonymize(&request.encrypted, &pseudonymization_info);
 
     info!(
         "{:?} pseudonymized from {:?} to {:?}",
         user.username, request.domain_from, request.domain_to
     );
 
-    Ok(HttpResponse::Ok().json(PseudonymizationResponse {
-        encrypted_pseudonym: result,
-    }))
+    Ok(HttpResponse::Ok().json(PseudonymizationResponse { result }))
 }
 
-pub async fn pseudonymize_batch(
-    item: web::Json<PseudonymizationBatchRequest>,
+pub async fn pseudonymize_batch<T>(
+    item: web::Json<PseudonymizationBatchRequest<T>>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Pseudonymizable + Serialize + Clone + HasStructure,
+{
     let session_storage = session_storage.get_ref();
     let mut request = item.into_inner();
 
@@ -133,38 +139,28 @@ pub async fn pseudonymize_batch(
 
     let mut rng = rand::rng();
 
-    let msg_out = pep_system.pseudonymize_batch(
-        &mut request.encrypted_pseudonyms,
-        &pseudonymization_info,
-        &mut rng,
-    );
+    let msg_out =
+        pep_system.pseudonymize_batch(&mut request.encrypted, &pseudonymization_info, &mut rng)?;
 
     info!(
         "{} batch-pseudonymized {} pseudonyms from {:?} to {:?}",
         user.username,
-        request.encrypted_pseudonyms.len(),
+        request.encrypted.len(),
         request.domain_from,
         request.domain_to
     );
 
     Ok(HttpResponse::Ok().json(PseudonymizationBatchResponse {
-        encrypted_pseudonyms: Vec::from(msg_out),
+        result: Vec::from(msg_out),
     }))
 }
 
-pub async fn rekey(
-    item: web::Json<RekeyRequest>,
-    _access_rules: Data<AccessRules>,
-    session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
-    user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
-    let session_storage = session_storage.get_ref();
-    let request = item.into_inner();
-
-    // TODO: check access rules!
-
-    let EncryptionContext::Specific(session_to_str) = &request.session_to else {
+fn validate_rekey_request(
+    session_to: &EncryptionContext,
+    user: &AuthInfo,
+    session_storage: &dyn SessionStorage,
+) -> Result<(), PAASServerError> {
+    let EncryptionContext::Specific(session_to_str) = session_to else {
         return Err(PAASServerError::InvalidSession(
             "Expected Specific context".to_string(),
         ));
@@ -182,71 +178,82 @@ pub async fn rekey(
     if !session_valid {
         warn!(
             "{} tried to rekey to an invalid decryption context: {:?}",
-            user.username, request.session_to
+            user.username, session_to
         );
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
         ));
     }
+    Ok(())
+}
 
-    let psuedonym_rekey_info =
-        pep_system.attribute_rekey_info(&request.session_from, &request.session_to);
-    let msg_out = pep_system.rekey(&request.encrypted_attribute, &psuedonym_rekey_info);
+pub async fn rekey_attribute<T>(
+    item: web::Json<RekeyRequest<T>>,
+    _access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = AttributeRekeyInfo> + Serialize,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
+
+    let rekey_info = pep_system.attribute_rekey_info(&request.session_from, &request.session_to);
+    let result = pep_system.rekey(&request.encrypted, &rekey_info);
 
     info!("{} rekeyed data", user.username);
 
-    Ok(HttpResponse::Ok().json(RekeyResponse {
-        encrypted_attribute: msg_out,
-    }))
+    Ok(HttpResponse::Ok().json(RekeyResponse { result }))
 }
 
-pub async fn rekey_batch(
-    item: web::Json<RekeyBatchRequest>,
+pub async fn rekey_psuedonym<T>(
+    item: web::Json<RekeyRequest<T>>,
     _access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = PseudonymRekeyInfo> + Serialize,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
+
+    let rekey_info = pep_system.pseudonym_rekey_info(&request.session_from, &request.session_to);
+    let result = pep_system.rekey(&request.encrypted, &rekey_info);
+
+    info!("{} rekeyed data", user.username);
+
+    Ok(HttpResponse::Ok().json(RekeyResponse { result }))
+}
+
+pub async fn rekey_batch_attribute<T>(
+    item: web::Json<RekeyBatchRequest<T>>,
+    _access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = AttributeRekeyInfo>
+        + Serialize
+        + Clone
+        + HasStructure,
+{
     let session_storage = session_storage.get_ref();
     let mut request = item.into_inner();
 
-    // TODO: check access rules!
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
 
-    let EncryptionContext::Specific(session_to_str) = &request.session_to else {
-        return Err(PAASServerError::InvalidSession(
-            "Expected Specific context".to_string(),
-        ));
-    };
-    let session_valid = session_storage
-        .session_exists(user.username.to_string(), session_to_str.clone())
-        .map_err(|e| {
-            warn!(
-                "Failed to check if session exists for user {}: {}",
-                user.username, e
-            );
-            PAASServerError::SessionError(Box::new(e))
-        })?;
-
-    if !session_valid {
-        warn!(
-            "{} tried to rekey to an invalid decryption context: {:?}",
-            user.username, request.session_to
-        );
-        return Err(PAASServerError::InvalidSession(
-            "Target session not owned by user".to_string(),
-        ));
-    }
-
-    let attribute_rekey_info =
-        pep_system.attribute_rekey_info(&request.session_from, &request.session_to);
+    let rekey_info = pep_system.attribute_rekey_info(&request.session_from, &request.session_to);
 
     let mut rng = rand::rng();
 
-    let msg_out = pep_system.rekey_batch(
-        &mut request.encrypted_attributes,
-        &attribute_rekey_info,
-        &mut rng,
-    );
+    let msg_out = pep_system.rekey_batch(&mut request.encrypted, &rekey_info, &mut rng)?;
 
     info!(
         "{} batch-rekeyed {} attributes",
@@ -255,17 +262,55 @@ pub async fn rekey_batch(
     );
 
     Ok(HttpResponse::Ok().json(RekeyBatchResponse {
-        encrypted_attributes: msg_out.to_vec(),
+        result: msg_out.to_vec(),
     }))
 }
 
-pub async fn transcrypt(
-    item: web::Json<TranscryptionRequest>,
+pub async fn rekey_batch_psuedonym<T>(
+    item: web::Json<RekeyBatchRequest<T>>,
+    _access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = PseudonymRekeyInfo>
+        + Serialize
+        + Clone
+        + HasStructure,
+{
+    let session_storage = session_storage.get_ref();
+    let mut request = item.into_inner();
+
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
+
+    let rekey_info = pep_system.pseudonym_rekey_info(&request.session_from, &request.session_to);
+
+    let mut rng = rand::rng();
+
+    let msg_out = pep_system.rekey_batch(&mut request.encrypted, &rekey_info, &mut rng)?;
+
+    info!(
+        "{} batch-rekeyed {} attributes",
+        user.username,
+        msg_out.len()
+    );
+
+    Ok(HttpResponse::Ok().json(RekeyBatchResponse {
+        result: msg_out.to_vec(),
+    }))
+}
+
+pub async fn transcrypt<T>(
+    item: web::Json<TranscryptionRequest<T>>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Transcryptable + Serialize,
+{
     let session_storage = session_storage.get_ref();
     let request = item.into_inner();
 
@@ -311,25 +356,28 @@ pub async fn transcrypt(
         &request.session_to,
     );
 
-    let msg_out = pep_system.transcrypt(&request.encrypted, &transcryption_info);
+    let result = pep_system.transcrypt(&request.encrypted, &transcryption_info);
 
     info!(
         "{:?} transcrypted from {:?} to {:?}",
         user.username, request.domain_from, request.domain_to
     );
 
-    Ok(HttpResponse::Ok().json(TranscryptionResponse { encrypted: msg_out }))
+    Ok(HttpResponse::Ok().json(TranscryptionResponse { result }))
 }
 
-pub async fn transcrypt_batch(
-    item: web::Json<TranscryptionBatchRequest>,
+pub async fn transcrypt_batch<T>(
+    item: web::Json<TranscryptionBatchRequest<T>>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Transcryptable + Serialize + HasStructure + Clone,
+{
     let session_storage = session_storage.get_ref();
-    let request = item.into_inner();
+    let mut request = item.into_inner();
 
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
@@ -375,30 +423,18 @@ pub async fn transcrypt_batch(
 
     let mut rng = rand::rng();
 
-    let msg_out = pep_system.transcrypt_batch(request.encrypted, &transcryption_info, &mut rng);
+    let result =
+        pep_system.transcrypt_batch(&mut request.encrypted, &transcryption_info, &mut rng)?;
 
-    match msg_out {
-        Ok(encrypted_data) => {
-            info!(
-                "{} batch-transcrypted {} items from {:?} to {:?}",
-                user.username,
-                encrypted_data.len(),
-                request.domain_from,
-                request.domain_to
-            );
+    info!(
+        "{} batch-transcrypted {} items from {:?} to {:?}",
+        user.username,
+        result.len(),
+        request.domain_from,
+        request.domain_to
+    );
 
-            Ok(HttpResponse::Ok().json(TranscryptionBatchResponse {
-                encrypted: encrypted_data,
-            }))
-        }
-        Err(e) => {
-            warn!(
-                "{} failed to batch-transcrypt from {:?} to {:?}: {}",
-                user.username, request.domain_from, request.domain_to, e
-            );
-            Err(PAASServerError::TranscryptionError {
-                error: "Batch transcryption failed".to_string(),
-            })
-        }
-    }
+    Ok(HttpResponse::Ok().json(TranscryptionBatchResponse {
+        result: result.to_vec(),
+    }))
 }

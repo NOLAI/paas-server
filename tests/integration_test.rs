@@ -3,18 +3,18 @@ use actix_web::dev::Service;
 use actix_web::web::Data;
 use actix_web::{test, web, App, HttpMessage};
 use libpep::arithmetic::scalars::ScalarNonZero;
-use libpep::core::data::{encrypt, Attribute, Encrypted, EncryptedPseudonym, Pseudonym};
-use libpep::core::keys::{
+use libpep::client::encrypt;
+use libpep::client::prelude::{Attribute, EncryptedPseudonym, Pseudonym};
+use libpep::data::padding::Padded;
+use libpep::data::records::EncryptedRecord;
+use libpep::data::simple::ElGamalEncrypted;
+use libpep::factors::{EncryptionSecret, PseudonymizationDomain, PseudonymizationSecret};
+use libpep::keys::distribution::BlindingFactor;
+use libpep::keys::{
     AttributeSessionPublicKey, AttributeSessionSecretKey, PseudonymSessionPublicKey,
     PseudonymSessionSecretKey, PublicKey,
 };
-use libpep::core::padding::Padded;
-use libpep::core::transcryption::batch::EncryptedData;
-use libpep::core::transcryption::{
-    EncryptionSecret, PseudonymizationDomain, PseudonymizationSecret,
-};
-use libpep::distributed::server::setup::BlindingFactor;
-use libpep::distributed::server::transcryptor::PEPSystem;
+use libpep::transcryptor::DistributedTranscryptor;
 use paas_api::sessions::StartSessionResponse;
 use paas_api::transcrypt::{PseudonymizationResponse, TranscryptionResponse};
 use paas_server::access_rules::{AccessRules, Permission};
@@ -43,7 +43,7 @@ async fn test_start_session_and_pseudonymize() {
     };
     let session_storage: Box<dyn SessionStorage> =
         Box::new(InMemorySessionStorage::new(Duration::from_secs(10), 10));
-    let pep_system = PEPSystem::new(
+    let pep_system = DistributedTranscryptor::new(
         PseudonymizationSecret::from("pseudonymization_secret".as_bytes().to_vec()),
         EncryptionSecret::from("encryption_secret".as_bytes().to_vec()),
         BlindingFactor::from_hex(
@@ -61,8 +61,11 @@ async fn test_start_session_and_pseudonymize() {
             .service(
                 web::scope("")
                     .service(web::scope("sessions").route("/start", web::post().to(start_session)))
-                    .route("/pseudonymize", web::post().to(pseudonymize))
-                    .route("/transcrypt", web::post().to(transcrypt)),
+                    .route(
+                        "/pseudonymize",
+                        web::post().to(pseudonymize::<EncryptedPseudonym>),
+                    )
+                    .route("/transcrypt", web::post().to(transcrypt::<EncryptedRecord>)),
             ),
     )
     .await;
@@ -79,7 +82,7 @@ async fn test_start_session_and_pseudonymize() {
     let req = test::TestRequest::post()
         .uri("/pseudonymize")
         .set_json(json!({
-        "encrypted_pseudonym": EncryptedPseudonym::from_base64("nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==").unwrap(),
+        "encrypted": EncryptedPseudonym::from_base64("nr3FRadpFFGCFksYgrloo5J2V9j7JJWcUeiNBna66y78lwMia2-l8He4FfJPoAjuHCpH-8B0EThBr8DS3glHJw==").unwrap(),
         "domain_from": PseudonymizationDomain::from("domain1"),
         "domain_to": PseudonymizationDomain::from("domain2"),
         "session_from": start_session_response.session_id,
@@ -88,19 +91,16 @@ async fn test_start_session_and_pseudonymize() {
         .to_request();
     req.extensions_mut().insert(auth_user.clone());
     let resp = app.call(req).await.unwrap();
+
+    assert_eq!(resp.status(), 200);
     let body = to_bytes(resp.into_body()).await.unwrap();
-    let pseudonymization_response: PseudonymizationResponse =
+    let pseudonymization_response: PseudonymizationResponse<EncryptedPseudonym> =
         serde_json::from_slice(&body).unwrap();
 
-    println!(
-        "{}",
-        pseudonymization_response.encrypted_pseudonym.to_base64()
-    );
-    assert_eq!(pseudonymization_response.encrypted_pseudonym, Encrypted::from_base64("CNDEJ5Sy_dyMwJNAuTzWG5aipMKQrqHRhiF1VOpdaTNAwa4azSivSuVhIqYwkvApJZJcIOmD3J9WmtvLc2ekfw==").unwrap());
+    assert_eq!(pseudonymization_response.result, EncryptedPseudonym::from_base64("CNDEJ5Sy_dyMwJNAuTzWG5aipMKQrqHRhiF1VOpdaTNAwa4azSivSuVhIqYwkvApJZJcIOmD3J9WmtvLc2ekfw==").unwrap());
 
     let mut rng = rand::rng();
 
-    // TODO: We should use these keys in the above test cases too
     // Generated with peppy using: generate-session-keys 40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a encryption_secret session_context
     // Public pseudonym global key: ae3bfc06e29d54875a5ed21fc95dd5717d49d16d89e26351289a2e30f06a0270
     // Secret pseudonym global key: 40116e3e779af820137a7999b985a6fadbc9fbd44750cf1dce44c29ef3d3ce0a
@@ -131,12 +131,10 @@ async fn test_start_session_and_pseudonymize() {
     let attribute1 = Attribute::from_string_padded("Attribute 1").unwrap();
 
     // Create a single EncryptedData record (normal variant)
-    let test_data: EncryptedData = (
-        vec![encrypt(&pseudonym1, &psk_p, &mut rng)],
-        vec![encrypt(&attribute1, &psk_a, &mut rng)],
-    );
-
-    println!("{:?}", test_data);
+    let test_data = EncryptedRecord {
+        pseudonyms: vec![encrypt(&pseudonym1, &psk_p, &mut rng)],
+        attributes: vec![encrypt(&attribute1, &psk_a, &mut rng)],
+    };
 
     // Test transcrypt with Normal variant (single encrypted data record)
     let req = test::TestRequest::post()
@@ -155,25 +153,13 @@ async fn test_start_session_and_pseudonymize() {
     // Verify the response
     let status = resp.status();
     let body = to_bytes(resp.into_body()).await.unwrap();
-    if status != 200 {
-        println!(
-            "Error response ({}): {}",
-            status,
-            String::from_utf8_lossy(&body)
-        );
-    }
+
     assert_eq!(status, 200);
-    let transcryption_response: TranscryptionResponse = serde_json::from_slice(&body).unwrap();
+    let transcryption_response: TranscryptionResponse<EncryptedRecord> =
+        serde_json::from_slice(&body).unwrap();
 
     // Verify the structure of the returned data
     // Should have 1 pseudonym and 1 attribute (matching input structure)
-    assert_eq!(transcryption_response.encrypted.0.len(), 1);
-    assert_eq!(transcryption_response.encrypted.1.len(), 1);
-    println!(
-        "Transcryption successful: {:?}",
-        (
-            transcryption_response.encrypted.0,
-            transcryption_response.encrypted.1
-        )
-    );
+    assert_eq!(transcryption_response.result.pseudonyms.len(), 1);
+    assert_eq!(transcryption_response.result.attributes.len(), 1);
 }
