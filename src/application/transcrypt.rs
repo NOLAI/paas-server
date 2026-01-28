@@ -239,10 +239,7 @@ pub async fn rekey_batch_attribute<T>(
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError>
 where
-    T: Rekeyable<RekeyInfo = AttributeRekeyInfo>
-        + Serialize
-        + Clone
-        + HasStructure,
+    T: Rekeyable<RekeyInfo = AttributeRekeyInfo> + Serialize + Clone + HasStructure,
 {
     let session_storage = session_storage.get_ref();
     let mut request = item.into_inner();
@@ -274,10 +271,7 @@ pub async fn rekey_batch_psuedonym<T>(
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError>
 where
-    T: Rekeyable<RekeyInfo = PseudonymRekeyInfo>
-        + Serialize
-        + Clone
-        + HasStructure,
+    T: Rekeyable<RekeyInfo = PseudonymRekeyInfo> + Serialize + Clone + HasStructure,
 {
     let session_storage = session_storage.get_ref();
     let mut request = item.into_inner();
