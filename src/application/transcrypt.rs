@@ -4,61 +4,63 @@ use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
-use libpep::distributed::systems::PEPSystem;
+use libpep::data::traits::{HasStructure, Pseudonymizable, Rekeyable, Transcryptable};
+use libpep::factors::{AttributeRekeyInfo, EncryptionContext, PseudonymRekeyInfo};
+use libpep::transcryptor::DistributedTranscryptor;
 use log::{debug, error, info, warn};
 use paas_api::transcrypt::{
     PseudonymizationBatchRequest, PseudonymizationBatchResponse, PseudonymizationRequest,
     PseudonymizationResponse, RekeyBatchRequest, RekeyBatchResponse, RekeyRequest, RekeyResponse,
-    TranscryptionRequest, TranscryptionResponse,
+    TranscryptionBatchRequest, TranscryptionBatchResponse, TranscryptionRequest,
+    TranscryptionResponse,
 };
+use serde::Serialize;
 
-pub async fn pseudonymize(
-    item: web::Json<PseudonymizationRequest>,
+pub async fn pseudonymize<T>(
+    item: web::Json<PseudonymizationRequest<T>>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Pseudonymizable + Serialize,
+{
     let session_storage = session_storage.get_ref();
     let request = item.into_inner();
 
     debug!(
-        "Processing pseudonymization request: domain={}→{} session={}→{} {}",
-        request.domain_from.0,
-        request.domain_to.0,
-        request.session_from.0,
-        request.session_to.0,
-        *user
+        "Processing pseudonymization request: domain={:?}→{:?} session={:?}→{:?} {}",
+        request.domain_from, request.domain_to, request.session_from, request.session_to, *user
     );
 
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
-            "Access denied: domain={}→{} {}",
-            request.domain_from.0, request.domain_to.0, *user
+            "Access denied: domain={:?}→{:?} {:?}",
+            request.domain_from, request.domain_to, *user
         );
         return Err(PAASServerError::AccessDenied {
-            from: request.domain_from.0.clone(),
-            to: request.domain_to.0.clone(),
+            from: format!("{:?}", request.domain_from.clone()),
+            to: format!("{:?}", request.domain_to.clone()),
         });
     }
 
-    let session_valid = match session_storage
-        .session_exists(user.sub.to_string(), request.session_to.clone().to_string())
-    {
-        Ok(valid) => valid,
-        Err(e) => {
-            error!(
-                "Failed to check if session exists: session={} {}",
-                request.session_to.0, *user
-            );
-            return Err(PAASServerError::SessionError(Box::new(e)));
-        }
-    };
+    let session_valid =
+        match session_storage.session_exists(user.sub.to_string(), request.session_to.clone()) {
+            Ok(valid) => valid,
+            Err(e) => {
+                error!(
+                    "Failed to check if session exists: session={:?} {}",
+                    request.session_to, *user
+                );
+                return Err(PAASServerError::SessionError(Box::new(e)));
+            }
+        };
 
     if !session_valid {
         warn!(
-            "Invalid session: session={} {}",
-            request.session_to.0, *user
+            "Invalid session: session={:?} {}",
+            request.session_to, *user
         );
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
@@ -68,271 +70,316 @@ pub async fn pseudonymize(
     let pseudonymization_info = pep_system.pseudonymization_info(
         &request.domain_from,
         &request.domain_to,
-        Some(&request.session_from),
-        Some(&request.session_to),
+        &request.session_from,
+        &request.session_to,
     );
 
-    let msg_out = pep_system.pseudonymize(&request.encrypted_pseudonym, &pseudonymization_info);
+    let result = pep_system.pseudonymize(&request.encrypted, &pseudonymization_info);
 
     info!(
-        "Pseudonymized: domain={}→{} session={}→{} {}",
-        request.domain_from.0,
-        request.domain_to.0,
-        request.session_from.0,
-        request.session_to.0,
-        *user
+        "Pseudonymized: domain={:?}→{:?} session={:?}→{:?} {}",
+        request.domain_from, request.domain_to, request.session_from, request.session_to, *user
     );
 
-    Ok(HttpResponse::Ok().json(PseudonymizationResponse {
-        encrypted_pseudonym: msg_out,
-    }))
+    Ok(HttpResponse::Ok().json(PseudonymizationResponse { result }))
 }
 
-pub async fn pseudonymize_batch(
-    item: web::Json<PseudonymizationBatchRequest>,
+pub async fn pseudonymize_batch<T>(
+    item: web::Json<PseudonymizationBatchRequest<T>>,
     access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
-    let session_storage = session_storage.get_ref();
-    let request = item.into_inner();
-    let batch_size = request.encrypted_pseudonyms.len();
-
-    debug!(
-        "Processing batch pseudonymization request: domain={}→{} session={}→{} count={} {}",
-        request.domain_from.0,
-        request.domain_to.0,
-        request.session_from.0,
-        request.session_to.0,
-        batch_size,
-        *user
-    );
-
-    if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
-        warn!(
-            "Access denied: domain={}→{} {}",
-            request.domain_from.0, request.domain_to.0, *user
-        );
-        return Err(PAASServerError::AccessDenied {
-            from: request.domain_from.0.clone(),
-            to: request.domain_to.0.clone(),
-        });
-    }
-
-    let session_valid = match session_storage
-        .session_exists(user.sub.to_string(), request.session_to.clone().to_string())
-    {
-        Ok(valid) => valid,
-        Err(e) => {
-            error!(
-                "Failed to check if session exists: session={} {}",
-                request.session_to.0, *user
-            );
-            return Err(PAASServerError::SessionError(Box::new(e)));
-        }
-    };
-
-    if !session_valid {
-        warn!(
-            "Invalid session: session={} {}",
-            request.session_to.0, *user
-        );
-        return Err(PAASServerError::InvalidSession(
-            "Target session not owned by user".to_string(),
-        ));
-    }
-
-    let mut encrypted_pseudonyms = request.encrypted_pseudonyms.clone();
-    let mut rng = rand::thread_rng();
-
-    let pseudonymization_info = pep_system.pseudonymization_info(
-        &request.domain_from,
-        &request.domain_to,
-        Some(&request.session_from),
-        Some(&request.session_to),
-    );
-
-    let msg_out =
-        pep_system.pseudonymize_batch(&mut encrypted_pseudonyms, &pseudonymization_info, &mut rng);
-
-    info!(
-        "Pseudonymized batch: domain={}→{} session={}→{} count={} {}",
-        request.domain_from.0,
-        request.domain_to.0,
-        request.session_from.0,
-        request.session_to.0,
-        batch_size,
-        *user
-    );
-
-    Ok(HttpResponse::Ok().json(PseudonymizationBatchResponse {
-        encrypted_pseudonyms: Vec::from(msg_out),
-    }))
-}
-
-pub async fn rekey(
-    item: web::Json<RekeyRequest>,
-    _access_rules: Data<AccessRules>,
-    session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
-    user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
-    let session_storage = session_storage.get_ref();
-    let request = item.into_inner();
-
-    debug!(
-        "Processing rekey request: session={}→{} {}",
-        request.session_from.0, request.session_to.0, *user
-    );
-
-    // TODO: check access rules!
-
-    let session_valid = match session_storage
-        .session_exists(user.sub.to_string(), request.session_to.clone().to_string())
-    {
-        Ok(valid) => valid,
-        Err(e) => {
-            error!(
-                "Failed to check if session exists: session={} {}",
-                request.session_to.0, *user
-            );
-            return Err(PAASServerError::SessionError(Box::new(e)));
-        }
-    };
-
-    if !session_valid {
-        warn!(
-            "Invalid session: session={} {}",
-            request.session_to.0, *user
-        );
-        return Err(PAASServerError::InvalidSession(
-            "Target session not owned by user".to_string(),
-        ));
-    }
-
-    let rekey_info =
-        pep_system.attribute_rekey_info(Some(&request.session_from), Some(&request.session_to));
-
-    let msg_out = pep_system.rekey(&request.encrypted_attribute, &rekey_info);
-
-    info!(
-        "Rekeyed: session={}→{} {}",
-        request.session_from.0, request.session_to.0, *user
-    );
-
-    Ok(HttpResponse::Ok().json(RekeyResponse {
-        encrypted_attribute: msg_out,
-    }))
-}
-
-pub async fn rekey_batch(
-    item: web::Json<RekeyBatchRequest>,
-    _access_rules: Data<AccessRules>,
-    session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
-    user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
-    let session_storage = session_storage.get_ref();
-    let request = item.into_inner();
-    let batch_size = request.encrypted_attributes.len();
-
-    debug!(
-        "Processing batch rekey request: session={}→{} count={} {}",
-        request.session_from.0, request.session_to.0, batch_size, *user
-    );
-
-    // TODO: check access rules!
-
-    let session_valid = match session_storage
-        .session_exists(user.sub.to_string(), request.session_to.clone().to_string())
-    {
-        Ok(valid) => valid,
-        Err(e) => {
-            error!(
-                "Failed to check if session exists: session={} {}",
-                request.session_to.0, *user
-            );
-            return Err(PAASServerError::SessionError(Box::new(e)));
-        }
-    };
-
-    if !session_valid {
-        warn!(
-            "Invalid session: session={} {}",
-            request.session_to.0, *user
-        );
-        return Err(PAASServerError::InvalidSession(
-            "Target session not owned by user".to_string(),
-        ));
-    }
-
-    let rekey_info =
-        pep_system.attribute_rekey_info(Some(&request.session_from), Some(&request.session_to));
-
-    let mut encrypted_attributes = request.encrypted_attributes.clone();
-    let mut rng = rand::thread_rng();
-    let msg_out = pep_system.rekey_batch(&mut encrypted_attributes, &rekey_info, &mut rng);
-
-    info!(
-        "Rekeyed batch: session={}→{} count={} {}",
-        request.session_from.0, request.session_to.0, batch_size, *user
-    );
-
-    Ok(HttpResponse::Ok().json(RekeyBatchResponse {
-        encrypted_attributes: Vec::from(msg_out),
-    }))
-}
-
-pub async fn transcrypt(
-    item: web::Json<TranscryptionRequest>,
-    access_rules: Data<AccessRules>,
-    session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
-    user: web::ReqData<AuthInfo>,
-) -> Result<HttpResponse, PAASServerError> {
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Pseudonymizable + Serialize + Clone + HasStructure,
+{
     let session_storage = session_storage.get_ref();
     let request = item.into_inner();
     let batch_size = request.encrypted.len();
 
     debug!(
-        "Processing transcrypt request: domain={}→{} session={}→{} count={} {}",
-        request.domain_from.0,
-        request.domain_to.0,
-        request.session_from.0,
-        request.session_to.0,
+        "Processing batch pseudonymization request: domain={:?}→{:?} session={:?}→{:?} count={} {}",
+        request.domain_from,
+        request.domain_to,
+        request.session_from,
+        request.session_to,
         batch_size,
         *user
     );
 
     if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
         warn!(
-            "Access denied: domain={}→{} {}",
-            request.domain_from.0, request.domain_to.0, *user
+            "Access denied: domain={:?}→{:?} {}",
+            request.domain_from, request.domain_to, *user
         );
         return Err(PAASServerError::AccessDenied {
-            from: request.domain_from.0.clone(),
-            to: request.domain_to.0.clone(),
+            from: format!("{:?}", request.domain_from.clone()),
+            to: format!("{:?}", request.domain_to.clone()),
         });
     }
 
-    let session_valid = match session_storage
-        .session_exists(user.sub.to_string(), request.session_to.clone().to_string())
-    {
-        Ok(valid) => valid,
-        Err(e) => {
-            error!(
-                "Failed to check if session exists: session={} {}",
-                request.session_to.0, *user
-            );
-            return Err(PAASServerError::SessionError(Box::new(e)));
-        }
-    };
+    let session_valid =
+        match session_storage.session_exists(user.sub.to_string(), request.session_to.clone()) {
+            Ok(valid) => valid,
+            Err(e) => {
+                error!(
+                    "Failed to check if session exists: session={:?} {}",
+                    request.session_to, *user
+                );
+                return Err(PAASServerError::SessionError(Box::new(e)));
+            }
+        };
 
     if !session_valid {
         warn!(
-            "Invalid session: session={} {}",
-            request.session_to.0, *user
+            "Invalid session: session={:?} {}",
+            request.session_to, *user
+        );
+        return Err(PAASServerError::InvalidSession(
+            "Target session not owned by user".to_string(),
+        ));
+    }
+
+    let mut encrypted_pseudonyms = request.encrypted.clone();
+    let mut rng = rand::rng();
+
+    let pseudonymization_info = pep_system.pseudonymization_info(
+        &request.domain_from,
+        &request.domain_to,
+        &request.session_from,
+        &request.session_to,
+    );
+
+    let msg_out = pep_system.pseudonymize_batch(
+        &mut encrypted_pseudonyms,
+        &pseudonymization_info,
+        &mut rng,
+    )?;
+
+    info!(
+        "Pseudonymized batch: domain={:?}→{:?} session={:?}→{:?} count={} {}",
+        request.domain_from,
+        request.domain_to,
+        request.session_from,
+        request.session_to,
+        batch_size,
+        *user
+    );
+
+    Ok(HttpResponse::Ok().json(PseudonymizationBatchResponse {
+        result: Vec::from(msg_out),
+    }))
+}
+
+fn validate_rekey_request(
+    session_to: &EncryptionContext,
+    user: &AuthInfo,
+    session_storage: &dyn SessionStorage,
+) -> Result<(), PAASServerError> {
+    // TODO: check access rules!
+    let session_valid =
+        match session_storage.session_exists(user.sub.to_string(), session_to.clone()) {
+            Ok(valid) => valid,
+            Err(e) => {
+                error!(
+                    "Failed to check if session exists: session={:?} {}",
+                    session_to, *user
+                );
+                return Err(PAASServerError::SessionError(Box::new(e)));
+            }
+        };
+
+    if !session_valid {
+        warn!("Invalid session: session={:?} {}", session_to, *user);
+        return Err(PAASServerError::InvalidSession(
+            "Target session not owned by user".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+pub async fn rekey_attribute<T>(
+    item: web::Json<RekeyRequest<T>>,
+    _access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = AttributeRekeyInfo> + Serialize,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+
+    debug!(
+        "Processing rekey request: session={:?}→{:?} {}",
+        request.session_from, request.session_to, *user
+    );
+
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
+
+    let rekey_info = pep_system.attribute_rekey_info(&request.session_from, &request.session_to);
+
+    let result = pep_system.rekey(&request.encrypted, &rekey_info);
+
+    info!(
+        "Rekeyed: session={:?}→{:?} {}",
+        request.session_from, request.session_to, *user
+    );
+
+    Ok(HttpResponse::Ok().json(RekeyResponse { result }))
+}
+
+pub async fn rekey_psuedonym<T>(
+    item: web::Json<RekeyRequest<T>>,
+    _access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = PseudonymRekeyInfo> + Serialize,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+
+    debug!(
+        "Processing rekey request: session={:?}→{:?} {}",
+        request.session_from, request.session_to, *user
+    );
+
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
+
+    let rekey_info = pep_system.pseudonym_rekey_info(&request.session_from, &request.session_to);
+
+    let result = pep_system.rekey(&request.encrypted, &rekey_info);
+
+    info!(
+        "Rekeyed: session={:?}→{:?} {}",
+        request.session_from, request.session_to, *user
+    );
+
+    Ok(HttpResponse::Ok().json(RekeyResponse { result }))
+}
+
+pub async fn rekey_batch_attribute<T>(
+    item: web::Json<RekeyBatchRequest<T>>,
+    _access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = AttributeRekeyInfo> + Serialize + Clone + HasStructure,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+    let batch_size = request.encrypted.len();
+
+    debug!(
+        "Processing batch rekey request: session={:?}→{:?} count={} {}",
+        request.session_from, request.session_to, batch_size, *user
+    );
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
+
+    let rekey_info = pep_system.attribute_rekey_info(&request.session_from, &request.session_to);
+
+    let mut encrypted_attributes = request.encrypted.clone();
+    let mut rng = rand::rng();
+    let msg_out = pep_system.rekey_batch(&mut encrypted_attributes, &rekey_info, &mut rng)?;
+
+    info!(
+        "Rekeyed batch: session={:?}→{:?} count={} {}",
+        request.session_from, request.session_to, batch_size, *user
+    );
+
+    Ok(HttpResponse::Ok().json(RekeyBatchResponse {
+        result: Vec::from(msg_out),
+    }))
+}
+
+pub async fn rekey_batch_psuedonym<T>(
+    item: web::Json<RekeyBatchRequest<T>>,
+    _access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Rekeyable<RekeyInfo = PseudonymRekeyInfo> + Serialize + Clone + HasStructure,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+    let batch_size = request.encrypted.len();
+
+    debug!(
+        "Processing batch rekey request: session={:?}→{:?} count={} {}",
+        request.session_from, request.session_to, batch_size, *user
+    );
+    validate_rekey_request(&request.session_to, &user, session_storage.as_ref())?;
+
+    let rekey_info = pep_system.pseudonym_rekey_info(&request.session_from, &request.session_to);
+
+    let mut encrypted_attributes = request.encrypted.clone();
+    let mut rng = rand::rng();
+    let msg_out = pep_system.rekey_batch(&mut encrypted_attributes, &rekey_info, &mut rng)?;
+
+    info!(
+        "Rekeyed batch: session={:?}→{:?} count={} {}",
+        request.session_from, request.session_to, batch_size, *user
+    );
+
+    Ok(HttpResponse::Ok().json(RekeyBatchResponse {
+        result: Vec::from(msg_out),
+    }))
+}
+
+pub async fn transcrypt<T>(
+    item: web::Json<TranscryptionRequest<T>>,
+    access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Transcryptable + Serialize,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+
+    debug!(
+        "Processing transcrypt request: domain={:?}→{:?} session={:?}→{:?} {}",
+        request.domain_from, request.domain_to, request.session_from, request.session_to, *user
+    );
+
+    if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
+        warn!(
+            "Access denied: domain={:?}→{:?} {}",
+            request.domain_from, request.domain_to, *user
+        );
+        return Err(PAASServerError::AccessDenied {
+            from: format!("{:?}", request.domain_from.clone()),
+            to: format!("{:?}", request.domain_to.clone()),
+        });
+    }
+
+    let session_valid =
+        match session_storage.session_exists(user.sub.to_string(), request.session_to.clone()) {
+            Ok(valid) => valid,
+            Err(e) => {
+                error!(
+                    "Failed to check if session exists: session={:?} {}",
+                    request.session_to, *user
+                );
+                return Err(PAASServerError::SessionError(Box::new(e)));
+            }
+        };
+
+    if !session_valid {
+        warn!(
+            "Invalid session: session={:?} {}",
+            request.session_to, *user
         );
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
@@ -342,28 +389,102 @@ pub async fn transcrypt(
     let transcryption_info = pep_system.transcryption_info(
         &request.domain_from,
         &request.domain_to,
-        Some(&request.session_from),
-        Some(&request.session_to),
+        &request.session_from,
+        &request.session_to,
     );
 
-    let mut rng = rand::thread_rng();
-    let msg_out = pep_system.transcrypt_batch(
-        &mut request.encrypted.into_boxed_slice(),
-        &transcryption_info,
-        &mut rng,
-    );
+    let result = pep_system.transcrypt(&request.encrypted, &transcryption_info);
 
     info!(
-        "Transcrypted: domain={}→{} session={}→{} count={} {}",
-        request.domain_from.0,
-        request.domain_to.0,
-        request.session_from.0,
-        request.session_to.0,
+        "Transcrypted: domain={:?}→{:?} session={:?}→{:?} {}",
+        request.domain_from, request.domain_to, request.session_from, request.session_to, *user
+    );
+
+    Ok(HttpResponse::Ok().json(TranscryptionResponse { result }))
+}
+
+pub async fn transcrypt_batch<T>(
+    item: web::Json<TranscryptionBatchRequest<T>>,
+    access_rules: Data<AccessRules>,
+    session_storage: Data<Box<dyn SessionStorage>>,
+    pep_system: Data<DistributedTranscryptor>,
+    user: web::ReqData<AuthInfo>,
+) -> Result<HttpResponse, PAASServerError>
+where
+    T: Transcryptable + Serialize + HasStructure + Clone,
+{
+    let session_storage = session_storage.get_ref();
+    let request = item.into_inner();
+    let batch_size = request.encrypted.len();
+
+    debug!(
+        "Processing transcrypt batch request: domain={:?}→{:?} session={:?}→{:?} count={} {}",
+        request.domain_from,
+        request.domain_to,
+        request.session_from,
+        request.session_to,
         batch_size,
         *user
     );
 
-    Ok(HttpResponse::Ok().json(TranscryptionResponse {
-        encrypted: Vec::from(msg_out),
+    if !access_rules.has_access(&user, &request.domain_from, &request.domain_to) {
+        warn!(
+            "Access denied: domain={:?}→{:?} {}",
+            request.domain_from, request.domain_to, *user
+        );
+        return Err(PAASServerError::AccessDenied {
+            from: format!("{:?}", request.domain_from.clone()),
+            to: format!("{:?}", request.domain_to.clone()),
+        });
+    }
+
+    let session_valid =
+        match session_storage.session_exists(user.sub.to_string(), request.session_to.clone()) {
+            Ok(valid) => valid,
+            Err(e) => {
+                error!(
+                    "Failed to check if session exists: session={:?} {}",
+                    request.session_to, *user
+                );
+                return Err(PAASServerError::SessionError(Box::new(e)));
+            }
+        };
+
+    if !session_valid {
+        warn!(
+            "Invalid session: session={:?} {}",
+            request.session_to, *user
+        );
+        return Err(PAASServerError::InvalidSession(
+            "Target session not owned by user".to_string(),
+        ));
+    }
+
+    let transcryption_info = pep_system.transcryption_info(
+        &request.domain_from,
+        &request.domain_to,
+        &request.session_from,
+        &request.session_to,
+    );
+
+    let mut rng = rand::rng();
+    let msg_out = pep_system.transcrypt_batch(
+        &mut request.encrypted.into_boxed_slice(),
+        &transcryption_info,
+        &mut rng,
+    )?;
+
+    info!(
+        "Transcrypted: domain={:?}→{:?} session={:?}→{:?} count={} {}",
+        request.domain_from,
+        request.domain_to,
+        request.session_from,
+        request.session_to,
+        batch_size,
+        *user
+    );
+
+    Ok(HttpResponse::Ok().json(TranscryptionBatchResponse {
+        result: Vec::from(msg_out),
     }))
 }
