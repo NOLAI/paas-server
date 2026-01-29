@@ -1,4 +1,5 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use libpep::transcryptor::BatchError;
 use log::{error, warn};
 use serde_json::json;
 use thiserror::Error;
@@ -22,6 +23,12 @@ pub enum PAASServerError {
 
     #[error("Access denied: not allowed to transcrypt from {from} to {to}")]
     AccessDenied { from: String, to: String },
+
+    #[error(transparent)]
+    BatchError(#[from] BatchError),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 impl ResponseError for PAASServerError {
@@ -33,6 +40,8 @@ impl ResponseError for PAASServerError {
             Self::InvalidSession(_) => StatusCode::NOT_FOUND,
             Self::UnauthorizedSession => StatusCode::FORBIDDEN,
             Self::AccessDenied { .. } => StatusCode::FORBIDDEN,
+            Self::BatchError(_) => StatusCode::BAD_REQUEST,
+            Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -86,6 +95,22 @@ impl ResponseError for PAASServerError {
                     error_message,
                     from,
                     to
+                );
+            }
+            Self::BatchError(batch_error) => {
+                warn!(
+                    "Batch operation error: status_code={}, error={}, details={:?}",
+                    status.as_u16(),
+                    error_message,
+                    batch_error
+                );
+            }
+            Self::Unauthorized(message) => {
+                warn!(
+                    "Unauthorized access: status_code={}, error={} message={}",
+                    status.as_u16(),
+                    error_message,
+                    message
                 );
             }
         }

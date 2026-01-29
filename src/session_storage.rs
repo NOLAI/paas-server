@@ -1,7 +1,7 @@
 use chrono::{TimeZone, Utc};
-use libpep::high_level::contexts::EncryptionContext;
+use libpep::factors::EncryptionContext;
 use r2d2::{Pool, PooledConnection};
-use rand::distributions::Alphanumeric;
+use rand::distr::Alphanumeric;
 use rand::Rng;
 use redis::{Client, Commands};
 use redis::{IntoConnectionInfo, RedisError};
@@ -12,16 +12,33 @@ use std::time::Duration;
 
 pub trait SessionStorage: Send + Sync {
     fn start_session(&self, username: String) -> Result<String, Error>;
-    fn end_session(&self, username: String, session_id: String) -> Result<(), Error>;
+    fn end_session(&self, username: String, session_id: EncryptionContext) -> Result<(), Error>;
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error>;
     fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error>;
-    fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error>;
+    fn session_exists(
+        &self,
+        username: String,
+        session_id: EncryptionContext,
+    ) -> Result<bool, Error>;
     fn clone_box(&self) -> Box<dyn SessionStorage>;
 }
 
 impl Clone for Box<dyn SessionStorage> {
     fn clone(&self) -> Self {
         self.clone_box()
+    }
+}
+
+pub trait ToSessionKey {
+    fn to_key_string(&self) -> Result<String, Error>;
+}
+
+impl ToSessionKey for EncryptionContext {
+    fn to_key_string(&self) -> Result<String, Error> {
+        match self {
+            EncryptionContext::Specific(s) => Ok(s.clone()),
+            EncryptionContext::Global => Err(Error),
+        }
     }
 }
 
@@ -83,7 +100,7 @@ impl RedisSessionStorage {
 impl SessionStorage for RedisSessionStorage {
     fn start_session(&self, username: String) -> Result<String, Error> {
         // Generate a random string for the session ID
-        let session_postfix: String = rand::thread_rng()
+        let session_postfix: String = rand::rng()
             .sample_iter(&Alphanumeric)
             .take(self.new_session_length) // Random string length
             .map(char::from)
@@ -105,10 +122,10 @@ impl SessionStorage for RedisSessionStorage {
         Ok(session_id)
     }
 
-    fn end_session(&self, username: String, session_id: String) -> Result<(), Error> {
+    fn end_session(&self, username: String, session_id: EncryptionContext) -> Result<(), Error> {
         let mut connection = self.get_connection()?;
 
-        let key = format!("sessions:{}:{}", username, session_id);
+        let key = format!("sessions:{}:{:?}", username, session_id);
         let _: () = connection.del(key).expect("Failed to delete session");
         Ok(())
     }
@@ -138,18 +155,25 @@ impl SessionStorage for RedisSessionStorage {
         Ok(sessions)
     }
 
-    fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error> {
+    fn session_exists(
+        &self,
+        username: String,
+        session_id: EncryptionContext,
+    ) -> Result<bool, Error> {
         let mut conn = self.pool.get().map_err(|_| Error)?;
 
+        let session_id_str = session_id.to_key_string()?;
+
         // Check if the session_id already contains the username prefix
-        let actual_session_id = if session_id.starts_with(&format!("{}_", username)) {
+        let actual_session_id = if session_id_str.starts_with(&format!("{}_", username)) {
             // If it already has the prefix, use as is
             session_id
         } else {
             // Add the prefix if it doesn't already have it
-            format!("{}_{}", username, session_id)
+            EncryptionContext::Specific(format!("{}_{:?}", username, session_id_str))
         };
 
+        let actual_session_id = actual_session_id.to_key_string()?;
         let key = format!("sessions:{}:{}", username, actual_session_id);
 
         let exists: bool = conn.exists(&key).map_err(|_| Error)?;
@@ -205,7 +229,7 @@ impl InMemorySessionStorage {
 
 impl SessionStorage for InMemorySessionStorage {
     fn start_session(&self, username: String) -> Result<String, Error> {
-        let session_postfix: String = rand::thread_rng()
+        let session_postfix: String = rand::rng()
             .sample_iter(&Alphanumeric)
             .take(self.new_session_length) // Random string length
             .map(char::from)
@@ -221,8 +245,8 @@ impl SessionStorage for InMemorySessionStorage {
         Ok(session_id)
     }
 
-    fn end_session(&self, username: String, session_id: String) -> Result<(), Error> {
-        let session_id = format!("{}_{}", username, session_id);
+    fn end_session(&self, username: String, session_id: EncryptionContext) -> Result<(), Error> {
+        let session_id = format!("{}_{:?}", username, session_id);
         let mut sessions = self.sessions.lock().map_err(|_| Error)?;
         sessions.remove(&session_id);
         Ok(())
@@ -251,8 +275,14 @@ impl SessionStorage for InMemorySessionStorage {
         Ok(sessions)
     }
 
-    fn session_exists(&self, username: String, session_id: String) -> Result<bool, Error> {
+    fn session_exists(
+        &self,
+        username: String,
+        session_id: EncryptionContext,
+    ) -> Result<bool, Error> {
         self.clean_expired_sessions()?;
+
+        let session_id = session_id.to_key_string()?;
 
         // Check if the session_id already contains the username prefix
         let key = if session_id.starts_with(&format!("{}_", username)) {

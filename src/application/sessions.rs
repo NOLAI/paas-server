@@ -3,14 +3,14 @@ use crate::errors::PAASServerError;
 use crate::session_storage::SessionStorage;
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
-use libpep::distributed::systems::PEPSystem;
-use libpep::high_level::contexts::EncryptionContext;
+use libpep::factors::EncryptionContext;
+use libpep::transcryptor::DistributedTranscryptor;
 use log::{info, warn};
 use paas_api::sessions::{EndSessionRequest, SessionResponse, StartSessionResponse};
 
 pub async fn start_session(
     session_storage: Data<Box<dyn SessionStorage>>,
-    pep_system: Data<PEPSystem>,
+    pep_system: Data<DistributedTranscryptor>,
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_id = session_storage
@@ -41,11 +41,18 @@ pub async fn end_session(
     user: web::ReqData<AuthInfo>,
 ) -> Result<HttpResponse, PAASServerError> {
     let session_id = item.session_id.clone();
-
-    let sub_in_session = session_id
-        .split('_')
-        .next()
-        .ok_or(PAASServerError::InvalidSessionFormat(session_id.clone().0))?;
+    let EncryptionContext::Specific(session_id_str) = &item.session_id else {
+        return Err(PAASServerError::InvalidSessionFormat(
+            "Global context cannot be used as session key".to_string(),
+        ));
+    };
+    let sub_in_session =
+        session_id_str
+            .split('_')
+            .next()
+            .ok_or(PAASServerError::InvalidSessionFormat(
+                "Expected Specific context".to_string(),
+            ))?;
 
     if user.sub.as_str() != sub_in_session {
         warn!(
@@ -58,7 +65,7 @@ pub async fn end_session(
     info!("Ended session: session={:?} {}", session_id, *user);
 
     session_storage
-        .end_session(user.sub.to_string(), session_id.to_string())
+        .end_session(user.sub.to_string(), session_id.clone())
         .map_err(|e| {
             warn!(
                 "Storage error while ending session: session={:?} {} error={}",
