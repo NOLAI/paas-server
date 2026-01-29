@@ -172,26 +172,31 @@ where
     }))
 }
 
+#[allow(unreachable_code)]
 fn validate_rekey_request(
-    session_to: &EncryptionContext,
-    user: &AuthInfo,
-    session_storage: &dyn SessionStorage,
+    _session_to: &EncryptionContext,
+    _user: &AuthInfo,
+    _session_storage: &dyn SessionStorage,
 ) -> Result<(), PAASServerError> {
     // TODO: check access rules!
+    return Err(PAASServerError::Unauthorized(
+        "Rekeying is currently disabled pending access rule implementation".to_string(),
+    ));
+
     let session_valid =
-        match session_storage.session_exists(user.sub.to_string(), session_to.clone()) {
+        match _session_storage.session_exists(_user.sub.to_string(), _session_to.clone()) {
             Ok(valid) => valid,
             Err(e) => {
                 error!(
                     "Failed to check if session exists: session={:?} {}",
-                    session_to, *user
+                    _session_to, *_user
                 );
                 return Err(PAASServerError::SessionError(Box::new(e)));
             }
         };
 
     if !session_valid {
-        warn!("Invalid session: session={:?} {}", session_to, *user);
+        warn!("Invalid session: session={:?} {}", _session_to, *_user);
         return Err(PAASServerError::InvalidSession(
             "Target session not owned by user".to_string(),
         ));
@@ -231,7 +236,7 @@ where
     Ok(HttpResponse::Ok().json(RekeyResponse { result }))
 }
 
-pub async fn rekey_psuedonym<T>(
+pub async fn rekey_pseudonym<T>(
     item: web::Json<RekeyRequest<T>>,
     _access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
@@ -263,7 +268,7 @@ where
     Ok(HttpResponse::Ok().json(RekeyResponse { result }))
 }
 
-pub async fn rekey_batch_attribute<T>(
+pub async fn rekey_attribute_batch<T>(
     item: web::Json<RekeyBatchRequest<T>>,
     _access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,
@@ -299,7 +304,7 @@ where
     }))
 }
 
-pub async fn rekey_batch_psuedonym<T>(
+pub async fn rekey_pseudonym_batch<T>(
     item: web::Json<RekeyBatchRequest<T>>,
     _access_rules: Data<AccessRules>,
     session_storage: Data<Box<dyn SessionStorage>>,

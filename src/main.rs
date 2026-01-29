@@ -204,30 +204,30 @@ async fn main() -> std::io::Result<()> {
                             )
                             .route(
                                 paas_api::paths::rekey_path::<EncryptedPseudonym>().as_str(),
-                                web::post().to(rekey_psuedonym::<EncryptedPseudonym>),
+                                web::post().to(rekey_pseudonym::<EncryptedPseudonym>),
                             )
                             .route(
                                 paas_api::paths::rekey_path::<LongEncryptedPseudonym>().as_str(),
-                                web::post().to(rekey_psuedonym::<LongEncryptedPseudonym>),
+                                web::post().to(rekey_pseudonym::<LongEncryptedPseudonym>),
                             )
                             // Batch rekeying routes
                             .route(
                                 paas_api::paths::rekey_batch_path::<EncryptedAttribute>().as_str(),
-                                web::post().to(rekey_batch_attribute::<EncryptedAttribute>),
+                                web::post().to(rekey_attribute_batch::<EncryptedAttribute>),
                             )
                             .route(
                                 paas_api::paths::rekey_batch_path::<LongEncryptedAttribute>()
                                     .as_str(),
-                                web::post().to(rekey_batch_attribute::<LongEncryptedAttribute>),
+                                web::post().to(rekey_attribute_batch::<LongEncryptedAttribute>),
                             )
                             .route(
                                 paas_api::paths::rekey_batch_path::<EncryptedPseudonym>().as_str(),
-                                web::post().to(rekey_batch_psuedonym::<EncryptedPseudonym>),
+                                web::post().to(rekey_pseudonym_batch::<EncryptedPseudonym>),
                             )
                             .route(
                                 paas_api::paths::rekey_batch_path::<LongEncryptedPseudonym>()
                                     .as_str(),
-                                web::post().to(rekey_batch_psuedonym::<LongEncryptedPseudonym>),
+                                web::post().to(rekey_pseudonym_batch::<LongEncryptedPseudonym>),
                             )
                             // Transcryption routes
                             .route(

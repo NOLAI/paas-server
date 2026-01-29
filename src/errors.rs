@@ -26,6 +26,9 @@ pub enum PAASServerError {
 
     #[error(transparent)]
     BatchError(#[from] BatchError),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
 }
 
 impl ResponseError for PAASServerError {
@@ -38,6 +41,7 @@ impl ResponseError for PAASServerError {
             Self::UnauthorizedSession => StatusCode::FORBIDDEN,
             Self::AccessDenied { .. } => StatusCode::FORBIDDEN,
             Self::BatchError(_) => StatusCode::BAD_REQUEST,
+            Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -99,6 +103,14 @@ impl ResponseError for PAASServerError {
                     status.as_u16(),
                     error_message,
                     batch_error
+                );
+            }
+            Self::Unauthorized(message) => {
+                warn!(
+                    "Unauthorized access: status_code={}, error={} message={}",
+                    status.as_u16(),
+                    error_message,
+                    message
                 );
             }
         }
