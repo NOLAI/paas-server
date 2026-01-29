@@ -319,13 +319,9 @@ async fn test_transcrypt_encrypted_pep_json() {
 
     // Create test data with EncryptedPEPJSONValue
     // EncryptedPEPJSONValue::Pseudonym expects a LongEncryptedPseudonym
-    let long_pseudonym = LongPseudonym::from_string_padded("json_pseudo_value");
-    let encrypted_pseudonyms: Vec<EncryptedPseudonym> = long_pseudonym
-        .0
-        .iter()
-        .map(|p| encrypt(p, &psk_p, &mut rng))
-        .collect();
-    let test_json = EncryptedPEPJSONValue::Pseudonym(LongEncryptedPseudonym(encrypted_pseudonyms));
+    let pseudonym = Pseudonym::from_string_padded("json_pseudo_val").unwrap();
+    let encrypted_pseudonym = encrypt(&pseudonym, &psk_p, &mut rng);
+    let test_json = EncryptedPEPJSONValue::Pseudonym(encrypted_pseudonym);
 
     // Test transcrypt for EncryptedPEPJSONValue
     let transcrypt_path = paas_api::paths::transcrypt_path::<EncryptedPEPJSONValue>();
