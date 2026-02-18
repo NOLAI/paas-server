@@ -27,7 +27,7 @@ jobs:
       - name: Set Lowercase Image Name
         run: echo "LOWERCASE_IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
       - name: Set up Docker Buildx
