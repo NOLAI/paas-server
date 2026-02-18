@@ -2,7 +2,7 @@ use chrono::{TimeZone, Utc};
 use libpep::factors::EncryptionContext;
 use r2d2::{Pool, PooledConnection};
 use rand::distr::Alphanumeric;
-use rand::{RngExt};
+use rand::RngExt;
 use redis::{Client, Commands};
 use redis::{IntoConnectionInfo, RedisError};
 use std::fmt::Error;
