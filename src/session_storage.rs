@@ -14,12 +14,14 @@ pub trait SessionStorage: Send + Sync {
     fn start_session(&self, username: String) -> Result<String, Error>;
     fn end_session(&self, username: String, session_id: EncryptionContext) -> Result<(), Error>;
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error>;
-    fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error>;
     fn session_exists(
         &self,
         username: String,
         session_id: EncryptionContext,
     ) -> Result<bool, Error>;
+    /// Bounded (O(1)) connectivity probe. Must never scan the keyspace, as it is
+    /// reachable from the unauthenticated health endpoint.
+    fn is_healthy(&self) -> Result<(), Error>;
     fn clone_box(&self) -> Box<dyn SessionStorage>;
 }
 
@@ -31,6 +33,41 @@ impl Clone for Box<dyn SessionStorage> {
 
 pub trait ToSessionKey {
     fn to_key_string(&self) -> Result<String, Error>;
+}
+
+/// Returns whether `session_id` has the exact shape `{username}_{postfix}`, where the
+/// postfix is the alphanumeric random part. Anchoring on the full `{username}_` prefix
+/// and rejecting further `_` in the postfix prevents user `al` from matching sessions of
+/// users like `alice` or `al_x`.
+pub fn is_session_of(session_id: &str, username: &str) -> bool {
+    session_id
+        .strip_prefix(username)
+        .and_then(|rest| rest.strip_prefix('_'))
+        .is_some_and(|postfix| {
+            !postfix.is_empty() && postfix.chars().all(|c| c.is_ascii_alphanumeric())
+        })
+}
+
+/// Resolves a client-supplied session id to the full `{username}_{postfix}` form,
+/// accepting either the full id or just the postfix.
+fn full_session_id(username: &str, session_id: &str) -> String {
+    if is_session_of(session_id, username) {
+        session_id.to_string()
+    } else {
+        format!("{}_{}", username, session_id)
+    }
+}
+
+/// Escapes Redis glob metacharacters so a username is matched literally.
+fn escape_redis_glob(s: &str) -> String {
+    let mut escaped = String::with_capacity(s.len());
+    for c in s.chars() {
+        if matches!(c, '*' | '?' | '[' | ']' | '\\') {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
 }
 
 impl ToSessionKey for EncryptionContext {
@@ -123,33 +160,26 @@ impl SessionStorage for RedisSessionStorage {
     }
 
     fn end_session(&self, username: String, session_id: EncryptionContext) -> Result<(), Error> {
-        let mut connection = self.get_connection()?;
+        let session_id = full_session_id(&username, &session_id.to_key_string()?);
+        let key = format!("sessions:{}:{}", username, session_id);
 
-        let key = format!("sessions:{}:{:?}", username, session_id);
-        let _: () = connection.del(key).expect("Failed to delete session");
+        let mut connection = self.get_connection()?;
+        let _: () = connection.del(key).map_err(|_| Error)?;
         Ok(())
     }
 
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
         let mut connection = self.get_connection()?;
 
-        let key = format!("sessions:{}:*", username);
-        let keys: Vec<String> = connection.keys(key).expect("Failed to get keys");
-        let sessions: Vec<EncryptionContext> = keys
-            .iter()
-            .map(|key| key.split(":").collect::<Vec<&str>>()[2].to_string())
-            .map(|session_id| EncryptionContext::from(&session_id))
-            .collect();
-        Ok(sessions)
-    }
-
-    fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
-        let mut connection = self.get_connection()?;
-
-        let keys: Vec<String> = connection.keys("sessions:*:*").expect("Failed to get keys");
-        let sessions: Vec<EncryptionContext> = keys
-            .iter()
-            .map(|key| key.split(":").collect::<Vec<&str>>()[2].to_string())
+        // SCAN instead of KEYS so large keyspaces don't block Redis
+        let pattern = format!("sessions:{}:*", escape_redis_glob(&username));
+        let prefix = format!("sessions:{}:", username);
+        let sessions: Vec<EncryptionContext> = connection
+            .scan_match::<_, String>(pattern)
+            .map_err(|_| Error)?
+            .filter_map(|key| key.ok())
+            .filter_map(|key| key.strip_prefix(&prefix).map(str::to_string))
+            .filter(|session_id| is_session_of(session_id, &username))
             .map(|session_id| EncryptionContext::from(&session_id))
             .collect();
         Ok(sessions)
@@ -160,24 +190,20 @@ impl SessionStorage for RedisSessionStorage {
         username: String,
         session_id: EncryptionContext,
     ) -> Result<bool, Error> {
-        let mut conn = self.pool.get().map_err(|_| Error)?;
+        let session_id = full_session_id(&username, &session_id.to_key_string()?);
+        let key = format!("sessions:{}:{}", username, session_id);
 
-        let session_id_str = session_id.to_key_string()?;
-
-        // Check if the session_id already contains the username prefix
-        let actual_session_id = if session_id_str.starts_with(&format!("{}_", username)) {
-            // If it already has the prefix, use as is
-            session_id
-        } else {
-            // Add the prefix if it doesn't already have it
-            EncryptionContext::Specific(format!("{}_{:?}", username, session_id_str))
-        };
-
-        let actual_session_id = actual_session_id.to_key_string()?;
-        let key = format!("sessions:{}:{}", username, actual_session_id);
-
-        let exists: bool = conn.exists(&key).map_err(|_| Error)?;
+        let mut connection = self.get_connection()?;
+        let exists: bool = connection.exists(&key).map_err(|_| Error)?;
         Ok(exists)
+    }
+
+    fn is_healthy(&self) -> Result<(), Error> {
+        let mut connection = self.get_connection()?;
+        redis::cmd("PING")
+            .query::<String>(&mut *connection)
+            .map_err(|_| Error)?;
+        Ok(())
     }
 
     fn clone_box(&self) -> Box<dyn SessionStorage> {
@@ -185,9 +211,14 @@ impl SessionStorage for RedisSessionStorage {
     }
 }
 
+/// Sessions keyed by username, then by full session id, mapping to the start timestamp.
+/// Namespacing by username (like the Redis `sessions:{username}:{id}` keys) guarantees
+/// lookups can never cross user boundaries.
+type UserSessions = std::collections::HashMap<String, std::collections::HashMap<String, i64>>;
+
 #[derive(Clone)]
 pub struct InMemorySessionStorage {
-    sessions: Arc<Mutex<std::collections::HashMap<String, String>>>,
+    sessions: Arc<Mutex<UserSessions>>,
     session_expiry: Duration,
     new_session_length: usize,
 }
@@ -195,35 +226,23 @@ pub struct InMemorySessionStorage {
 impl InMemorySessionStorage {
     pub fn new(session_expiry: Duration, new_session_length: usize) -> Self {
         Self {
-            sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            sessions: Arc::new(Mutex::new(UserSessions::new())),
             session_expiry,
             new_session_length,
         }
     }
-    fn is_session_expired(&self, timestamp_str: &str) -> Result<bool, Error> {
-        let timestamp = timestamp_str.parse::<i64>().map_err(|_| Error)?;
-        let session_time = Utc.timestamp_opt(timestamp, 0).single().ok_or(Error)?;
 
-        let now = Utc::now();
-        let expiry_time = session_time + self.session_expiry;
-
-        Ok(now > expiry_time)
+    fn is_session_expired(&self, timestamp: i64) -> bool {
+        Utc.timestamp_opt(timestamp, 0)
+            .single()
+            .is_none_or(|session_time| Utc::now() > session_time + self.session_expiry)
     }
 
-    fn clean_expired_sessions(&self) -> Result<(), Error> {
-        let mut sessions = self.sessions.lock().map_err(|_| Error)?;
-        let mut expired_keys = Vec::new();
-
-        for (key, time_str) in sessions.iter() {
-            if self.is_session_expired(time_str)? {
-                expired_keys.push(key.clone());
-            }
-        }
-
-        for key in expired_keys {
-            sessions.remove(&key);
-        }
-        Ok(())
+    fn clean_expired_sessions(&self, sessions: &mut UserSessions) {
+        sessions.retain(|_, user_sessions| {
+            user_sessions.retain(|_, timestamp| !self.is_session_expired(*timestamp));
+            !user_sessions.is_empty()
+        });
     }
 }
 
@@ -241,38 +260,37 @@ impl SessionStorage for InMemorySessionStorage {
         self.sessions
             .lock()
             .map_err(|_| Error)?
-            .insert(session_id.clone(), session_time.to_string());
+            .entry(username)
+            .or_default()
+            .insert(session_id.clone(), session_time);
         Ok(session_id)
     }
 
     fn end_session(&self, username: String, session_id: EncryptionContext) -> Result<(), Error> {
-        let session_id = format!("{}_{:?}", username, session_id);
+        let session_id = full_session_id(&username, &session_id.to_key_string()?);
         let mut sessions = self.sessions.lock().map_err(|_| Error)?;
-        sessions.remove(&session_id);
+        if let Some(user_sessions) = sessions.get_mut(&username) {
+            user_sessions.remove(&session_id);
+            if user_sessions.is_empty() {
+                sessions.remove(&username);
+            }
+        }
         Ok(())
     }
 
     fn get_sessions_for_user(&self, username: String) -> Result<Vec<EncryptionContext>, Error> {
-        self.clean_expired_sessions()?;
+        let mut sessions = self.sessions.lock().map_err(|_| Error)?;
+        self.clean_expired_sessions(&mut sessions);
 
-        let sessions = self.sessions.lock().map_err(|_| Error)?;
-        let sessions: Vec<EncryptionContext> = sessions
-            .iter()
-            .filter(|(session_id, _)| session_id.starts_with(&username))
-            .map(|(session_id, _)| EncryptionContext::from(session_id))
-            .collect();
-        Ok(sessions)
-    }
-
-    fn get_all_sessions(&self) -> Result<Vec<EncryptionContext>, Error> {
-        self.clean_expired_sessions()?;
-
-        let sessions = self.sessions.lock().map_err(|_| Error)?;
-        let sessions: Vec<EncryptionContext> = sessions
-            .keys()
-            .map(|session_id| EncryptionContext::from(session_id))
-            .collect();
-        Ok(sessions)
+        Ok(sessions
+            .get(&username)
+            .map(|user_sessions| {
+                user_sessions
+                    .keys()
+                    .map(|id| EncryptionContext::from(id.as_str()))
+                    .collect()
+            })
+            .unwrap_or_default())
     }
 
     fn session_exists(
@@ -280,20 +298,19 @@ impl SessionStorage for InMemorySessionStorage {
         username: String,
         session_id: EncryptionContext,
     ) -> Result<bool, Error> {
-        self.clean_expired_sessions()?;
+        let session_id = full_session_id(&username, &session_id.to_key_string()?);
 
-        let session_id = session_id.to_key_string()?;
+        let mut sessions = self.sessions.lock().map_err(|_| Error)?;
+        self.clean_expired_sessions(&mut sessions);
 
-        // Check if the session_id already contains the username prefix
-        let key = if session_id.starts_with(&format!("{}_", username)) {
-            session_id
-        } else {
-            // Add the prefix if it doesn't already have it
-            format!("{}_{}", username, session_id)
-        };
+        Ok(sessions
+            .get(&username)
+            .is_some_and(|user_sessions| user_sessions.contains_key(&session_id)))
+    }
 
-        let sessions = self.sessions.lock().map_err(|_| Error)?;
-        Ok(sessions.contains_key(&key))
+    fn is_healthy(&self) -> Result<(), Error> {
+        // Only verifies the mutex isn't poisoned; never walks the session map
+        self.sessions.lock().map(|_| ()).map_err(|_| Error)
     }
 
     fn clone_box(&self) -> Box<dyn SessionStorage> {

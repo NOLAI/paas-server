@@ -68,10 +68,7 @@ pub async fn health(session_storage: Data<Box<dyn SessionStorage>>) -> impl Resp
 }
 
 async fn check_session_storage(storage: &dyn SessionStorage) -> Result<(), std::fmt::Error> {
-    // Try to perform a lightweight operation to verify storage is accessible
-    // For Redis: this will check connection pool health
-    // For InMemory: this will verify the mutex isn't poisoned
-    storage.get_all_sessions().map(|_| ())
+    storage.is_healthy()
 }
 
 pub async fn status(paas_system_id: Data<SystemId>) -> impl Responder {
