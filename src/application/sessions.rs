@@ -1,6 +1,6 @@
 use crate::auth::core::AuthInfo;
 use crate::errors::PAASServerError;
-use crate::session_storage::SessionStorage;
+use crate::session_storage::{is_session_of, SessionStorage};
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
 use libpep::factors::EncryptionContext;
@@ -46,18 +46,10 @@ pub async fn end_session(
             "Global context cannot be used as session key".to_string(),
         ));
     };
-    let sub_in_session =
-        session_id_str
-            .split('_')
-            .next()
-            .ok_or(PAASServerError::InvalidSessionFormat(
-                "Expected Specific context".to_string(),
-            ))?;
-
-    if user.sub.as_str() != sub_in_session {
+    if !is_session_of(session_id_str, &user.sub) {
         warn!(
-            "Unauthorized session access attempt: session={:?} {} owner={}",
-            session_id, *user, sub_in_session
+            "Unauthorized session access attempt: session={:?} {}",
+            session_id, *user
         );
         return Err(PAASServerError::UnauthorizedSession);
     }
