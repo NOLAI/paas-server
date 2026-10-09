@@ -79,7 +79,7 @@ jobs:
         run: echo "LOWERCASE_IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.LOWERCASE_IMAGE_NAME }}
           tags: |
