@@ -1,4 +1,4 @@
-use libpep::factors::EncryptionContext;
+use libpep::contexts::EncryptionContext;
 use paas_server::session_storage::{
     is_session_of, InMemorySessionStorage, SessionStorage, ToSessionKey,
 };

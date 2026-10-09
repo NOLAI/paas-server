@@ -1,6 +1,6 @@
 use crate::auth::core::AuthInfo;
 use chrono::{DateTime, Utc};
-use libpep::factors::PseudonymizationDomain;
+use libpep::contexts::PseudonymizationDomain;
 use serde::Deserialize;
 use serde::Serialize;
 
