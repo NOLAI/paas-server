@@ -4,6 +4,7 @@ use actix_web::web::Data;
 use actix_web::{test, web, App, HttpMessage};
 use libpep::client::encrypt;
 use libpep::client::prelude::{Attribute, EncryptedAttribute, EncryptedPseudonym, Pseudonym};
+use libpep::contexts::PseudonymizationDomain;
 use libpep::data::json::EncryptedPEPJSONValue;
 use libpep::data::long::{
     LongAttribute, LongEncryptedAttribute, LongEncryptedPseudonym, LongPseudonym,
@@ -11,7 +12,7 @@ use libpep::data::long::{
 use libpep::data::padding::Padded;
 use libpep::data::records::{EncryptedRecord, LongEncryptedRecord};
 use libpep::data::simple::ElGamalEncrypted;
-use libpep::factors::{EncryptionSecret, PseudonymizationDomain, PseudonymizationSecret};
+use libpep::factors::{EncryptionSecret, PseudonymizationSecret};
 use libpep::keys::distribution::BlindingFactor;
 use libpep::keys::PublicKey;
 use libpep::keys::{AttributeSessionPublicKey, PseudonymSessionPublicKey};

@@ -1,5 +1,5 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
-use libpep::transcryptor::BatchError;
+use libpep::errors::BatchError;
 use log::{error, warn};
 use serde_json::json;
 use thiserror::Error;

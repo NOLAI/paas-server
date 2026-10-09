@@ -1,5 +1,5 @@
 use chrono::Utc;
-use libpep::factors::PseudonymizationDomain;
+use libpep::contexts::PseudonymizationDomain;
 use paas_server::access_rules::{AccessRules, Permission};
 use paas_server::auth::core::AuthInfo;
 

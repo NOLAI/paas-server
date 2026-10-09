@@ -3,7 +3,7 @@ use crate::errors::PAASServerError;
 use crate::session_storage::{is_session_of, SessionStorage};
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse};
-use libpep::factors::EncryptionContext;
+use libpep::contexts::EncryptionContext;
 use libpep::transcryptor::DistributedTranscryptor;
 use log::{info, warn};
 use paas_api::sessions::{EndSessionRequest, SessionResponse, StartSessionResponse};
